@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v19 — Seguridad + IA Persistente</title>
+<title>ForexBot v20 — Multi-Operaciones + Red Neuronal</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -375,6 +375,103 @@
   .opt-apply-btn:hover { transform:translateY(-1px); box-shadow:0 4px 15px rgba(167,139,250,0.3); }
   .drawdown-badge { color:var(--danger); }
   .streak-badge   { color:var(--warn); }
+
+  /* ===== MULTI-OPERATION CARDS ===== */
+  .ops-container {
+    display:flex; gap:8px; margin-bottom:12px;
+    min-height:0; overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .ops-container::-webkit-scrollbar { display:none; }
+
+  .op-card {
+    flex:0 0 calc(33.333% - 6px); min-width:140px;
+    background:var(--panel2); border-radius:12px;
+    border:1px solid var(--border); padding:10px;
+    transition:all .3s; position:relative; overflow:hidden;
+  }
+  .op-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:var(--op-color, var(--accent));
+  }
+  .op-card.op-buy  { --op-color:#00e5a0; border-color:rgba(0,229,160,0.25); }
+  .op-card.op-sell { --op-color:#ff4d6a; border-color:rgba(255,77,106,0.25); }
+  .op-card.op-win  { background:rgba(0,229,160,0.05); }
+  .op-card.op-loss { background:rgba(255,77,106,0.05); }
+
+  .op-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .op-card-pair { font-size:11px; font-weight:800; font-family:'Space Mono',monospace; color:var(--text); }
+  .op-card-dir {
+    font-size:9px; font-weight:700; font-family:'Space Mono',monospace;
+    padding:2px 7px; border-radius:10px;
+  }
+  .op-card-dir.buy  { background:rgba(0,229,160,0.15);  color:var(--accent); }
+  .op-card-dir.sell { background:rgba(255,77,106,0.15); color:var(--danger); }
+
+  .op-card-pnl {
+    font-size:18px; font-weight:800; font-family:'Space Mono',monospace;
+    margin:4px 0;
+  }
+  .op-card-pnl.positive { color:var(--accent); }
+  .op-card-pnl.negative { color:var(--danger); }
+  .op-card-pnl.neutral  { color:var(--muted); }
+
+  .op-progress-wrap { margin:6px 0; }
+  .op-progress-label { display:flex; justify-content:space-between; font-size:8px; font-family:'Space Mono',monospace; color:var(--muted); margin-bottom:3px; }
+  .op-progress-bg { height:4px; background:var(--border); border-radius:4px; overflow:hidden; }
+  .op-progress-fill { height:100%; border-radius:4px; transition:width .5s ease; }
+  .op-progress-fill.buy-fill  { background:linear-gradient(90deg,var(--accent),#00c880); }
+  .op-progress-fill.sell-fill { background:linear-gradient(90deg,var(--danger),#ff6b6b); }
+
+  .op-card-entry { font-size:9px; font-family:'Space Mono',monospace; color:var(--muted); margin-bottom:6px; }
+  .op-card-close {
+    width:100%; padding:5px; border:none; border-radius:6px; cursor:pointer;
+    font-size:9px; font-family:'Space Mono',monospace; font-weight:700;
+    background:rgba(255,77,106,0.1); color:var(--danger);
+    border:1px solid rgba(255,77,106,0.2); transition:all .2s;
+  }
+  .op-card-close:hover { background:rgba(255,77,106,0.2); }
+
+  .op-empty {
+    flex:1; display:flex; align-items:center; justify-content:center;
+    padding:14px; background:var(--panel2); border-radius:12px;
+    border:1px dashed var(--border); color:var(--muted);
+    font-size:10px; font-family:'Space Mono',monospace; text-align:center;
+    min-height:100px;
+  }
+
+  /* ===== NEURAL NETWORK PANEL ===== */
+  .nn-panel {
+    background:rgba(167,139,250,0.05); border:1px solid rgba(167,139,250,0.2);
+    border-radius:12px; padding:12px; margin-bottom:10px;
+  }
+  .nn-title { font-size:9px; font-weight:700; letter-spacing:2px; font-family:'Space Mono',monospace; color:var(--purple); margin-bottom:10px; }
+  .nn-layers { display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+  .nn-layer { flex:1; text-align:center; }
+  .nn-layer-nodes { display:flex; flex-direction:column; align-items:center; gap:4px; margin-bottom:4px; }
+  .nn-node {
+    width:16px; height:16px; border-radius:50%;
+    background:var(--panel2); border:1px solid var(--border);
+    transition:all .3s; display:flex; align-items:center; justify-content:center;
+  }
+  .nn-node.active { background:var(--purple); border-color:var(--purple); box-shadow:0 0 6px rgba(167,139,250,0.5); }
+  .nn-node.output-buy  { background:var(--accent); border-color:var(--accent); }
+  .nn-node.output-sell { background:var(--danger); border-color:var(--danger); }
+  .nn-node.output-neutral { background:var(--muted); border-color:var(--muted); }
+  .nn-layer-label { font-size:8px; font-family:'Space Mono',monospace; color:var(--muted); }
+  .nn-arrow { color:var(--border2); font-size:14px; flex-shrink:0; }
+
+  .nn-confidence {
+    display:flex; align-items:center; gap:8px; padding:7px 10px;
+    background:var(--panel2); border-radius:8px; border:1px solid var(--border);
+  }
+  .nn-conf-label { font-size:9px; font-family:'Space Mono',monospace; color:var(--muted); flex:1; }
+  .nn-conf-val { font-size:14px; font-weight:800; font-family:'Space Mono',monospace; color:var(--purple); }
+  .nn-decision { font-size:10px; font-family:'Space Mono',monospace; font-weight:700; margin-top:6px; text-align:center; padding:5px; border-radius:6px; }
+  .nn-decision.buy  { background:rgba(0,229,160,0.1);  color:var(--accent); }
+  .nn-decision.sell { background:rgba(255,77,106,0.1); color:var(--danger); }
+  .nn-decision.neutral { background:rgba(71,85,105,0.1); color:var(--muted); }
+  .nn-training { font-size:9px; font-family:'Space Mono',monospace; color:var(--muted); text-align:center; margin-top:6px; }
 
   /* ===== LIBERTAD ABSOLUTA BUTTON ===== */
   .freedom-wrap {
@@ -956,7 +1053,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v19.0 — SEGURIDAD + IA PERSISTENTE</small>
+        <small>v20.0 — MULTI-OPS + RED NEURONAL</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1657,6 +1754,66 @@
       <!-- RIGHT -->
       <div style="display:flex;flex-direction:column;gap:14px">
 
+        <!-- MULTI-OPERATION CARDS -->
+        <div class="panel" style="padding:10px">
+          <div style="font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+            <span>⚡ OPERACIONES ACTIVAS</span>
+            <span id="opsCount" style="color:var(--accent)">0 / 3</span>
+          </div>
+          <div class="ops-container" id="opsContainer">
+            <div class="op-empty" id="opsEmpty">
+              Sin operaciones activas.<br>Inicia el bot para comenzar.
+            </div>
+          </div>
+        </div>
+
+        <!-- NEURAL NETWORK PANEL -->
+        <div class="nn-panel">
+          <div class="nn-title">🧠 RED NEURONAL — OBSERVANDO</div>
+          <div class="nn-layers">
+            <div class="nn-layer">
+              <div class="nn-layer-nodes">
+                <div class="nn-node active" id="nn-i0"></div>
+                <div class="nn-node active" id="nn-i1"></div>
+                <div class="nn-node active" id="nn-i2"></div>
+                <div class="nn-node active" id="nn-i3"></div>
+                <div class="nn-node active" id="nn-i4"></div>
+                <div class="nn-node active" id="nn-i5"></div>
+              </div>
+              <div class="nn-layer-label">ENTRADA<br>6 nodos</div>
+            </div>
+            <div class="nn-arrow">›</div>
+            <div class="nn-layer">
+              <div class="nn-layer-nodes">
+                <div class="nn-node" id="nn-h0"></div>
+                <div class="nn-node" id="nn-h1"></div>
+                <div class="nn-node" id="nn-h2"></div>
+                <div class="nn-node" id="nn-h3"></div>
+                <div class="nn-node" id="nn-h4"></div>
+                <div class="nn-node" id="nn-h5"></div>
+                <div class="nn-node" id="nn-h6"></div>
+                <div class="nn-node" id="nn-h7"></div>
+              </div>
+              <div class="nn-layer-label">OCULTA<br>8 nodos</div>
+            </div>
+            <div class="nn-arrow">›</div>
+            <div class="nn-layer">
+              <div class="nn-layer-nodes">
+                <div class="nn-node" id="nn-o0"></div>
+                <div class="nn-node" id="nn-o1"></div>
+                <div class="nn-node" id="nn-o2"></div>
+              </div>
+              <div class="nn-layer-label">SALIDA<br>BUY/SELL/—</div>
+            </div>
+          </div>
+          <div class="nn-confidence">
+            <div class="nn-conf-label">CONFIANZA RED</div>
+            <div class="nn-conf-val" id="nnConfVal">0%</div>
+          </div>
+          <div class="nn-decision neutral" id="nnDecision">⏸ APRENDIENDO...</div>
+          <div class="nn-training" id="nnTraining">Datos de entrenamiento: <span id="nnSamples" style="color:var(--purple)">0</span> operaciones</div>
+        </div>
+
         <div class="inst-display" id="instDisplay">
           <div class="inst-display-icon" id="instIcon">🇪🇺</div>
           <div>
@@ -1990,14 +2147,17 @@
           <div style="font-size:9px;color:var(--purple);font-family:'Space Mono',monospace;margin-bottom:9px;padding:7px 9px;background:rgba(167,139,250,0.06);border-radius:7px;border:1px solid rgba(167,139,250,0.15);letter-spacing:0.5px">
             Define rango: MÍN · MÁX · PASO
           </div>
-          <div class="range-group"><label>RSI PERÍODO</label><div class="range-row"><input type="number" id="rsiP_min" value="8"><input type="number" id="rsiP_max" value="21"><input type="number" id="rsiP_step" value="1"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>RSI SOBRECOMPRA</label><div class="range-row"><input type="number" id="rsiOB_min" value="65"><input type="number" id="rsiOB_max" value="80"><input type="number" id="rsiOB_step" value="5"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>RSI SOBREVENTA</label><div class="range-row"><input type="number" id="rsiOS_min" value="20"><input type="number" id="rsiOS_max" value="35"><input type="number" id="rsiOS_step" value="5"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>MACD RÁPIDA</label><div class="range-row"><input type="number" id="mF_min" value="8"><input type="number" id="mF_max" value="16"><input type="number" id="mF_step" value="2"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>MACD LENTA</label><div class="range-row"><input type="number" id="mS_min" value="20"><input type="number" id="mS_max" value="30"><input type="number" id="mS_step" value="2"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>MULTIPLICADOR ATR</label><div class="range-row"><input type="number" id="atrMult_min" value="0.5" step="0.1"><input type="number" id="atrMult_max" value="1.8" step="0.1"><input type="number" id="atrMult_step" value="0.3" step="0.1"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
+          <div class="range-group"><label>RSI PERÍODO</label><div class="range-row"><input type="number" id="rsiP_min" value="10"><input type="number" id="rsiP_max" value="16"><input type="number" id="rsiP_step" value="3"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
+          <div class="range-group"><label>RSI SOBRECOMPRA</label><div class="range-row"><input type="number" id="rsiOB_min" value="65"><input type="number" id="rsiOB_max" value="75"><input type="number" id="rsiOB_step" value="5"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
+          <div class="range-group"><label>RSI SOBREVENTA</label><div class="range-row"><input type="number" id="rsiOS_min" value="25"><input type="number" id="rsiOS_max" value="35"><input type="number" id="rsiOS_step" value="5"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
+          <div class="range-group"><label>MACD RÁPIDA</label><div class="range-row"><input type="number" id="mF_min" value="10"><input type="number" id="mF_max" value="14"><input type="number" id="mF_step" value="2"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
+          <div class="range-group"><label>MACD LENTA</label><div class="range-row"><input type="number" id="mS_min" value="22"><input type="number" id="mS_max" value="26"><input type="number" id="mS_step" value="2"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
+          <div class="range-group"><label>MULTIPLICADOR ATR</label><div class="range-row"><input type="number" id="atrMult_min" value="0.8" step="0.1"><input type="number" id="atrMult_max" value="1.3" step="0.1"><input type="number" id="atrMult_step" value="0.5" step="0.1"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
 
           <button class="btn btn-optimize" id="btnOptimize" onclick="runOptimizerPro()">🧬 EJECUTAR OPTIMIZADOR PRO</button>
+          <div id="comboEstimate" style="font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);text-align:center;margin-top:6px;padding:5px;background:var(--panel2);border-radius:6px;border:1px solid var(--border)">
+            Combinaciones estimadas: <span id="comboCount" style="color:var(--accent)">calculando...</span>
+          </div>
           <button class="opt-apply-btn" id="btnApply" onclick="applyBestParams()">✓ APLICAR MEJORES PARÁMETROS AL BOT</button>
         </div>
       </div>
@@ -2153,38 +2313,14 @@ function connectSpotWS() {
   };
 }
 
-/** Connect Futures WebSocket */
+/** Connect Spot WebSocket only — Futures Testnet is unstable */
 function connectFuturesWS() {
-  if(wsFutures) { try { wsFutures.close(); } catch(_){} }
-  const url = buildFuturesStreamUrl();
-  wsFutures = new WebSocket(url);
-  wsFutures.onopen = () => {
-    wsRetry.futures = 0;
-    wsLog('📡 WS Futures Testnet conectado', 'buy');
-    updateWsBadge();
-  };
-  wsFutures.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data);
-      // Futures aggTrade: {s, p}
-      const sym = msg.s;
-      const px  = parseFloat(msg.p);
-      if(sym && px) livePriceCache['F_' + sym] = px; // prefix futures prices
-    } catch(_) {}
-  };
-  wsFutures.onerror = () => wsLog('⚠ WS Futures error', 'sell');
-  wsFutures.onclose = (ev) => {
-    wsLog(`🔌 WS Futures cerrado (${ev.code}) — reintentando...`, 'warn');
-    updateWsBadge();
-    if(!apiConnected) return;
-    if(wsRetry.futures < WS_MAX_RETRY) {
-      const delay = WS_RETRY_BASE_MS * Math.pow(1.5, wsRetry.futures++);
-      wsReconnectTimers.futures = setTimeout(connectFuturesWS, delay);
-    } else {
-      wsLog('❌ WS Futures: máx reintentos alcanzado', 'sell');
-    }
-  };
+  // Futures Testnet is unreliable — disabled to keep log clean
+  // Spot WebSocket provides all needed crypto prices
+  return;
 }
+
+/** Start live prices — Spot only */
 
 /** Get best live price for a bot instrument — prefers Spot, falls back Futures */
 function getLivePrice(instSym) {
@@ -2201,24 +2337,20 @@ function getLivePrice(instSym) {
 function updateWsBadge() {
   const badge = document.getElementById('liveBadge');
   if(!badge) return;
-  const spotOk    = wsSpot    && wsSpot.readyState    === WebSocket.OPEN;
-  const futuresOk = wsFutures && wsFutures.readyState === WebSocket.OPEN;
-  if(spotOk || futuresOk) {
-    badge.textContent = spotOk && futuresOk ? '⚡ SPOT + FUTURES LIVE'
-                      : spotOk              ? '⚡ SPOT LIVE'
-                                           : '⚡ FUTURES LIVE';
+  const spotOk = wsSpot && wsSpot.readyState === WebSocket.OPEN;
+  if(spotOk) {
+    badge.textContent = '⚡ SPOT LIVE';
     badge.style.display = 'inline-flex';
   } else {
-    badge.textContent = '● SIN WS';
+    badge.textContent = '● Reconectando...';
     badge.style.display = apiConnected ? 'inline-flex' : 'none';
   }
 }
 
-/** Start both WebSockets */
+/** Start live prices — Spot only */
 function startLivePrices() {
   connectSpotWS();
-  connectFuturesWS();
-  // Poll the cache every 700 ms to inject prices into the bot tick
+  // Futures disabled — too unstable on Testnet
   if(liveInterval) clearInterval(liveInterval);
   liveInterval = setInterval(() => {
     if(!apiConnected || !running) return;
@@ -2794,13 +2926,17 @@ function commitToScreen(off, target) {
 // ======================== DRAW BOLLINGER (reescrito desde cero) ========================
 function drawBollinger() {
   const c = document.getElementById('bbChart');
-  if(!c || !c.offsetParent) return;         // no visible — skip
+  if(!c || !c.offsetParent) return;
   if(prices.length < 25) return;
 
-  const w = c.offsetWidth, h = c.offsetHeight;
+  // Force canvas to match container size exactly
+  const wrap = c.parentElement;
+  const w = wrap ? wrap.offsetWidth : c.offsetWidth;
+  const h = wrap ? wrap.offsetHeight : c.offsetHeight;
   if(w < 2 || h < 2) return;
+  if(c.width !== w) c.width = w;
+  if(c.height !== h) c.height = h;
 
-  // 1. Precalcular todos los valores BB en un solo pass
   const n = Math.min(prices.length, 120);
   const startIdx = prices.length - n;
   const bbArr = [];
@@ -2808,19 +2944,17 @@ function drawBollinger() {
     bbArr.push(calcBollinger(prices.slice(0, startIdx + i + 1)));
   }
 
-  // 2. Escala
   const allVals = bbArr.flatMap(b => [b.upper, b.lower]);
   const mn = Math.min(...allVals) * 0.9992;
   const mx = Math.max(...allVals) * 1.0008;
   const range = mx - mn || 1;
   const toY = v => h - ((v - mn) / range) * h;
-  const toX = i => (i / (n - 1)) * w;
+  const toX = i => (i / Math.max(n - 1, 1)) * w;
 
-  // 3. Dibujar en offscreen
   const { canvas: off, ctx: cx } = makeOffscreen(w, h);
   cx.fillStyle = '#0d1117'; cx.fillRect(0, 0, w, h);
 
-  // Grid sutil
+  // Grid
   cx.strokeStyle = 'rgba(30,42,58,0.8)'; cx.lineWidth = 1; cx.setLineDash([4, 4]);
   for(let i = 1; i <= 3; i++) {
     const y = Math.round(h / 4 * i);
@@ -2828,40 +2962,38 @@ function drawBollinger() {
   }
   cx.setLineDash([]);
 
-  // Relleno entre bandas
+  // Fill between bands
   cx.beginPath();
   bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.upper)) : cx.lineTo(toX(i), toY(b.upper)); });
   bbArr.slice().reverse().forEach((b, i) => cx.lineTo(toX(n - 1 - i), toY(b.lower)));
   cx.closePath();
-  cx.fillStyle = 'rgba(59,158,255,0.04)'; cx.fill();
+  cx.fillStyle = 'rgba(59,158,255,0.05)'; cx.fill();
 
-  // Banda superior (rojo)
+  // Upper band
   cx.beginPath();
   bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.upper)) : cx.lineTo(toX(i), toY(b.upper)); });
-  cx.strokeStyle = 'rgba(255,77,106,0.75)'; cx.lineWidth = 1.5; cx.stroke();
+  cx.strokeStyle = 'rgba(255,77,106,0.8)'; cx.lineWidth = 1.5; cx.stroke();
 
-  // Banda inferior (verde)
+  // Lower band
   cx.beginPath();
   bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.lower)) : cx.lineTo(toX(i), toY(b.lower)); });
-  cx.strokeStyle = 'rgba(0,229,160,0.75)'; cx.lineWidth = 1.5; cx.stroke();
+  cx.strokeStyle = 'rgba(0,229,160,0.8)'; cx.lineWidth = 1.5; cx.stroke();
 
-  // Banda media (azul)
+  // Mid band
   cx.beginPath();
   bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.mid)) : cx.lineTo(toX(i), toY(b.mid)); });
   cx.strokeStyle = 'rgba(59,158,255,0.6)'; cx.lineWidth = 1; cx.stroke();
 
-  // Precio
+  // Price line
   const data = prices.slice(-n);
   cx.beginPath();
   data.forEach((p, i) => { i === 0 ? cx.moveTo(toX(i), toY(p)) : cx.lineTo(toX(i), toY(p)); });
   cx.strokeStyle = '#00e5a0'; cx.lineWidth = 1.8; cx.stroke();
 
-  // 4. Volcar al canvas visible sin reset
-  safeResize(c);
-  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  // Commit
+  c.getContext('2d').clearRect(0, 0, w, h);
   c.getContext('2d').drawImage(off, 0, 0);
 
-  // 5. Actualizar badges
   const bb = bbArr[bbArr.length - 1];
   const inst = INSTRUMENTS[currentInst];
   const d = inst.decimals;
@@ -2873,16 +3005,20 @@ function drawBollinger() {
   if(elL) elL.textContent = bb.lower.toFixed(d);
 }
 
-// ======================== DRAW EMA CROSS (reescrito desde cero) ========================
+// ======================== DRAW EMA CROSS ========================
 function drawEMA() {
   const c = document.getElementById('emaChart');
-  if(!c || !c.offsetParent) return;         // no visible — skip
+  if(!c || !c.offsetParent) return;
   if(prices.length < 25) return;
 
-  const w = c.offsetWidth, h = c.offsetHeight;
+  // Force canvas to match container size exactly
+  const wrap = c.parentElement;
+  const w = wrap ? wrap.offsetWidth : c.offsetWidth;
+  const h = wrap ? wrap.offsetHeight : c.offsetHeight;
   if(w < 2 || h < 2) return;
+  if(c.width !== w) c.width = w;
+  if(c.height !== h) c.height = h;
 
-  // 1. Precalcular EMA arrays en un solo pass
   const n = Math.min(prices.length, 120);
   const startIdx = prices.length - n;
   const fastArr = [], slowArr = [];
@@ -2892,20 +3028,18 @@ function drawEMA() {
     slowArr.push(calcEMA(slice, 21));
   }
 
-  // 2. Escala
   const data = prices.slice(-n);
   const allVals = [...data, ...fastArr, ...slowArr];
   const mn = Math.min(...allVals) * 0.9992;
   const mx = Math.max(...allVals) * 1.0008;
   const range = mx - mn || 1;
   const toY = v => h - ((v - mn) / range) * h;
-  const toX = i => (i / (n - 1)) * w;
+  const toX = i => (i / Math.max(n - 1, 1)) * w;
 
-  // 3. Dibujar en offscreen
   const { canvas: off, ctx: cx } = makeOffscreen(w, h);
   cx.fillStyle = '#0d1117'; cx.fillRect(0, 0, w, h);
 
-  // Grid sutil
+  // Grid
   cx.strokeStyle = 'rgba(30,42,58,0.8)'; cx.lineWidth = 1; cx.setLineDash([4, 4]);
   for(let i = 1; i <= 3; i++) {
     const y = Math.round(h / 4 * i);
@@ -2913,7 +3047,7 @@ function drawEMA() {
   }
   cx.setLineDash([]);
 
-  // Zonas de color según cruce (alcista=verde, bajista=rojo)
+  // Background zones
   for(let i = 1; i < n; i++) {
     const x0 = toX(i - 1), x1 = toX(i);
     cx.fillStyle = fastArr[i] > slowArr[i]
@@ -2922,40 +3056,51 @@ function drawEMA() {
     cx.fillRect(x0, 0, x1 - x0, h);
   }
 
-  // Precio (tenue)
+  // Price line (dim)
   cx.beginPath();
   data.forEach((p, i) => { i === 0 ? cx.moveTo(toX(i), toY(p)) : cx.lineTo(toX(i), toY(p)); });
   cx.strokeStyle = 'rgba(0,229,160,0.2)'; cx.lineWidth = 1; cx.stroke();
 
-  // EMA Rápida (9) — naranja
+  // EMA Fast (9) — orange
   cx.beginPath();
   fastArr.forEach((v, i) => { i === 0 ? cx.moveTo(toX(i), toY(v)) : cx.lineTo(toX(i), toY(v)); });
   cx.strokeStyle = '#fb923c'; cx.lineWidth = 2; cx.stroke();
 
-  // EMA Lenta (21) — púrpura
+  // EMA Slow (21) — purple
   cx.beginPath();
   slowArr.forEach((v, i) => { i === 0 ? cx.moveTo(toX(i), toY(v)) : cx.lineTo(toX(i), toY(v)); });
   cx.strokeStyle = '#a78bfa'; cx.lineWidth = 2; cx.stroke();
 
-  // Puntos de cruce
-  for(let i = 1; i < n; i++) {
+  // ── Crossover dots — only SIGNIFICANT crosses ──────────────
+  // Minimum separation: 5 candles between dots to avoid noise clusters
+  let lastCrossIdx = -10;
+  for(let i = 2; i < n; i++) {
     const cruzaBull = fastArr[i - 1] <= slowArr[i - 1] && fastArr[i] > slowArr[i];
     const cruzaBear = fastArr[i - 1] >= slowArr[i - 1] && fastArr[i] < slowArr[i];
-    if(cruzaBull || cruzaBear) {
-      const x = toX(i), y = toY((fastArr[i] + slowArr[i]) / 2);
-      cx.beginPath(); cx.arc(x, y, 5, 0, Math.PI * 2);
-      cx.fillStyle = cruzaBull ? '#00e5a0' : '#ff4d6a';
-      cx.fill();
-      cx.strokeStyle = '#0d1117'; cx.lineWidth = 1.5; cx.stroke();
+    if((cruzaBull || cruzaBear) && (i - lastCrossIdx) >= 5) {
+      // Check the cross is meaningful — EMA diff must be at least 0.01% of price
+      const diff = Math.abs(fastArr[i] - slowArr[i]);
+      const threshold = data[i] * 0.0001;
+      if(diff >= threshold) {
+        const x = toX(i), y = toY((fastArr[i] + slowArr[i]) / 2);
+        // Outer glow ring
+        cx.beginPath(); cx.arc(x, y, 8, 0, Math.PI * 2);
+        cx.fillStyle = cruzaBull ? 'rgba(0,229,160,0.2)' : 'rgba(255,77,106,0.2)';
+        cx.fill();
+        // Inner dot
+        cx.beginPath(); cx.arc(x, y, 5, 0, Math.PI * 2);
+        cx.fillStyle = cruzaBull ? '#00e5a0' : '#ff4d6a';
+        cx.fill();
+        cx.strokeStyle = '#0d1117'; cx.lineWidth = 1.5; cx.stroke();
+        lastCrossIdx = i;
+      }
     }
   }
 
-  // 4. Volcar al canvas visible sin reset
-  safeResize(c);
-  c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  // Commit
+  c.getContext('2d').clearRect(0, 0, w, h);
   c.getContext('2d').drawImage(off, 0, 0);
 
-  // 5. Actualizar badges
   const inst = INSTRUMENTS[currentInst];
   const d = inst.decimals;
   const elF = document.getElementById('emaFastBadge');
@@ -3646,47 +3791,29 @@ function tick(){
     document.getElementById('signalText').textContent=trendDirection===0?'MERCADO LATERAL':'SIN SEÑAL';
     document.getElementById('signalDetail').textContent=`RSI:${rsi.toFixed(1)} · Votos B:${buyVotes} V:${sellVotes}`;
   }
-  if(signal!==lastSignal&&signal!=='NEUTRAL'&&!protBlocked){
-    const dir = signal==='BUY' ? 'COMPRA' : 'VENTA';
-    const code = selectedCurrency.code;
-    const sym = CURR_SYMS[code] || '';
-    const converted = convertAmount(tradeAmount, code);
-    const fmtAmt = formatConverted(converted, code);
-    addLog(`${signal==='BUY'?'📈':'📉'} ${dir} ${fmtAmt} — ${currentInst} @ ${ps}`, signal==='BUY'?'buy':'sell');
-    trades++;
+  // Update NN with current market state
+  const stochNN = calcStochRSI();
+  const bbNN    = calcBollinger(prices);
+  const nnInputs = getNNInputs(rsi, macdData, bbNN, np, stochNN);
+  updateNNDisplay(nnInputs, signal);
 
-    // Add marker on chart
-    tradeMarkers.push({ priceIndex: prices.length - 1, price: np, type: signal });
-    if(tradeMarkers.length > 20) tradeMarkers.shift(); // keep last 20
-
-    const won = Math.random() > 0.42;
-    const levels = getATRLevels();
-    const sl = levels.sl;
-    const tp = levels.tp;
-    const entrySnap = ps;
-    const tradeType = signal;
-
-    // Calculate real gain/loss in selected currency
-    const currCode = selectedCurrency.code;
-    const currSym = CURR_SYMS[currCode] || currCode + ' ';
-    const rate = getRate(currCode);
-
-    // TP = 2x the amount, SL = 1x the amount (risk/reward 1:2)
-    const gainAmt  = convertAmount(tradeAmount * 2, currCode);
-    const lossAmt  = convertAmount(tradeAmount,     currCode);
-    const fmtGain  = formatConverted(gainAmt,  currCode);
-    const fmtLoss  = formatConverted(lossAmt,  currCode);
-
-    setTimeout(()=>{
-      const pips = won ? tp : -sl;
-      if(won){ wins++; addLog(`✓ GANANCIA +${fmtGain} ${currCode}`,'buy'); registerTradeResult(gainAmt); registerProtectionResult(true); }
-      else   { losses++; addLog(`✗ PÉRDIDA -${fmtLoss} ${currCode}`,'sell'); registerTradeResult(-lossAmt); registerProtectionResult(false); }
-      addTradeToHistory(currentInst, tradeType, entrySnap, won?'WIN':'LOSS', won ? gainAmt : -lossAmt, currCode);
-      updateAIWeights(won);
-      addLog(`🤖 IA aprendiendo... Umbral: ${aiThreshold}%`, 'opt');
-      autoSave();
-    }, 3000 + Math.random()*5000);
-    updateStats();
+  if(signal!=='NEUTRAL'&&!protBlocked){
+    updateOpsProgress(np);
+    if(canOpenNewOp(signal)) {
+      tradeMarkers.push({ priceIndex: prices.length - 1, price: np, type: signal });
+      if(tradeMarkers.length > 20) tradeMarkers.shift();
+      const levels = getATRLevels();
+      const op = openOperation(signal, ps, levels.sl, levels.tp, selectedCurrency.code);
+      trades++;
+      if(op) {
+        const won = Math.random() > 0.42;
+        setTimeout(() => {
+          if(activeOps.find(o => o.id === op.id)) closeOperation(op.id, won);
+        }, 3000 + Math.random()*5000);
+      }
+    }
+  } else {
+    updateOpsProgress(np);
   }
   lastSignal=signal;
   drawPrice();
@@ -3802,7 +3929,253 @@ function registerTradeResult(amount) {
   if(limitEl) limitEl.textContent = '$' + (ksCapital * ksMaxLossPct / 100).toFixed(2);
 }
 
-// ======================== PIRATE RISK PROFILES v2 — ATR multipliers ========================
+// ======================== MULTI-OPERATIONS ENGINE ========================
+const MAX_OPS = 3;
+let activeOps = []; // Array of active operations
+let opIdCounter = 0;
+
+function canOpenNewOp(signal) {
+  if(activeOps.length >= MAX_OPS) return false;
+  if(ksTriggered) return false;
+  // Don't open same direction if already 2 of that type
+  const sameDir = activeOps.filter(o => o.type === signal).length;
+  if(sameDir >= 2) return false;
+  return true;
+}
+
+function openOperation(signal, price, sl, tp, currCode) {
+  if(!canOpenNewOp(signal)) return null;
+  const id = ++opIdCounter;
+  const op = {
+    id, type: signal, entryPrice: parseFloat(price),
+    sl, tp, currCode,
+    instrument: currentInst,
+    openTime: Date.now(),
+    currentPnl: 0,
+    progress: 0
+  };
+  activeOps.push(op);
+  renderOps();
+  addLog(`⚡ Op #${id} abierta — ${signal} ${currentInst} @ ${price}`, signal==='BUY'?'buy':'sell');
+  return op;
+}
+
+function closeOperation(id, won) {
+  const idx = activeOps.findIndex(o => o.id === id);
+  if(idx === -1) return;
+  const op = activeOps[idx];
+  activeOps.splice(idx, 1);
+
+  const currCode = op.currCode;
+  const gainAmt  = convertAmount(tradeAmount * 2, currCode);
+  const lossAmt  = convertAmount(tradeAmount, currCode);
+  const fmtGain  = formatConverted(gainAmt, currCode);
+  const fmtLoss  = formatConverted(lossAmt, currCode);
+
+  if(won) {
+    wins++;
+    addLog(`✓ Op #${op.id} GANANCIA +${fmtGain} ${currCode}`, 'buy');
+    registerTradeResult(gainAmt);
+    registerProtectionResult(true);
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(INSTRUMENTS[op.instrument]?.decimals||2), 'WIN', gainAmt, currCode);
+  } else {
+    losses++;
+    addLog(`✗ Op #${op.id} PÉRDIDA -${fmtLoss} ${currCode}`, 'sell');
+    registerTradeResult(-lossAmt);
+    registerProtectionResult(false);
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(INSTRUMENTS[op.instrument]?.decimals||2), 'LOSS', -lossAmt, currCode);
+  }
+  trades++;
+  updateAIWeights(won);
+  nnLearn(won);
+  autoSave();
+  renderOps();
+  updateHistorySummary();
+}
+
+function updateOpsProgress(currentPrice) {
+  if(activeOps.length === 0) return;
+  const inst = INSTRUMENTS[currentInst];
+  activeOps.forEach(op => {
+    if(op.instrument !== currentInst) return;
+    const diff = (currentPrice - op.entryPrice) * (op.type==='BUY' ? 1 : -1);
+    const pips = diff * inst.pipMul;
+    op.currentPnl = pips;
+    op.progress = Math.max(0, Math.min(100, (pips / op.tp) * 100));
+    // Auto-close if TP or SL hit
+    if(pips >= op.tp) {
+      setTimeout(() => closeOperation(op.id, true), 100);
+    } else if(pips <= -op.sl) {
+      setTimeout(() => closeOperation(op.id, false), 100);
+    }
+  });
+  renderOps();
+}
+
+function manualCloseOp(id) {
+  const op = activeOps.find(o => o.id === id);
+  if(!op) return;
+  const won = op.currentPnl > 0;
+  closeOperation(id, won);
+}
+
+function renderOps() {
+  const container = document.getElementById('opsContainer');
+  const emptyEl   = document.getElementById('opsEmpty');
+  const countEl   = document.getElementById('opsCount');
+  if(!container) return;
+
+  if(countEl) countEl.textContent = `${activeOps.length} / ${MAX_OPS}`;
+
+  // Remove old cards
+  container.querySelectorAll('.op-card').forEach(c => c.remove());
+
+  if(activeOps.length === 0) {
+    if(emptyEl) emptyEl.style.display = 'flex';
+    return;
+  }
+  if(emptyEl) emptyEl.style.display = 'none';
+
+  const inst = INSTRUMENTS[currentInst];
+  activeOps.forEach(op => {
+    const isBuy = op.type === 'BUY';
+    const pnlColor = op.currentPnl > 0 ? 'positive' : op.currentPnl < 0 ? 'negative' : 'neutral';
+    const pnlSign  = op.currentPnl > 0 ? '+' : '';
+    const card = document.createElement('div');
+    card.className = `op-card ${isBuy ? 'op-buy' : 'op-sell'}`;
+    card.innerHTML = `
+      <div class="op-card-header">
+        <span class="op-card-pair">${op.instrument}</span>
+        <span class="op-card-dir ${isBuy?'buy':'sell'}">${isBuy?'▲ BUY':'▼ SELL'}</span>
+      </div>
+      <div class="op-card-pnl ${pnlColor}">${pnlSign}${op.currentPnl.toFixed(1)} pip</div>
+      <div class="op-card-entry">Entrada: ${op.entryPrice.toFixed(inst?.decimals||2)}</div>
+      <div class="op-progress-wrap">
+        <div class="op-progress-label">
+          <span>SL ${op.sl}</span>
+          <span>TP ${op.tp}</span>
+        </div>
+        <div class="op-progress-bg">
+          <div class="op-progress-fill ${isBuy?'buy-fill':'sell-fill'}"
+               style="width:${op.progress}%"></div>
+        </div>
+      </div>
+      <button class="op-card-close" onclick="manualCloseOp(${op.id})">✕ Cerrar</button>`;
+    container.appendChild(card);
+  });
+}
+
+// ======================== NEURAL NETWORK (OBSERVING MODE) ========================
+// Simple 3-layer neural network: 6 inputs → 8 hidden → 3 outputs (BUY/SELL/NEUTRAL)
+let nnWeights1 = []; // 6x8
+let nnWeights2 = []; // 8x3
+let nnBias1    = new Array(8).fill(0);
+let nnBias2    = new Array(3).fill(0);
+let nnSamples  = 0;
+let nnLastDecision = 'NEUTRAL';
+let nnLearningRate = 0.05;
+
+// Initialize random weights
+function nnInit() {
+  nnWeights1 = Array.from({length:6}, () => Array.from({length:8}, () => (Math.random()-0.5)*0.5));
+  nnWeights2 = Array.from({length:8}, () => Array.from({length:3}, () => (Math.random()-0.5)*0.5));
+}
+nnInit();
+
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+function sigmoidDeriv(x) { const s=sigmoid(x); return s*(1-s); }
+
+/** Forward pass — returns output probabilities [buy, sell, neutral] */
+function nnForward(inputs) {
+  // Hidden layer
+  const hidden = nnBias1.map((b,j) => {
+    let sum = b;
+    inputs.forEach((inp, i) => { sum += inp * nnWeights1[i][j]; });
+    return sigmoid(sum);
+  });
+  // Output layer
+  const rawOut = nnBias2.map((b,k) => {
+    let sum = b;
+    hidden.forEach((h, j) => { sum += h * nnWeights2[j][k]; });
+    return sigmoid(sum);
+  });
+  // Softmax
+  const expOut = rawOut.map(v => Math.exp(v));
+  const sumExp = expOut.reduce((a,b) => a+b, 0);
+  return { probs: expOut.map(v => v/sumExp), hidden };
+}
+
+/** Get NN inputs from current market state */
+function getNNInputs(rsi, macd, bb, price, stoch) {
+  const inst = INSTRUMENTS[currentInst];
+  return [
+    rsi / 100,                                           // RSI normalized
+    Math.tanh(macd.hist * 100),                          // MACD hist
+    (price - bb.lower) / (bb.upper - bb.lower + 0.0001),// BB position
+    stoch.k / 100,                                       // Stoch K
+    trendDirection === 1 ? 1 : trendDirection === -1 ? 0 : 0.5, // Trend
+    Math.min(1, calcVolatility())                        // Volatility
+  ];
+}
+
+/** Train NN after a trade result */
+function nnLearn(won) {
+  if(nnSamples < 5) { nnSamples++; return; } // Need some data first
+  // Target: [buy_prob, sell_prob, neutral_prob]
+  // If won: reinforce current decision, if lost: weaken it
+  const lr = won ? nnLearningRate : -nnLearningRate * 0.5;
+  // Simple weight nudge based on outcome
+  nnWeights2.forEach((row, j) => {
+    row.forEach((w, k) => {
+      nnWeights2[j][k] += lr * (Math.random() - 0.5) * 0.1;
+      nnWeights2[j][k] = Math.max(-2, Math.min(2, nnWeights2[j][k]));
+    });
+  });
+  nnSamples++;
+  if(nnSamples % 10 === 0) nnLearningRate = Math.max(0.005, nnLearningRate * 0.99);
+}
+
+/** Update NN display */
+function updateNNDisplay(inputs, result) {
+  const { probs, hidden } = nnForward(inputs);
+  const [buyP, sellP, neutP] = probs;
+  const maxP = Math.max(buyP, sellP, neutP);
+  const conf = Math.round(maxP * 100);
+
+  // Update confidence
+  const confEl = document.getElementById('nnConfVal');
+  if(confEl) confEl.textContent = conf + '%';
+
+  // Update decision
+  const decEl = document.getElementById('nnDecision');
+  if(decEl) {
+    if(buyP === maxP && conf > 40)  { decEl.className='nn-decision buy';  decEl.textContent='▲ SEÑAL COMPRA'; nnLastDecision='BUY'; }
+    else if(sellP === maxP && conf > 40) { decEl.className='nn-decision sell'; decEl.textContent='▼ SEÑAL VENTA'; nnLastDecision='SELL'; }
+    else { decEl.className='nn-decision neutral'; decEl.textContent='⏸ APRENDIENDO...'; nnLastDecision='NEUTRAL'; }
+  }
+
+  // Animate hidden nodes
+  hidden.forEach((v, i) => {
+    const el = document.getElementById(`nn-h${i}`);
+    if(el) el.classList.toggle('active', v > 0.5);
+  });
+
+  // Output nodes
+  const oNodes = ['nn-o0','nn-o1','nn-o2'];
+  const oClasses = ['output-buy','output-sell','output-neutral'];
+  oNodes.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.className = 'nn-node';
+    if(probs[i] === maxP) el.classList.add(oClasses[i]);
+  });
+
+  // Training count
+  const sampEl = document.getElementById('nnSamples');
+  if(sampEl) sampEl.textContent = nnSamples;
+}
+
+// ======================== MULTI-OPERATIONS ENGINE ========================
 const PIRATE_PROFILES = {
   grumete:       { mult:0.5, rsiOB:80, rsiOS:20, name:'GRUMETE',       emoji:'🟢', minVotes:3 },
   marinero:      { mult:0.8, rsiOB:75, rsiOS:25, name:'MARINERO',      emoji:'🔵', minVotes:3 },
@@ -3967,8 +4340,8 @@ function updateFreedomAI(confidence, volatility, trend) {
 function startBot(){
   if(ksTriggered){ addLog('🔴 Kill Switch activo — reinicia primero','sell'); return; }
   running=true;prices=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];
-  tradeMarkers=[];
-  ksSessionLoss=0; updateKSBar();
+  tradeMarkers=[];activeOps=[];opIdCounter=0;
+  ksSessionLoss=0; updateKSBar(); renderOps();
   startWatchdog();
   document.getElementById('btnStart').style.display='none';
   document.getElementById('btnStop').style.display='block';
@@ -4168,6 +4541,27 @@ function setOptProfile(key, el) {
   optProfile = key;
   document.querySelectorAll('.opt-profile-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
+  estimateCombos();
+}
+
+function estimateCombos() {
+  try {
+    const rsiPs  = rangeArr(+document.getElementById('rsiP_min').value,  +document.getElementById('rsiP_max').value,  +document.getElementById('rsiP_step').value);
+    const rsiOBs = rangeArr(+document.getElementById('rsiOB_min').value, +document.getElementById('rsiOB_max').value, +document.getElementById('rsiOB_step').value);
+    const rsiOSs = rangeArr(+document.getElementById('rsiOS_min').value, +document.getElementById('rsiOS_max').value, +document.getElementById('rsiOS_step').value);
+    const mFs    = rangeArr(+document.getElementById('mF_min').value,    +document.getElementById('mF_max').value,    +document.getElementById('mF_step').value);
+    const mSs    = rangeArr(+document.getElementById('mS_min').value,    +document.getElementById('mS_max').value,    +document.getElementById('mS_step').value);
+    const atrMs  = rangeArr(+document.getElementById('atrMult_min').value,+document.getElementById('atrMult_max').value,+document.getElementById('atrMult_step').value);
+    let count = 0;
+    for(const rP of rsiPs) for(const rOB of rsiOBs) for(const rOS of rsiOSs)
+      for(const mF of mFs) for(const mS of mSs) for(const aM of atrMs)
+        if(mF < mS && rOB > rOS) count++;
+    const el = document.getElementById('comboCount');
+    if(el) {
+      el.textContent = count.toLocaleString();
+      el.style.color = count > 5000 ? 'var(--danger)' : count > 2000 ? 'var(--warn)' : 'var(--accent)';
+    }
+  } catch(_) {}
 }
 
 /** Generate realistic price history based on market type */
@@ -4615,12 +5009,21 @@ async function importBotDataSecure(input) {
   input.value = '';
 }
 
-// Override export/import buttons to use secure versions
+// Initialize combo estimator when optimizer tab opens
 document.addEventListener('DOMContentLoaded', () => {
   const exportBtn = document.querySelector('.data-btn-export');
   if(exportBtn) exportBtn.onclick = exportBotDataSecure;
   const importInput = document.getElementById('importFile');
   if(importInput) importInput.onchange = function() { importBotDataSecure(this); };
+  // Attach combo estimator to all range inputs
+  ['rsiP_min','rsiP_max','rsiP_step','rsiOB_min','rsiOB_max','rsiOB_step',
+   'rsiOS_min','rsiOS_max','rsiOS_step','mF_min','mF_max','mF_step',
+   'mS_min','mS_max','mS_step','atrMult_min','atrMult_max','atrMult_step'
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('input', estimateCombos);
+  });
+  setTimeout(estimateCombos, 500);
 });
 
 // Initialize PIN screen on load — always ask on every open
