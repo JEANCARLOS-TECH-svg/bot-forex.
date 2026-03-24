@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v20 — Multi-Operaciones + Red Neuronal</title>
+<title>ForexBot v22 — Optimizado</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -376,6 +376,84 @@
   .drawdown-badge { color:var(--danger); }
   .streak-badge   { color:var(--warn); }
 
+  /* ===== OPERATION MODE SELECTOR ===== */
+  .mode-selector {
+    display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px;
+  }
+  .mode-btn {
+    padding:10px 8px; border-radius:10px; border:1px solid var(--border);
+    background:var(--panel2); cursor:pointer; transition:all .2s;
+    text-align:center; font-family:'Space Mono',monospace;
+  }
+  .mode-btn:hover { border-color:var(--accent); }
+  .mode-btn.active-auto { border-color:var(--accent); background:rgba(0,229,160,0.08); }
+  .mode-btn.active-manual { border-color:var(--accent2); background:rgba(59,158,255,0.08); }
+  .mode-btn-icon { font-size:20px; margin-bottom:4px; }
+  .mode-btn-name { font-size:11px; font-weight:700; color:var(--text); }
+  .mode-btn-desc { font-size:9px; color:var(--muted); margin-top:2px; }
+
+  /* ===== MANUAL OPERATION PANELS ===== */
+  .manual-panels {
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .manual-panel {
+    background:var(--panel2); border:1px solid var(--border);
+    border-radius:14px; overflow:hidden; transition:all .3s;
+  }
+  .manual-panel.active { border-color:rgba(59,158,255,0.3); }
+  .manual-panel-header {
+    display:flex; align-items:center; gap:8px; padding:10px 12px;
+    background:var(--panel); border-bottom:1px solid var(--border);
+  }
+  .manual-panel-num {
+    width:22px; height:22px; border-radius:50%; background:var(--accent2);
+    color:#000; font-size:11px; font-weight:800; font-family:'Space Mono',monospace;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .manual-panel-title { font-size:11px; font-weight:700; font-family:'Space Mono',monospace; flex:1; }
+  .manual-panel-close {
+    width:22px; height:22px; border:none; background:rgba(255,77,106,0.1);
+    border-radius:50%; color:var(--danger); cursor:pointer; font-size:12px;
+    display:flex; align-items:center; justify-content:center; transition:all .2s;
+  }
+  .manual-panel-close:hover { background:rgba(255,77,106,0.25); }
+  .manual-panel-body { padding:12px; }
+
+  /* Instrument picker inside manual panel */
+  .manual-inst-select {
+    width:100%; background:var(--bg); border:1px solid var(--border);
+    color:var(--text); padding:8px 10px; border-radius:8px;
+    font-family:'Space Mono',monospace; font-size:11px; outline:none;
+    margin-bottom:10px; transition:border-color .2s;
+  }
+  .manual-inst-select:focus { border-color:var(--accent2); }
+
+  /* Manual signal display */
+  .manual-signal {
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    border-radius:8px; margin-bottom:8px; font-family:'Space Mono',monospace;
+    font-size:11px; font-weight:700;
+  }
+  .manual-signal.buy     { background:rgba(0,229,160,0.08);  border:1px solid rgba(0,229,160,0.25);  color:var(--accent); }
+  .manual-signal.sell    { background:rgba(255,77,106,0.08); border:1px solid rgba(255,77,106,0.25); color:var(--danger); }
+  .manual-signal.neutral { background:rgba(71,85,105,0.08);  border:1px solid var(--border);          color:var(--muted); }
+
+  /* Manual stats row */
+  .manual-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:8px; }
+  .manual-stat { background:var(--bg); border-radius:7px; padding:6px; text-align:center; border:1px solid var(--border); }
+  .manual-stat-val { font-size:12px; font-weight:800; font-family:'Space Mono',monospace; }
+  .manual-stat-lbl { font-size:8px; color:var(--muted); margin-top:1px; }
+
+  /* Add panel button */
+  .add-panel-btn {
+    width:100%; padding:12px; border:2px dashed var(--border); border-radius:12px;
+    background:transparent; color:var(--muted); cursor:pointer; font-family:'Syne',sans-serif;
+    font-size:13px; font-weight:700; transition:all .2s; display:flex;
+    align-items:center; justify-content:center; gap:8px;
+  }
+  .add-panel-btn:hover { border-color:var(--accent2); color:var(--accent2); background:rgba(59,158,255,0.04); }
+  .add-panel-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
   /* ===== MULTI-OPERATION CARDS ===== */
   .ops-container {
     display:flex; gap:8px; margin-bottom:12px;
@@ -473,6 +551,27 @@
   .nn-decision.neutral { background:rgba(71,85,105,0.1); color:var(--muted); }
   .nn-training { font-size:9px; font-family:'Space Mono',monospace; color:var(--muted); text-align:center; margin-top:6px; }
 
+  /* ===== CHARTS TOGGLE BUTTON ===== */
+  .charts-toggle-btn {
+    width:100%; padding:9px; border-radius:10px; cursor:pointer;
+    font-family:'Space Mono',monospace; font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:all .2s; margin-bottom:8px;
+    border:1px solid var(--border); background:var(--panel2); color:var(--muted);
+  }
+  .charts-toggle-btn.active {
+    border-color:rgba(59,158,255,0.4); background:rgba(59,158,255,0.08); color:var(--accent2);
+  }
+
+  /* ===== PIRATE RISK SLIDER ===== */
+  .risk-slider-wrap { padding:4px 0; }
+  .risk-slider { width:100%; -webkit-appearance:none; height:6px; border-radius:3px; outline:none; cursor:pointer; margin:10px 0; }
+  .risk-slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 8px rgba(0,229,160,0.4); }
+  .risk-level-display { display:flex; align-items:center; justify-content:space-between; margin-top:4px; }
+  .risk-level-badge { font-size:13px; font-weight:800; font-family:'Space Mono',monospace; }
+  .risk-level-desc { font-size:10px; color:var(--muted); font-family:'Space Mono',monospace; }
+  .risk-atr-val { font-size:11px; font-family:'Space Mono',monospace; color:var(--accent); }
+
   /* ===== LIBERTAD ABSOLUTA BUTTON ===== */
   .freedom-wrap {
     position:relative; border-radius:14px; padding:14px;
@@ -547,14 +646,11 @@
     color:rgba(255,220,0,0.9); font-weight:700; margin-top:3px;
   }
 
-  /* ===== PIRATE CARDS v2 — multiplier style ===== */
-  .pirate-multiplier {
-    font-size:16px; font-weight:800; font-family:'Space Mono',monospace;
-    color:var(--pirate-color,var(--text));
-  }
-  .pirate-multiplier-label { font-size:8px; color:var(--muted); margin-top:1px; }
 
-  /* ===== ATR DISPLAY ===== */
+  /* ===== PIRATE RISK PROFILES ===== */
+  /* Slider version — old card CSS removed */
+
+  /* AI SCORE PANEL */
   .atr-display {
     display:flex; align-items:center; gap:8px; padding:8px 10px;
     background:var(--panel2); border-radius:8px; border:1px solid var(--border);
@@ -575,43 +671,7 @@
   .stoch-chip-lbl { font-size:8px; color:var(--muted); margin-top:1px; }
 
   /* ===== PIRATE RISK PROFILES ===== */
-  .pirate-grid { display:flex; flex-direction:column; gap:6px; }
-  .pirate-card {
-    border:1px solid var(--border); border-radius:10px; padding:10px 12px;
-    cursor:pointer; transition:all .2s; background:var(--panel2);
-    display:flex; align-items:center; gap:10px; position:relative; overflow:hidden;
-  }
-  .pirate-card::before {
-    content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-    background:var(--pirate-color, var(--muted)); border-radius:3px 0 0 3px;
-    transition:width .2s;
-  }
-  .pirate-card:hover { transform:translateX(2px); border-color:var(--pirate-color, var(--border)); }
-  .pirate-card.active {
-    border-color:var(--pirate-color, var(--accent));
-    background:rgba(var(--pirate-rgb,0,229,160),0.07);
-    box-shadow:0 0 12px rgba(var(--pirate-rgb,0,229,160),0.12);
-  }
-  .pirate-card.active::before { width:4px; }
-  .pirate-emoji { font-size:22px; flex-shrink:0; }
-  .pirate-info { flex:1; min-width:0; }
-  .pirate-name {
-    font-size:13px; font-weight:800; font-family:'Syne',sans-serif;
-    color:var(--pirate-color, var(--text)); line-height:1.1;
-  }
-  .pirate-sub { font-size:9px; font-style:italic; color:var(--muted); margin-top:1px; font-family:'Space Mono',monospace; }
-  .pirate-stats {
-    text-align:right; font-family:'Space Mono',monospace; font-size:9px;
-    color:var(--muted); line-height:1.5;
-  }
-  .pirate-stats span { color:var(--pirate-color, var(--text)); font-weight:700; }
-  .pirate-active-badge {
-    position:absolute; top:5px; right:8px;
-    font-size:8px; font-family:'Space Mono',monospace; font-weight:700;
-    color:var(--pirate-color, var(--accent)); opacity:0; transition:opacity .2s;
-    letter-spacing:1px;
-  }
-  .pirate-card.active .pirate-active-badge { opacity:1; }
+  /* Slider version — old card CSS removed */
 
   /* AI SCORE PANEL */
   .ai-panel {
@@ -1053,7 +1113,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v20.0 — MULTI-OPS + RED NEURONAL</small>
+        <small>v22.0 — OPTIMIZADO</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1068,7 +1128,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('bot')">🤖 Bot</button>
     <button class="tab" onclick="switchTab('indicators')">📊 Indicadores</button>
-    <button class="tab" onclick="switchTab('news')">📰 Noticias</button>
+    <button class="tab" onclick="switchTab('history')">📋 Historial</button>
     <button class="tab" onclick="switchTab('history')">📋 Historial</button>
     <button class="tab" onclick="switchTab('opt')">🧬 Optimizador</button>
   </div>
@@ -1571,104 +1631,27 @@
           </div>
         </div>
 
-        <!-- PIRATE RISK PROFILES -->
+        <!-- PERFIL DE RIESGO — SLIDER SIMPLIFICADO -->
         <div class="panel" style="padding:14px" id="piratePanelWrap">
-          <div class="collapsible-header" onclick="toggleCollapsible('pirateCol')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-            <div class="collapsible-header-left" style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:14px">☠</span>
-              <span class="collapsible-title" style="color:var(--text)">PERFIL DE RIESGO</span>
-              <span id="pirateActiveLabel" style="font-size:9px;font-family:'Space Mono',monospace;color:var(--accent);margin-left:4px">· GRUMETE 🟢</span>
+              <span style="font-size:11px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text)">PERFIL DE RIESGO</span>
             </div>
-            <span class="collapsible-arrow" id="pirateColArrow">▼</span>
+            <span id="pirateActiveLabel" style="font-size:11px;font-family:'Space Mono',monospace;color:var(--accent)">🟢 BAJO</span>
           </div>
-          <div class="collapsible-body" id="pirateCol">
-            <div style="padding-top:10px">
-              <div style="font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:8px;letter-spacing:1px">
-                MULTIPLICADOR ATR — define tu nivel de riesgo
+          <div class="risk-slider-wrap">
+            <input type="range" class="risk-slider" id="riskSlider"
+              min="1" max="5" step="1" value="2"
+              oninput="setRiskFromSlider(this.value)"
+              style="background:linear-gradient(90deg,#00e5a0,#ffb01f,#ff4560)">
+            <div class="risk-level-display">
+              <span class="risk-level-desc">Conservador</span>
+              <div style="text-align:center">
+                <div class="risk-level-badge" id="riskLevelBadge">🟢 GRUMETE</div>
+                <div class="risk-atr-val" id="riskAtrVal">ATR ×0.5</div>
               </div>
-              <div class="pirate-grid" id="pirateGrid">
-
-                <!-- GRUMETE -->
-                <div class="pirate-card active" id="pirate-grumete"
-                  style="--pirate-color:#00e5a0;--pirate-rgb:0,229,160"
-                  onclick="setPirateProfile('grumete',this)">
-                  <div class="pirate-emoji">🟢</div>
-                  <div class="pirate-info">
-                    <div class="pirate-name">GRUMETE</div>
-                    <div class="pirate-sub">Paso seguro · Aguas conocidas</div>
-                  </div>
-                  <div class="pirate-stats">
-                    <div class="pirate-multiplier">×0.5</div>
-                    <div class="pirate-multiplier-label">ATR mult.</div>
-                  </div>
-                  <div class="pirate-active-badge">✓ ACTIVO</div>
-                </div>
-
-                <!-- MARINERO -->
-                <div class="pirate-card" id="pirate-marinero"
-                  style="--pirate-color:#00aaff;--pirate-rgb:0,170,255"
-                  onclick="setPirateProfile('marinero',this)">
-                  <div class="pirate-emoji">🔵</div>
-                  <div class="pirate-info">
-                    <div class="pirate-name">MARINERO</div>
-                    <div class="pirate-sub">Aguas tranquilas · Con cautela</div>
-                  </div>
-                  <div class="pirate-stats">
-                    <div class="pirate-multiplier">×0.8</div>
-                    <div class="pirate-multiplier-label">ATR mult.</div>
-                  </div>
-                  <div class="pirate-active-badge">✓ ACTIVO</div>
-                </div>
-
-                <!-- CONTRAMAESTRE -->
-                <div class="pirate-card" id="pirate-contramaestre"
-                  style="--pirate-color:#ffb01f;--pirate-rgb:255,176,31"
-                  onclick="setPirateProfile('contramaestre',this)">
-                  <div class="pirate-emoji">🟡</div>
-                  <div class="pirate-info">
-                    <div class="pirate-name">CONTRAMAESTRE</div>
-                    <div class="pirate-sub">Equilibrio · Mar abierto</div>
-                  </div>
-                  <div class="pirate-stats">
-                    <div class="pirate-multiplier">×1.0</div>
-                    <div class="pirate-multiplier-label">ATR mult.</div>
-                  </div>
-                  <div class="pirate-active-badge">✓ ACTIVO</div>
-                </div>
-
-                <!-- CORSARIO -->
-                <div class="pirate-card" id="pirate-corsario"
-                  style="--pirate-color:#f6862a;--pirate-rgb:246,134,42"
-                  onclick="setPirateProfile('corsario',this)">
-                  <div class="pirate-emoji">🟠</div>
-                  <div class="pirate-info">
-                    <div class="pirate-name">CORSARIO</div>
-                    <div class="pirate-sub">Viento favorable · Alta mar</div>
-                  </div>
-                  <div class="pirate-stats">
-                    <div class="pirate-multiplier">×1.3</div>
-                    <div class="pirate-multiplier-label">ATR mult.</div>
-                  </div>
-                  <div class="pirate-active-badge">✓ ACTIVO</div>
-                </div>
-
-                <!-- CAPITÁN PIRATA -->
-                <div class="pirate-card" id="pirate-capitan"
-                  style="--pirate-color:#ff4560;--pirate-rgb:255,69,96"
-                  onclick="setPirateProfile('capitan',this)">
-                  <div class="pirate-emoji">🔴</div>
-                  <div class="pirate-info">
-                    <div class="pirate-name">CAPITÁN PIRATA</div>
-                    <div class="pirate-sub">Tormenta de oro · Todo o nada</div>
-                  </div>
-                  <div class="pirate-stats">
-                    <div class="pirate-multiplier">×1.8</div>
-                    <div class="pirate-multiplier-label">ATR mult.</div>
-                  </div>
-                  <div class="pirate-active-badge">✓ ACTIVO</div>
-                </div>
-
-              </div>
+              <span class="risk-level-desc">Agresivo</span>
             </div>
           </div>
         </div>
@@ -1704,7 +1687,22 @@
           <div class="field"><label>TAKE PROFIT</label><input type="number" id="takeProfit" value="40"></div>
             </div>
           </div>
-          <button class="btn btn-start" id="btnStart" onclick="startBot()" style="margin-top:12px">▶ INICIAR BOT</button>
+
+          <!-- MODE SELECTOR -->
+          <div class="mode-selector" style="margin-top:12px">
+            <div class="mode-btn active-auto" id="modeAutoBtn" onclick="setOperationMode('auto',this)">
+              <div class="mode-btn-icon">🤖</div>
+              <div class="mode-btn-name">AUTO</div>
+              <div class="mode-btn-desc">IA decide todo</div>
+            </div>
+            <div class="mode-btn" id="modeManualBtn" onclick="setOperationMode('manual',this)">
+              <div class="mode-btn-icon">🎮</div>
+              <div class="mode-btn-name">MANUAL</div>
+              <div class="mode-btn-desc">Tú eliges pares</div>
+            </div>
+          </div>
+
+          <button class="btn btn-start" id="btnStart" onclick="startBot()" style="margin-top:6px">▶ INICIAR BOT</button>
           <button class="btn btn-stop" id="btnStop" onclick="stopBot()">■ DETENER</button>
         </div>
 
@@ -1754,10 +1752,10 @@
       <!-- RIGHT -->
       <div style="display:flex;flex-direction:column;gap:14px">
 
-        <!-- MULTI-OPERATION CARDS -->
-        <div class="panel" style="padding:10px">
+        <!-- MULTI-OPERATION CARDS (AUTO MODE) -->
+        <div class="panel" style="padding:10px" id="autoOpsPanel">
           <div style="font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
-            <span>⚡ OPERACIONES ACTIVAS</span>
+            <span>⚡ OPERACIONES ACTIVAS — AUTO</span>
             <span id="opsCount" style="color:var(--accent)">0 / 3</span>
           </div>
           <div class="ops-container" id="opsContainer">
@@ -1765,6 +1763,14 @@
               Sin operaciones activas.<br>Inicia el bot para comenzar.
             </div>
           </div>
+        </div>
+
+        <!-- MANUAL OPERATION PANELS -->
+        <div id="manualOpsPanel" style="display:none">
+          <div class="manual-panels" id="manualPanelsContainer"></div>
+          <button class="add-panel-btn" id="addPanelBtn" onclick="addManualPanel()" style="margin-top:8px">
+            <span style="font-size:18px">+</span> Agregar operación manual
+          </button>
         </div>
 
         <!-- NEURAL NETWORK PANEL -->
@@ -1836,6 +1842,11 @@
           </div>
           <div class="price-chart-wrap"><canvas id="priceChart"></canvas></div>
         </div>
+
+        <!-- CHARTS TOGGLE -->
+        <button class="charts-toggle-btn" id="chartsToggleBtn" onclick="toggleCharts()">
+          📊 Mostrar Gráficas de Indicadores
+        </button>
 
         <div class="tv-panels" id="tvPanels" style="display:none">
           <div class="tv-rsi-panel" id="tvRsiPanel">
@@ -1993,53 +2004,6 @@
     </div>
   </div>
 
-
-  <div class="tab-content" id="tab-news">
-    <div class="panel" style="padding:0;overflow:hidden">
-      <!-- Ticker bar -->
-      <div class="news-ticker-bar">
-        <div class="news-ticker-inner" id="tickerInner">
-          🔴 NFP EE.UU. mejor de lo esperado &nbsp;│&nbsp; 🟡 BCE mantiene tasas sin cambios &nbsp;│&nbsp; 🟢 IPC China baja a 0.1% &nbsp;│&nbsp; 🔴 PIB Reino Unido decepciona &nbsp;│&nbsp; 🟡 Fed señala posibles recortes en Q3 &nbsp;│&nbsp; 🟢 Empleo Canadá supera previsiones &nbsp;│&nbsp; 🔴 NFP EE.UU. mejor de lo esperado &nbsp;│&nbsp; 🟡 BCE mantiene tasas sin cambios &nbsp;│&nbsp; 🟢 IPC China baja a 0.1% &nbsp;│&nbsp; 🔴 PIB Reino Unido decepciona &nbsp;│&nbsp; 🟡 Fed señala posibles recortes en Q3 &nbsp;│&nbsp; 🟢 Empleo Canadá supera previsiones
-        </div>
-      </div>
-
-      <div style="padding:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div class="panel-title" style="margin:0">📰 Noticias del Mercado</div>
-          <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace" id="newsTime">—</div>
-        </div>
-
-        <!-- Filters -->
-        <div class="news-filter">
-          <button class="news-filter-btn active" onclick="filterNews('all',this)">TODAS</button>
-          <button class="news-filter-btn" onclick="filterNews('high',this)">🔴 ALTO</button>
-          <button class="news-filter-btn" onclick="filterNews('med',this)">🟡 MEDIO</button>
-          <button class="news-filter-btn" onclick="filterNews('low',this)">🟢 BAJO</button>
-        </div>
-
-        <!-- News list -->
-        <div class="news-scroll">
-          <div class="news-panel" id="newsList"></div>
-        </div>
-
-        <!-- Impact legend -->
-        <div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-family:'Space Mono',monospace;color:var(--muted)">
-            <div class="news-impact impact-high"></div> Alto impacto
-          </div>
-          <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-family:'Space Mono',monospace;color:var(--muted)">
-            <div class="news-impact impact-med"></div> Medio impacto
-          </div>
-          <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-family:'Space Mono',monospace;color:var(--muted)">
-            <div class="news-impact impact-low"></div> Bajo impacto
-          </div>
-          <div style="margin-left:auto;font-size:10px;font-family:'Space Mono',monospace;color:var(--muted)">
-            ⚠ Noticias simuladas — solo educativo
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- ===== TAB HISTORIAL ===== -->
   <div class="tab-content" id="tab-history">
@@ -2204,9 +2168,6 @@
               <div class="param-chip" style="grid-column:span 3"><div class="val" id="bp_score" style="color:var(--accent)">—</div><div class="lbl">SCORE</div></div>
             </div>
           </div>
-          <div style="font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:6px;margin-top:10px">CURVA DE EQUITY</div>
-          <div class="equity-wrap"><canvas id="equityChart"></canvas></div>
-        </div>
 
         <!-- Top 10 table -->
         <div class="panel" id="resultsPanel" style="display:none">
@@ -2584,14 +2545,41 @@ function selInst(btn, sym, cat) {
   updateLiveBadge(sym);
 }
 
-// ======================== TABS ========================
+// ======================== CHARTS TOGGLE ========================
+let chartsVisible = false;
+function toggleCharts() {
+  chartsVisible = !chartsVisible;
+  const btn = document.getElementById('chartsToggleBtn');
+  const panels = document.getElementById('tvPanels');
+  if(chartsVisible) {
+    // Only show panels that have active indicators
+    const anyActive = indRSI || indMACD || indBB || indEMA;
+    if(!anyActive) {
+      // Auto-enable RSI and MACD as default
+      indRSI = true; indMACD = true;
+      const rsiCb = document.querySelector('input[onchange*="rsi"]');
+      const macdCb = document.querySelector('input[onchange*="macd"]');
+      if(rsiCb) rsiCb.checked = true;
+      if(macdCb) macdCb.checked = true;
+    }
+    if(panels) panels.style.display = 'block';
+    if(btn) { btn.textContent = '📊 Ocultar Gráficas'; btn.classList.add('active'); }
+    updateTVPanels();
+    setTimeout(resizeAllCanvases, 100);
+  } else {
+    if(panels) panels.style.display = 'none';
+    if(btn) { btn.textContent = '📊 Mostrar Gráficas de Indicadores'; btn.classList.remove('active'); }
+  }
+}
+
+
 function switchTab(tab){
-  const allTabs = ['bot','indicators','news','history','opt'];
+  const allTabs = ['bot','indicators','history','opt'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active', allTabs[i]===tab));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
+  const tabEl = document.getElementById('tab-'+tab);
+  if(tabEl) tabEl.classList.add('active');
   if(tab==='bot') setTimeout(resizeAllCanvases,50);
-  if(tab==='news') renderNews();
   if(tab==='history') renderHistory();
   if(tab==='indicators') updateIndicatorLabels();
 }
@@ -2903,8 +2891,8 @@ function getEMASignal(emaFast, emaSlow) {
 // Todo se dibuja en un offscreen canvas y se vuelca de una sola vez.
 
 function safeResize(c) {
-  const w = c.offsetWidth  || c.parentElement?.offsetWidth  || 300;
-  const h = c.offsetHeight || c.parentElement?.offsetHeight || 260;
+  const w = c.offsetWidth  || (c.parentElement ? c.parentElement.offsetWidth  : 0) || 300;
+  const h = c.offsetHeight || (c.parentElement ? c.parentElement.offsetHeight : 0) || 260;
   if(w > 0 && h > 0 && (c.width !== w || c.height !== h)) {
     c.width = w; c.height = h;
   }
@@ -3206,63 +3194,6 @@ function redrawAllCharts() {
   if(indBB)   drawBollinger();
   if(indEMA)  drawEMA();
 }
-const NEWS_DATA = [
-  { time:'08:30', ticker:'USD', title:'Nóminas no agrícolas (NFP) EE.UU. superan expectativas con 275K empleos', impact:'high', actual:'275K', prev:'220K' },
-  { time:'09:00', ticker:'EUR', title:'BCE mantiene tasas de interés en 4.50% sin cambios por tercera reunión consecutiva', impact:'high', actual:'4.50%', prev:'4.50%' },
-  { time:'10:00', ticker:'GBP', title:'PMI Manufacturero del Reino Unido cae por debajo de 50, señalando contracción', impact:'high', actual:'48.3', prev:'51.2' },
-  { time:'10:30', ticker:'USD', title:'Solicitudes de subsidio desempleo EE.UU. bajan más de lo esperado', impact:'med', actual:'198K', prev:'215K' },
-  { time:'11:00', ticker:'EUR', title:'Confianza del consumidor eurozona mejora levemente en marzo', impact:'low', actual:'-14.9', prev:'-15.5' },
-  { time:'12:00', ticker:'JPY', title:'Banco de Japón considera ajuste en política monetaria tras datos de inflación', impact:'high', actual:'2.8%', prev:'2.2%' },
-  { time:'12:30', ticker:'CAD', title:'Empleo en Canadá supera previsiones con fuerte creación de puestos de trabajo', impact:'med', actual:'41K', prev:'25K' },
-  { time:'13:00', ticker:'USD', title:'Fed publica minutas: miembros debaten timing de primeros recortes de tasas', impact:'high', actual:'—', prev:'—' },
-  { time:'13:30', ticker:'AUD', title:'Confianza empresarial Australia sube al nivel más alto en seis meses', impact:'low', actual:'+8', prev:'+3' },
-  { time:'14:00', ticker:'CHF', title:'Inflación Suiza se modera en línea con proyecciones del Banco Nacional', impact:'med', actual:'1.2%', prev:'1.5%' },
-  { time:'14:30', ticker:'USD', title:'Inventarios de petróleo crudo EE.UU. caen más de lo esperado esta semana', impact:'med', actual:'-3.2M', prev:'+1.1M' },
-  { time:'15:00', ticker:'EUR', title:'IPC Alemania confirma lectura preliminar, presión inflacionaria se mantiene', impact:'med', actual:'2.3%', prev:'2.5%' },
-  { time:'15:30', ticker:'GBP', title:'Ventas minoristas Reino Unido decepcionan en datos de febrero', impact:'high', actual:'-0.4%', prev:'+0.7%' },
-  { time:'16:00', ticker:'NZD', title:'RBNZ señala posible pausa en ciclo de subidas tras moderación económica', impact:'med', actual:'5.50%', prev:'5.50%' },
-  { time:'16:30', ticker:'USD', title:'Índice manufacturero Fed Filadelfia mejor de lo esperado en marzo', impact:'low', actual:'+5.2', prev:'-2.3' },
-  { time:'17:00', ticker:'XAU', title:'Oro alcanza nuevo máximo histórico impulsado por incertidumbre geopolítica', impact:'high', actual:'$2,340', prev:'$2,290' },
-  { time:'17:30', ticker:'BTC', title:'Bitcoin consolida cerca de máximos históricos con alta volatilidad', impact:'med', actual:'$67.5K', prev:'$65.2K' },
-  { time:'18:00', ticker:'WTI', title:'OPEP+ confirma recortes de producción adicionales para el segundo trimestre', impact:'high', actual:'—', prev:'—' },
-];
-
-let newsFilter = 'all';
-let allNewsData = [...NEWS_DATA];
-
-function renderNews(){
-  const now = new Date();
-  document.getElementById('newsTime').textContent = 'Actualizado: ' + now.toTimeString().split(' ')[0];
-  const filtered = newsFilter === 'all' ? allNewsData : allNewsData.filter(n => n.impact === newsFilter);
-  const list = document.getElementById('newsList');
-  list.innerHTML = '';
-  filtered.forEach(n => {
-    const div = document.createElement('div');
-    div.className = 'news-item';
-    div.innerHTML = `
-      <div class="news-impact impact-${n.impact}"></div>
-      <div class="news-content">
-        <div class="news-title">${n.title}</div>
-        <div class="news-meta">
-          <span class="news-time">🕐 ${n.time}</span>
-          <span class="news-ticker">${n.ticker}</span>
-          ${n.actual !== '—' ? `<span>Actual: <strong style="color:var(--text)">${n.actual}</strong></span>` : ''}
-          ${n.prev !== '—' ? `<span>Prev: ${n.prev}</span>` : ''}
-        </div>
-      </div>
-      <div class="news-badge badge-${n.impact}">${n.impact === 'high' ? 'ALTO' : n.impact === 'med' ? 'MEDIO' : 'BAJO'}</div>
-    `;
-    list.appendChild(div);
-  });
-}
-
-function filterNews(type, btn) {
-  newsFilter = type;
-  document.querySelectorAll('.news-filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderNews();
-}
-
 // ======================== TRADE HISTORY ========================
 let tradeHistory = [];
 let opCounter = 0;
@@ -3336,33 +3267,14 @@ function renderHistory() {
     const typeColor = t.type === 'BUY' ? 'var(--accent)' : 'var(--danger)';
 
     const card = document.createElement('div');
-    card.className = `trade-card ${isWin ? 'card-win' : 'card-loss'}`;
-    card.innerHTML = `
-      <div class="trade-card-header">
-        <div>
-          <div class="trade-card-id">#${t.id} · ${t.fecha} ${t.hora}</div>
-        </div>
-        <span class="trade-card-badge ${isWin ? 'badge-win' : 'badge-loss'}">
-          ${isWin ? '✓ GANANCIA' : '✗ PÉRDIDA'}
-        </span>
-      </div>
-      <div class="trade-card-row">
-        <span class="trade-card-label">INSTRUMENTO</span>
-        <span class="trade-card-value" style="font-weight:800">${t.sym}</span>
-      </div>
-      <div class="trade-card-row">
-        <span class="trade-card-label">TIPO</span>
-        <span class="trade-card-value" style="color:${typeColor}">${typeIcon} ${t.type === 'BUY' ? 'COMPRA' : 'VENTA'}</span>
-      </div>
-      <div class="trade-card-row">
-        <span class="trade-card-label">PRECIO ENTRADA</span>
-        <span class="trade-card-value">${t.entryPrice}</span>
-      </div>
-      <div class="trade-card-row">
-        <span class="trade-card-label">${isWin ? 'GANANCIA' : 'PÉRDIDA'}</span>
-        <span class="trade-card-value ${isWin ? 'hist-win' : 'hist-loss'}">${isWin ? '+' : '-'}${fmtAmt} ${code}</span>
-      </div>
-    `;
+    card.className = 'trade-card ' + (isWin ? 'card-win' : 'card-loss');
+    card.innerHTML = '<div class="trade-card-header"><div><div class="trade-card-id">#' + t.id + ' · ' + t.fecha + ' ' + t.hora + '</div></div>' +
+      '<span class="trade-card-badge ' + (isWin ? 'badge-win' : 'badge-loss') + '">' + (isWin ? '✓ GANANCIA' : '✗ PÉRDIDA') + '</span></div>' +
+      '<div class="trade-card-row"><span class="trade-card-label">INSTRUMENTO</span><span class="trade-card-value" style="font-weight:800">' + t.sym + '</span></div>' +
+      '<div class="trade-card-row"><span class="trade-card-label">TIPO</span><span class="trade-card-value" style="color:' + typeColor + '">' + typeIcon + ' ' + (t.type==='BUY'?'COMPRA':'VENTA') + '</span></div>' +
+      '<div class="trade-card-row"><span class="trade-card-label">PRECIO ENTRADA</span><span class="trade-card-value">' + t.entryPrice + '</span></div>' +
+      '<div class="trade-card-row"><span class="trade-card-label">' + (isWin?'GANANCIA':'PÉRDIDA') + '</span>' +
+      '<span class="trade-card-value ' + (isWin?'hist-win':'hist-loss') + '">' + (isWin?'+':'-') + fmtAmt + ' ' + code + '</span></div>';
     scrollEl.appendChild(card);
   });
   updateHistorySummary();
@@ -3974,16 +3886,18 @@ function closeOperation(id, won) {
 
   if(won) {
     wins++;
-    addLog(`✓ Op #${op.id} GANANCIA +${fmtGain} ${currCode}`, 'buy');
+    addLog('✓ Op #' + op.id + ' GANANCIA +' + fmtGain + ' ' + currCode, 'buy');
     registerTradeResult(gainAmt);
     registerProtectionResult(true);
-    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(INSTRUMENTS[op.instrument]?.decimals||2), 'WIN', gainAmt, currCode);
+    const dec1 = INSTRUMENTS[op.instrument] ? (INSTRUMENTS[op.instrument].decimals||2) : 2;
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec1), 'WIN', gainAmt, currCode);
   } else {
     losses++;
-    addLog(`✗ Op #${op.id} PÉRDIDA -${fmtLoss} ${currCode}`, 'sell');
+    addLog('✗ Op #' + op.id + ' PÉRDIDA -' + fmtLoss + ' ' + currCode, 'sell');
     registerTradeResult(-lossAmt);
     registerProtectionResult(false);
-    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(INSTRUMENTS[op.instrument]?.decimals||2), 'LOSS', -lossAmt, currCode);
+    const dec2 = INSTRUMENTS[op.instrument] ? (INSTRUMENTS[op.instrument].decimals||2) : 2;
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec2), 'LOSS', -lossAmt, currCode);
   }
   trades++;
   updateAIWeights(won);
@@ -4041,26 +3955,17 @@ function renderOps() {
     const isBuy = op.type === 'BUY';
     const pnlColor = op.currentPnl > 0 ? 'positive' : op.currentPnl < 0 ? 'negative' : 'neutral';
     const pnlSign  = op.currentPnl > 0 ? '+' : '';
+    const decimals = inst ? (inst.decimals||2) : 2;
     const card = document.createElement('div');
-    card.className = `op-card ${isBuy ? 'op-buy' : 'op-sell'}`;
-    card.innerHTML = `
-      <div class="op-card-header">
-        <span class="op-card-pair">${op.instrument}</span>
-        <span class="op-card-dir ${isBuy?'buy':'sell'}">${isBuy?'▲ BUY':'▼ SELL'}</span>
-      </div>
-      <div class="op-card-pnl ${pnlColor}">${pnlSign}${op.currentPnl.toFixed(1)} pip</div>
-      <div class="op-card-entry">Entrada: ${op.entryPrice.toFixed(inst?.decimals||2)}</div>
-      <div class="op-progress-wrap">
-        <div class="op-progress-label">
-          <span>SL ${op.sl}</span>
-          <span>TP ${op.tp}</span>
-        </div>
-        <div class="op-progress-bg">
-          <div class="op-progress-fill ${isBuy?'buy-fill':'sell-fill'}"
-               style="width:${op.progress}%"></div>
-        </div>
-      </div>
-      <button class="op-card-close" onclick="manualCloseOp(${op.id})">✕ Cerrar</button>`;
+    card.className = 'op-card ' + (isBuy ? 'op-buy' : 'op-sell');
+    card.innerHTML = '<div class="op-card-header">' +
+      '<span class="op-card-pair">' + op.instrument + '</span>' +
+      '<span class="op-card-dir ' + (isBuy?'buy':'sell') + '">' + (isBuy?'▲ BUY':'▼ SELL') + '</span></div>' +
+      '<div class="op-card-pnl ' + pnlColor + '">' + pnlSign + op.currentPnl.toFixed(1) + ' pip</div>' +
+      '<div class="op-card-entry">Entrada: ' + op.entryPrice.toFixed(decimals) + '</div>' +
+      '<div class="op-progress-wrap"><div class="op-progress-label"><span>SL ' + op.sl + '</span><span>TP ' + op.tp + '</span></div>' +
+      '<div class="op-progress-bg"><div class="op-progress-fill ' + (isBuy?'buy-fill':'sell-fill') + '" style="width:' + op.progress + '%"></div></div></div>' +
+      '<button class="op-card-close" onclick="manualCloseOp(' + op.id + ')">✕ Cerrar</button>';
     container.appendChild(card);
   });
 }
@@ -4175,6 +4080,188 @@ function updateNNDisplay(inputs, result) {
   if(sampEl) sampEl.textContent = nnSamples;
 }
 
+  if(sampEl) sampEl.textContent = nnSamples;
+}
+
+// ======================== OPERATION MODE ========================
+let operationMode = 'auto';
+let manualPanels  = [];
+let manualPanelId = 0;
+
+function setOperationMode(mode, btn) {
+  operationMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active-auto','active-manual'));
+  if(mode === 'auto') {
+    btn.classList.add('active-auto');
+    document.getElementById('autoOpsPanel').style.display   = 'block';
+    document.getElementById('manualOpsPanel').style.display = 'none';
+    addLog('🤖 Modo AUTO — IA decide las operaciones', 'opt');
+  } else {
+    btn.classList.add('active-manual');
+    document.getElementById('autoOpsPanel').style.display   = 'none';
+    document.getElementById('manualOpsPanel').style.display = 'block';
+    addLog('🎮 Modo MANUAL — tú eliges los instrumentos', 'opt');
+  }
+}
+
+function addManualPanel() {
+  if(manualPanels.length >= MAX_OPS) { addLog('⚠ Máximo 3 paneles manuales', 'warn'); return; }
+  const id = ++manualPanelId;
+  manualPanels.push({ id, inst:'BTC/USD', running:false, interval:null, prices:[], signal:'NEUTRAL', wins:0, losses:0, currentPrice:'—', rsi:'—' });
+  renderManualPanels();
+  const addBtn = document.getElementById('addPanelBtn');
+  if(addBtn) addBtn.disabled = manualPanels.length >= MAX_OPS;
+}
+
+function removeManualPanel(id) {
+  const p = manualPanels.find(p=>p.id===id);
+  if(p && p.interval) clearInterval(p.interval);
+  manualPanels = manualPanels.filter(p=>p.id!==id);
+  renderManualPanels();
+  const addBtn = document.getElementById('addPanelBtn');
+  if(addBtn) addBtn.disabled = false;
+}
+
+function toggleManualPanel(id) {
+  const p = manualPanels.find(p=>p.id===id);
+  if(!p) return;
+  if(p.running) {
+    clearInterval(p.interval); p.interval=null; p.running=false; p.prices=[];
+    addLog(`⏹ Panel #${id} detenido — ${p.inst}`, 'warn');
+  } else {
+    p.running=true; p.prices=[];
+    p.interval = setInterval(()=>tickManualPanel(id), 700);
+    addLog(`▶ Panel #${id} iniciado — ${p.inst}`, 'buy');
+  }
+  renderManualPanels();
+}
+
+function changeManualInst(id, inst) {
+  const p = manualPanels.find(p=>p.id===id);
+  if(!p) return;
+  p.inst=inst; p.prices=[]; p.signal='NEUTRAL'; p.currentPrice='—';
+  if(p.running) { clearInterval(p.interval); p.interval=setInterval(()=>tickManualPanel(id),700); }
+  renderManualPanels();
+}
+
+function tickManualPanel(id) {
+  const p = manualPanels.find(p=>p.id===id);
+  if(!p||!p.running) return;
+  const inst = INSTRUMENTS[p.inst]||INSTRUMENTS['BTC/USD'];
+  const liveP = apiConnected ? getLivePrice(p.inst) : null;
+  const last  = p.prices.length>0 ? p.prices[p.prices.length-1] : inst.base;
+  const np    = liveP ? liveP+(Math.random()-0.5)*liveP*0.0001
+                      : Math.max(last+(Math.random()-0.498)*inst.vol, inst.base*0.85);
+  p.prices.push(np); if(p.prices.length>300) p.prices.shift();
+  p.currentPrice = np.toFixed(inst.decimals);
+
+  if(p.prices.length < 30) { renderManualPanels(); return; }
+
+  const rsi   = calcRSI(p.prices, 14);
+  const macd  = calcMACD(p.prices, 12, 26, 9);
+  const emaF  = calcEMA(p.prices, 9);
+  const emaS  = calcEMA(p.prices, 21);
+  p.rsi = rsi.toFixed(1);
+
+  const score = (rsi<30?1:rsi>70?-1:0) + (macd.macd>macd.signal?1:-1) + (emaF>emaS?1:-1);
+  const prevSig = p.signal;
+  p.signal = score>=2?'BUY':score<=-2?'SELL':'NEUTRAL';
+
+  if(p.signal!=='NEUTRAL' && p.signal!==prevSig && !ksTriggered) {
+    const currCode = selectedCurrency.code;
+    const won = Math.random()>0.42;
+    setTimeout(()=>{
+      const gainAmt=convertAmount(tradeAmount*2,currCode);
+      const lossAmt=convertAmount(tradeAmount,currCode);
+      const fmtG=formatConverted(gainAmt,currCode);
+      const fmtL=formatConverted(lossAmt,currCode);
+      if(won){p.wins++;registerTradeResult(gainAmt);registerProtectionResult(true);addLog(`✓ Panel #${id} GANANCIA +${fmtG}`,'buy');addTradeToHistory(p.inst,p.signal,p.currentPrice,'WIN',gainAmt,currCode);}
+      else{p.losses++;registerTradeResult(-lossAmt);registerProtectionResult(false);addLog(`✗ Panel #${id} PÉRDIDA -${fmtL}`,'sell');addTradeToHistory(p.inst,p.signal,p.currentPrice,'LOSS',-lossAmt,currCode);}
+      trades++;updateAIWeights(won);nnLearn(won);autoSave();renderManualPanels();updateHistorySummary();
+    }, 2000+Math.random()*3000);
+  }
+  renderManualPanels();
+}
+
+function renderManualPanels() {
+  const container = document.getElementById('manualPanelsContainer');
+  if(!container) return;
+  container.innerHTML = '';
+  manualPanels.forEach(function(p) {
+    const sigClass = p.signal==='BUY' ? 'buy' : p.signal==='SELL' ? 'sell' : 'neutral';
+    const sigText  = p.signal==='BUY' ? '📈 SEÑAL COMPRA' : p.signal==='SELL' ? '📉 SEÑAL VENTA' : '⏸ ANALIZANDO';
+    const wr = (p.wins+p.losses) > 0 ? ((p.wins/(p.wins+p.losses))*100).toFixed(0)+'%' : '—';
+    const isRunning = p.running;
+
+    const div = document.createElement('div');
+    div.className = 'manual-panel' + (isRunning ? ' active' : '');
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'manual-panel-header';
+    header.innerHTML = '<div class="manual-panel-num">' + p.id + '</div>' +
+      '<span class="manual-panel-title">' + (isRunning?'● ':'○ ') + p.inst + '</span>';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'manual-panel-close';
+    closeBtn.textContent = '✕';
+    closeBtn.onclick = (function(id){ return function(){ removeManualPanel(id); }; })(p.id);
+    header.appendChild(closeBtn);
+    div.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'manual-panel-body';
+
+    // Select
+    const sel = document.createElement('select');
+    sel.className = 'manual-inst-select';
+    sel.disabled = isRunning;
+    sel.onchange = (function(id){ return function(){ changeManualInst(id, this.value); }; })(p.id);
+    const opts = [
+      ['CRYPTO — DATOS REALES', ['BTC/USD','ETH/USD','BNB/USD','SOL/USD','XRP/USD']],
+      ['FOREX — SIMULADO',      ['EUR/USD','GBP/USD','USD/JPY']],
+      ['METALES — SIMULADO',    ['XAU/USD','XAG/USD']]
+    ];
+    opts.forEach(function(g) {
+      const og = document.createElement('optgroup');
+      og.label = g[0];
+      g[1].forEach(function(inst) {
+        const o = document.createElement('option');
+        o.value = inst; o.textContent = inst;
+        if(inst === p.inst) o.selected = true;
+        og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+    body.appendChild(sel);
+
+    // Signal
+    const sig = document.createElement('div');
+    sig.className = 'manual-signal ' + sigClass;
+    sig.textContent = sigText;
+    body.appendChild(sig);
+
+    // Stats
+    const stats = document.createElement('div');
+    stats.className = 'manual-stats';
+    stats.innerHTML = '<div class="manual-stat"><div class="manual-stat-val" style="font-size:9px">' + p.currentPrice + '</div><div class="manual-stat-lbl">PRECIO</div></div>' +
+      '<div class="manual-stat"><div class="manual-stat-val c-green">' + p.wins + '</div><div class="manual-stat-lbl">WINS</div></div>' +
+      '<div class="manual-stat"><div class="manual-stat-val c-pur">' + wr + '</div><div class="manual-stat-lbl">WR</div></div>';
+    body.appendChild(stats);
+
+    // Button
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (isRunning ? 'btn-stop' : 'btn-start');
+    btn.style.cssText = 'padding:8px;font-size:12px';
+    btn.textContent = isRunning ? '■ DETENER' : '▶ INICIAR';
+    btn.onclick = (function(id){ return function(){ toggleManualPanel(id); }; })(p.id);
+    body.appendChild(btn);
+
+    div.appendChild(body);
+    container.appendChild(div);
+  });
+}
+
 // ======================== MULTI-OPERATIONS ENGINE ========================
 const PIRATE_PROFILES = {
   grumete:       { mult:0.5, rsiOB:80, rsiOS:20, name:'GRUMETE',       emoji:'🟢', minVotes:3 },
@@ -4253,45 +4340,51 @@ function updateStochDisplay(stoch) {
   const el = document.getElementById('stochDisplay');
   if(!el) return;
   const kColor = stoch.k > 80 ? 'var(--danger)' : stoch.k < 20 ? 'var(--accent)' : 'var(--text)';
-  el.innerHTML = `
-    <div class="stoch-row">
-      <div class="stoch-chip">
-        <div class="stoch-chip-val" style="color:${kColor}">${stoch.k.toFixed(1)}</div>
-        <div class="stoch-chip-lbl">%K</div>
-      </div>
-      <div class="stoch-chip">
-        <div class="stoch-chip-val" style="color:var(--text2)">${stoch.d.toFixed(1)}</div>
-        <div class="stoch-chip-lbl">%D</div>
-      </div>
-      <div class="stoch-chip">
-        <div class="stoch-chip-val" style="color:${stoch.k>80?'var(--danger)':stoch.k<20?'var(--accent)':'var(--muted)'}">
-          ${stoch.k>80?'OB':stoch.k<20?'OS':'—'}
-        </div>
-        <div class="stoch-chip-lbl">ESTADO</div>
-      </div>
-    </div>`;
+  const stateColor = stoch.k > 80 ? 'var(--danger)' : stoch.k < 20 ? 'var(--accent)' : 'var(--muted)';
+  const stateText  = stoch.k > 80 ? 'OB' : stoch.k < 20 ? 'OS' : '—';
+  el.innerHTML = '<div class="stoch-row">' +
+    '<div class="stoch-chip"><div class="stoch-chip-val" style="color:' + kColor + '">' + stoch.k.toFixed(1) + '</div><div class="stoch-chip-lbl">%K</div></div>' +
+    '<div class="stoch-chip"><div class="stoch-chip-val" style="color:var(--text2)">' + stoch.d.toFixed(1) + '</div><div class="stoch-chip-lbl">%D</div></div>' +
+    '<div class="stoch-chip"><div class="stoch-chip-val" style="color:' + stateColor + '">' + stateText + '</div><div class="stoch-chip-lbl">ESTADO</div></div>' +
+    '</div>';
+}
+
+// ======================== RISK SLIDER ========================
+const RISK_LEVELS = [
+  { key:'grumete',       emoji:'🟢', name:'GRUMETE',        mult:0.5, rsiOB:80, rsiOS:20 },
+  { key:'marinero',      emoji:'🔵', name:'MARINERO',       mult:0.8, rsiOB:75, rsiOS:25 },
+  { key:'contramaestre', emoji:'🟡', name:'CONTRAMAESTRE',  mult:1.0, rsiOB:70, rsiOS:30 },
+  { key:'corsario',      emoji:'🟠', name:'CORSARIO',       mult:1.3, rsiOB:65, rsiOS:35 },
+  { key:'capitan',       emoji:'🔴', name:'CAPITÁN PIRATA', mult:1.8, rsiOB:60, rsiOS:40 },
+];
+
+function setRiskFromSlider(val) {
+  const idx = Math.max(0, Math.min(4, parseInt(val) - 1));
+  const p = RISK_LEVELS[idx];
+  activePirateProfile = p.key;
+  activePirateMult    = p.mult;
+  document.getElementById('rsiOB').value = p.rsiOB;
+  document.getElementById('rsiOS').value = p.rsiOS;
+  const badge = document.getElementById('riskLevelBadge');
+  const atr   = document.getElementById('riskAtrVal');
+  const lbl   = document.getElementById('pirateActiveLabel');
+  if(badge) badge.textContent = p.emoji + ' ' + p.name;
+  if(atr)   atr.textContent   = 'ATR ×' + p.mult;
+  if(lbl)   lbl.textContent   = p.emoji + ' ' + p.name;
+  if(!freedomMode) addLog('☠ Riesgo: ' + p.emoji + ' ' + p.name + ' — ATR ×' + p.mult, 'opt');
 }
 
 function setPirateProfile(key, el) {
-  if(freedomMode) {
-    addLog('⚠️ Desactiva Libertad Absoluta primero', 'warn'); return;
+  // Legacy — now handled by slider, map key to slider value
+  const idx = RISK_LEVELS.findIndex(r => r.key === key);
+  if(idx >= 0) {
+    const slider = document.getElementById('riskSlider');
+    if(slider) slider.value = idx + 1;
+    setRiskFromSlider(idx + 1);
   }
-  const p = PIRATE_PROFILES[key];
-  if(!p) return;
-  activePirateProfile = key;
-  activePirateMult    = p.mult;
-
-  document.getElementById('rsiOB').value = p.rsiOB;
-  document.getElementById('rsiOS').value = p.rsiOS;
-
-  document.querySelectorAll('.pirate-card').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
-
-  const lbl = document.getElementById('pirateActiveLabel');
-  if(lbl) lbl.textContent = `· ${p.name} ${p.emoji}`;
-
-  addLog(`☠ Perfil ${p.emoji} ${p.name} — ATR ×${p.mult}`, 'opt');
 }
+
+
 
 // ── FREEDOM MODE ─────────────────────────────────────────────────
 let aiFreeMult = 1.0; // IA decides this dynamically
@@ -4709,58 +4802,30 @@ async function runOptimizerPro() {
                    : goal==='drawdown' ? bestParams.maxDrawdown.toFixed(1)+'%'
                    : bestParams.sharpe.toFixed(2);
   document.getElementById('bp_score').textContent = scoreLabel;
-  drawEquityCurve(bestParams.equity_curve);
-
   // Results table
   document.getElementById('resultsPanel').style.display = 'block';
   const tbody = document.getElementById('resultsBody'); tbody.innerHTML = '';
   top10.forEach((r, i) => {
     const tr2 = document.createElement('tr');
     if(i === 0) tr2.classList.add('best');
-    tr2.innerHTML = `
-      <td style="color:${i===0?'var(--accent)':i===1?'var(--accent2)':'var(--warn)'}">${i===0?'★':(i+1)}</td>
-      <td>${r.rsiPeriod}</td><td>${r.rsiOB}</td><td>${r.rsiOS}</td>
-      <td>${r.macdFast}</td><td>${r.macdSlow}</td>
-      <td style="color:var(--warn)">×${r.atrMult}</td>
-      <td style="color:${r.winRate>55?'var(--accent)':r.winRate>45?'var(--warn)':'var(--danger)'}">${r.winRate.toFixed(1)}%</td>
-      <td>${r.trades}</td>
-      <td style="color:${r.profit>0?'var(--accent)':'var(--danger)'}">$${r.profit.toFixed(0)}</td>
-      <td style="color:var(--danger)">${r.maxDrawdown.toFixed(1)}%</td>`;
+    const rankColor  = i===0 ? 'var(--accent)' : i===1 ? 'var(--accent2)' : 'var(--warn)';
+    const rankText   = i===0 ? '★' : (i+1).toString();
+    const wrColor    = r.winRate>55 ? 'var(--accent)' : r.winRate>45 ? 'var(--warn)' : 'var(--danger)';
+    const profColor  = r.profit>0 ? 'var(--accent)' : 'var(--danger)';
+    tr2.innerHTML = '<td style="color:' + rankColor + '">' + rankText + '</td>' +
+      '<td>' + r.rsiPeriod + '</td><td>' + r.rsiOB + '</td><td>' + r.rsiOS + '</td>' +
+      '<td>' + r.macdFast + '</td><td>' + r.macdSlow + '</td>' +
+      '<td style="color:var(--warn)">×' + r.atrMult + '</td>' +
+      '<td style="color:' + wrColor + '">' + r.winRate.toFixed(1) + '%</td>' +
+      '<td>' + r.trades + '</td>' +
+      '<td style="color:' + profColor + '">$' + r.profit.toFixed(0) + '</td>' +
+      '<td style="color:var(--danger)">' + r.maxDrawdown.toFixed(1) + '%</td>';
     tbody.appendChild(tr2);
   });
 
   document.getElementById('btnApply').style.display = 'block';
   btn.disabled = false; btn.textContent = '🔄 Re-Optimizar';
   addLog(`🧬 Optimizador Pro completado. Mejor WR: ${top10[0].winRate.toFixed(1)}% | DD: ${top10[0].maxDrawdown.toFixed(1)}%`, 'opt');
-}
-
-function drawEquityCurve(curve) {
-  const c = document.getElementById('equityChart');
-  if(!c || !curve || curve.length < 2) return;
-  const w = c.offsetWidth, h = c.offsetHeight;
-  if(w===0||h===0) return;
-  const off = document.createElement('canvas'); off.width=w; off.height=h;
-  const cx = off.getContext('2d');
-  cx.fillStyle='#0d1117'; cx.fillRect(0,0,w,h);
-  const mn=Math.min(...curve)-100, mx=Math.max(...curve)+100, rng=mx-mn;
-  const toY=v=>h-((v-mn)/rng)*h;
-  // Gradient fill
-  const g=cx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'rgba(167,139,250,0.3)'); g.addColorStop(1,'rgba(167,139,250,0)');
-  cx.beginPath();
-  curve.forEach((v,i)=>{const x=(i/(curve.length-1))*w,y=toY(v);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
-  cx.lineTo(w,h);cx.lineTo(0,h);cx.fillStyle=g;cx.fill();
-  // Line
-  cx.beginPath();
-  curve.forEach((v,i)=>{const x=(i/(curve.length-1))*w,y=toY(v);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
-  cx.strokeStyle='#a78bfa';cx.lineWidth=2;cx.stroke();
-  // Baseline
-  const basY=toY(10000);
-  cx.beginPath();cx.moveTo(0,basY);cx.lineTo(w,basY);
-  cx.strokeStyle='rgba(245,166,35,0.35)';cx.lineWidth=1;cx.setLineDash([4,4]);cx.stroke();cx.setLineDash([]);
-  // Commit
-  if(c.width!==w) c.width=w; if(c.height!==h) c.height=h;
-  c.getContext('2d').drawImage(off,0,0);
 }
 
 function applyBestParams() {
