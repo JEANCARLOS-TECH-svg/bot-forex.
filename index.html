@@ -1088,7 +1088,8 @@
                     ⚠ Solo compatible con <strong style="color:var(--accent)">Binance Testnet</strong>.<br>
                     Nunca uses claves de tu cuenta real aquí.
                   </div>
-                  <button class="btn-connect" onclick="connectAPI()">⚡ CONECTAR</button>
+                  <button class="btn-connect" onclick="connectAPI()">⚡ CONECTAR CON API KEY</button>
+                  <button style="width:100%;margin-top:8px;padding:10px;border:1px solid var(--accent);background:rgba(0,229,160,0.08);color:var(--accent);border-radius:10px;cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;font-weight:700" onclick="connectPublicPrices()">🌐 CONECTAR SIN API KEY<br><span style="font-size:9px;font-weight:400;opacity:0.7">Precios reales — sin cuenta</span></button>
                 </div>
                 <div id="apiConnected" style="display:none">
                   <div style="font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:6px;letter-spacing:1px">🔑 API KEY</div>
@@ -2089,9 +2090,9 @@
 
 <script>
 // ======================== API CONNECTION ========================
-const TESTNET_BASE      = 'https://testnet.binance.vision/api';
-const TESTNET_WS_SPOT   = 'wss://testnet.binance.vision/ws';
-const TESTNET_WS_FUTURE = 'wss://stream.binancefuture.com/ws';
+const TESTNET_BASE      = 'https://testnet.binance.vision/api'; // REST solo para auth
+const TESTNET_WS_SPOT   = 'wss://stream.binance.com:9443/stream'; // Binance REAL — precios públicos estables
+const TESTNET_WS_FUTURE = 'wss://stream.binance.com:9443/stream'; // mismo servidor
 
 let apiConnected  = false;
 let apiKeyVal     = '', apiSecretVal = '';
@@ -2125,37 +2126,36 @@ const BINANCE_FUTURES_SYMBOLS = {
 // ── WebSocket helpers ────────────────────────────────────────────
 function wsLog(msg, type) { addLog(msg, type||'warn'); }
 
-/** Build a combined stream URL for all supported symbols */
+/** Build a combined stream URL for Binance Real public WebSocket */
 function buildSpotStreamUrl() {
   const streams = Object.values(BINANCE_SYMBOLS)
     .map(s => s.toLowerCase() + '@trade')
     .join('/');
-  return TESTNET_WS_SPOT+"/"+streams;
+  // Binance Real format: wss://stream.binance.com:9443/stream?streams=btcusdt@trade/ethusdt@trade
+  return TESTNET_WS_SPOT + '?streams=' + streams;
 }
 
 function buildFuturesStreamUrl() {
-  const streams = Object.values(BINANCE_FUTURES_SYMBOLS)
-    .map(s => s.toLowerCase() + '@aggTrade')
-    .join('/');
-  return TESTNET_WS_FUTURE+"/"+streams;
+  return buildSpotStreamUrl(); // usar mismo servidor real
 }
 
-/** Connect Spot WebSocket */
+/** Connect Spot WebSocket — Binance Real precios públicos */
 function connectSpotWS() {
   if(wsSpot) { try { wsSpot.close(); } catch(_){} }
   const url = buildSpotStreamUrl();
   wsSpot = new WebSocket(url);
   wsSpot.onopen = () => {
     wsRetry.spot = 0;
-    wsLog('📡 WS Spot Testnet conectado', 'buy');
+    wsLog('📡 Binance REAL conectado — precios en vivo', 'buy');
     updateWsBadge();
   };
   wsSpot.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data);
-      // Spot trade stream: {s: symbol, p: price}
-      const sym = msg.s || (msg.stream && msg.data && msg.data.s);
-      const px  = parseFloat(msg.p || (msg.data && msg.data.p));
+      // Binance Real stream format: {stream: "btcusdt@trade", data: {s, p}}
+      const data = msg.data || msg;
+      const sym = data.s;
+      const px  = parseFloat(data.p);
       if(sym && px) livePriceCache[sym] = px;
     } catch(_) {}
   };
@@ -2233,11 +2233,42 @@ function toggleVis(id) {
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 
+/** Conectar a precios públicos de Binance Real — sin API Key */
+function connectPublicPrices() {
+  apiConnected = true;
+  apiKeyVal = ''; apiSecretVal = '';
+
+  // Update UI
+  document.getElementById('apiForm').style.display = 'none';
+  document.getElementById('apiConnected').style.display = 'block';
+  document.getElementById('btnDisconnect').style.display = 'block';
+  document.getElementById('apiDot').classList.add('on');
+  document.getElementById('apiStatusText').textContent = 'BINANCE REAL';
+  document.getElementById('apiStatusText').style.color = 'var(--accent)';
+  document.getElementById('liveBadge').style.display = 'inline-flex';
+  document.getElementById('apiPanel').classList.add('connected');
+
+  const balDiv = document.getElementById('apiBalance');
+  if(balDiv) balDiv.innerHTML = '<div style="font-size:10px;color:var(--accent);font-family:Space Mono,monospace;padding:4px 0">' +
+    '<div style="font-weight:700;margin-bottom:4px">✓ Precios reales de Binance</div>' +
+    '<div style="color:var(--muted)">Sin API Key — modo simulación</div>' +
+    '</div>';
+
+  const mkEl = document.getElementById('apiKeyMasked');
+  if(mkEl) mkEl.textContent = 'Precios públicos — sin API Key';
+
+  addLog('🌐 Conectado a Binance REAL — precios públicos en vivo', 'buy');
+  startLivePrices();
+}
+
+
 async function connectAPI() {
   const key = document.getElementById('apiKey').value.trim();
   const secret = document.getElementById('apiSecret').value.trim();
+
+  // Conectar sin API Key — usar precios públicos de Binance Real
   if(!key || !secret) {
-    showApiError('Por favor ingresa tu API Key y Secret Key.');
+    connectPublicPrices();
     return;
   }
 
@@ -2245,8 +2276,7 @@ async function connectAPI() {
   btn.textContent = '🔄 Conectando...';
   btn.disabled = true;
 
-  // Binance Testnet blocks REST from browsers (CORS)
-  // Connect directly via WebSocket for live prices
+  // Binance Real WebSocket — precios públicos
   apiKeyVal    = key;
   apiSecretVal = secret;
   apiConnected = true;
@@ -2260,8 +2290,7 @@ async function connectAPI() {
   const balDiv = document.getElementById('apiBalance');
   if(balDiv) balDiv.innerHTML = '<div style="font-size:10px;color:var(--muted);font-family:Space Mono,monospace;padding:4px 0">' +
       '<div style="color:var(--accent);font-weight:700;margin-bottom:4px">✓ Claves validadas</div>' +
-      '<div>Saldo disponible en Testnet</div>' +
-      '<div style="color:var(--muted);font-size:9px;margin-top:2px">Precios via WebSocket en tiempo real</div>' +
+      '<div>Precios reales via WebSocket</div>' +
       '</div>';
 
   // Update UI
@@ -2269,19 +2298,18 @@ async function connectAPI() {
   document.getElementById('apiConnected').style.display = 'block';
   document.getElementById('btnDisconnect').style.display = 'block';
   document.getElementById('apiDot').classList.add('on');
-  document.getElementById('apiStatusText').textContent = 'BINANCE TESTNET';
+  document.getElementById('apiStatusText').textContent = 'BINANCE REAL';
   document.getElementById('apiStatusText').style.color = 'var(--accent)';
   document.getElementById('liveBadge').style.display = 'inline-flex';
   document.getElementById('apiPanel').classList.add('connected');
 
-  btn.textContent = '⚡ CONECTAR A BINANCE TESTNET';
+  btn.textContent = '⚡ CONECTAR CON API KEY';
   btn.disabled = false;
 
-  addLog('⚡ Binance Testnet conectado — iniciando WebSocket...', 'buy');
+  addLog('⚡ Binance Real conectado — iniciando WebSocket...', 'buy');
   startLivePrices();
 
   try {
-    // Try REST in background for balance (may fail due to CORS — that's OK)
     const ts = Date.now();
     const qs = "timestamp="+ts+"&recvWindow=60000";
     const sig = await hmacSHA256(secret, qs);
@@ -2299,10 +2327,10 @@ async function connectAPI() {
       }
     }
   } catch(_) {
-    // CORS blocked REST — WebSocket already running, no problem
     addLog('📡 WebSocket activo — precios en vivo recibidos', 'buy');
   }
 }
+
 
 function showApiError(msg) {
   document.getElementById('apiPanel').classList.add('error');
@@ -2442,7 +2470,7 @@ function selInst(btn, sym, cat) {
 }
 
 // ======================== CHARTS TOGGLE ========================
-let chartsVisible = false;
+let chartsVisible = true;
 function toggleCharts() {
   chartsVisible = !chartsVisible;
   const btn = document.getElementById('chartsToggleBtn');
@@ -3005,8 +3033,8 @@ function toggleCollapsible(id) {
 // ======================== INDICATORS TOGGLE ========================
 // NOTA: Los toggles solo controlan la VISUALIZACIÓN.
 // La IA siempre usa los 6 indicadores internamente, independientemente de estos switches.
-let indRSI = false;
-let indMACD = false;
+let indRSI = true;
+let indMACD = true;
 
 function updateChartVisibility() {
   const tvPanels = document.getElementById('tvPanels');
