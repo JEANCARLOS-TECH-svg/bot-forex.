@@ -1457,19 +1457,19 @@
           </div>
         </div>
 
+
         <!-- MODO ENTRENAMIENTO -->
         <div style="margin-top:8px">
           <button onclick="toggleTraining()" id="trainingBtn"
             style="width:100%;padding:10px 14px;border-radius:12px;cursor:pointer;
             display:flex;align-items:center;justify-content:space-between;
             border:1px solid rgba(168,85,247,0.3);background:rgba(168,85,247,0.06);
-            font-family:'Space Mono',monospace;transition:all .3s"
-            id="trainingBtn">
+            font-family:'Space Mono',monospace;transition:all .3s">
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:16px">🧠</span>
               <div style="text-align:left">
                 <div style="font-size:11px;font-weight:700;color:var(--purple)">MODO ENTRENAMIENTO</div>
-                <div style="font-size:9px;color:var(--muted)">Opera al máximo · Aprende rápido</div>
+                <div style="font-size:9px;color:var(--muted)">Opera al maximo - Aprende rapido</div>
               </div>
             </div>
             <div style="font-size:10px;font-family:'Space Mono',monospace;color:var(--muted)" id="trainingState">INACTIVO</div>
@@ -2018,10 +2018,12 @@ function wsLog(msg, type) { addLog(msg, type||'warn'); }
 
 /** Build a combined stream URL for Binance Real public WebSocket */
 function buildSpotStreamUrl() {
-  const streams = Object.values(BINANCE_SYMBOLS)
-    .map(s => s.toLowerCase() + '@trade')
-    .join('/');
-  // Binance Real format: wss://stream.binance.com:9443/stream?streams=btcusdt@trade/ethusdt@trade
+  var syms = Object.values(BINANCE_SYMBOLS);
+  var streams = '';
+  for(var _si=0; _si<syms.length; _si++) {
+    if(_si>0) streams += '/';
+    streams += syms[_si].toLowerCase() + '@trade';
+  }
   return TESTNET_WS_SPOT + '?streams=' + streams;
 }
 
@@ -2034,32 +2036,30 @@ function connectSpotWS() {
   if(wsSpot) { try { wsSpot.close(); } catch(_){} }
   const url = buildSpotStreamUrl();
   wsSpot = new WebSocket(url);
-  wsSpot.onopen = () => {
+  wsSpot.onopen = function() {
     wsRetry.spot = 0;
-    wsLog('📡 Binance REAL conectado — precios en vivo', 'buy');
+    wsLog('Binance REAL conectado - precios en vivo', 'buy');
     updateAutoBadge('connected');
     updateWsBadge();
   };
-  wsSpot.onmessage = (e) => {
+  wsSpot.onmessage = function(e) {
     try {
-      const msg = JSON.parse(e.data);
-      // Binance Real stream format: {stream: "btcusdt@trade", data: {s, p}}
-      const data = msg.data || msg;
-      const sym = data.s;
-      const px  = parseFloat(data.p);
+      var msg = JSON.parse(e.data);
+      var mdata = msg.data || msg;
+      var sym = mdata.s;
+      var px = parseFloat(mdata.p);
       if(sym && px) livePriceCache[sym] = px;
     } catch(_) {}
   };
-  wsSpot.onerror = () => wsLog('⚠ WS Spot error', 'warn');
-  wsSpot.onclose = (ev) => {
+  wsSpot.onerror = function() { wsLog('WS Spot error', 'warn'); updateAutoBadge('searching'); };
+  wsSpot.onclose = function(ev) {
     updateWsBadge();
     updateAutoBadge('searching');
     if(!apiConnected) return;
-    // Reconexión infinita — Testnet puede caerse temporalmente
     wsRetry.spot++;
-    const delay = Math.min(WS_RETRY_BASE_MS * Math.pow(1.5, Math.min(wsRetry.spot, 10)), 60000);
-    const secs = Math.round(delay/1000);
-    wsLog('🔌 WS Spot caído — reconectando en ' + secs + 's (intento ' + wsRetry.spot + ')', 'warn');
+    var delay = Math.min(WS_RETRY_BASE_MS * Math.pow(1.5, Math.min(wsRetry.spot, 10)), 60000);
+    var secs = Math.round(delay/1000);
+    wsLog('WS Spot caido - reconectando en ' + secs + 's (intento ' + wsRetry.spot + ')', 'warn');
     wsReconnectTimers.spot = setTimeout(connectSpotWS, delay);
   };
 }
@@ -2099,51 +2099,36 @@ function updateWsBadge() {
 }
 
 /** Start live prices — Spot only */
-/** Pre-cargar 100 velas históricas de Binance Real — canvas instantáneas */
+/** Pre-load 100 historical candles from Binance Real */
 function preloadHistoricalCandles(symbol, callback) {
-  var binanceSym = symbol || 'BTCUSDT';
-  var url = 'https://api.binance.com/api/v3/klines?symbol=' + binanceSym + '&interval=1m&limit=100';
-  addLog('📊 Cargando historial de ' + binanceSym + '...', 'warn');
+  var url = 'https://api.binance.com/api/v3/klines?symbol=' + symbol + '&interval=1m&limit=100';
+  addLog('Cargando historial ' + symbol + '...', 'warn');
   fetch(url)
     .then(function(res) { return res.json(); })
     .then(function(data) {
       if(!data || !data.length) { if(callback) callback(); return; }
-      // Each kline: [openTime, open, high, low, close, volume, ...]
-      var historical = data.map(function(k) { return parseFloat(k[4]); }); // close prices
+      var historical = [];
+      for(var _hi=0; _hi<data.length; _hi++) historical.push(parseFloat(data[_hi][4]));
       prices = historical;
-      addLog('✅ ' + historical.length + ' velas históricas cargadas — gráficas listas', 'buy');
+      addLog(historical.length + ' velas historicas cargadas - graficas listas', 'buy');
       if(callback) callback();
     })
-    .catch(function(err) {
-      addLog('⚠ No se pudo cargar historial — usando datos en vivo', 'warn');
+    .catch(function() {
+      addLog('Sin historial previo - usando datos en vivo', 'warn');
       if(callback) callback();
     });
 }
 
 function startLivePrices() {
-  // Get Binance symbol for current instrument
-  var inst = INSTRUMENTS[currentInst];
-  var binanceSym = BINANCE_SYMBOLS[currentInst] || 'BTCUSDT';
-
-  // Pre-load historical candles first, then start WebSocket
-  preloadHistoricalCandles(binanceSym, function() {
-    // Draw charts immediately with historical data
-    if(running) {
-      setTimeout(function() {
-        resizeAllCanvases();
-        drawPrice();
-        if(indRSI) drawRSI(+document.getElementById('rsiOB').value, +document.getElementById('rsiOS').value);
-        if(indMACD) drawMACD();
-      }, 100);
-    }
-  });
-
   connectSpotWS();
+  // Futures disabled — too unstable on Testnet
   if(liveInterval) clearInterval(liveInterval);
   liveInterval = setInterval(function() {
     if(!apiConnected || !running) return;
     const livePrice = getLivePrice(currentInst);
     if(livePrice && livePrice > 0) {
+      // Only inject if not already handled by tick() — tick reads it directly
+      // but we also update the display even when bot is stopped
       const inst = INSTRUMENTS[currentInst];
       document.getElementById('instPriceDisplay').textContent = livePrice.toFixed(inst.decimals);
       const refBase = inst.base;
@@ -2263,7 +2248,7 @@ async function connectAPI() {
     });
     if(res.ok) {
       const data = await res.json();
-      const balances = (data.balances||[]).filter(b=>parseFloat(b.free)>0).slice(0,6);
+      const balances = (data.balances||[]).filter(function(b){return parseFloat(b.free)>0;}).slice(0,6);
       if(balances.length > 0 && balDiv) {
         balDiv.innerHTML = balances.map(function(b) {
           return '<div class="api-balance-item"><div class="api-balance-coin">' + b.asset + '</div>' +
@@ -2282,7 +2267,7 @@ function showApiError(msg) {
   document.getElementById('apiDot').classList.add('err');
   document.getElementById('apiStatusText').textContent = msg;
   document.getElementById('apiStatusText').style.color = 'var(--danger)';
-  setTimeout(() => {
+  setTimeout(function() {
     document.getElementById('apiPanel').classList.remove('error');
     document.getElementById('apiDot').classList.remove('err');
     document.getElementById('apiStatusText').textContent = 'SIN CONECTAR';
@@ -2317,7 +2302,7 @@ async function hmacSHA256(secret, message) {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey('raw', enc.encode(secret), {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
-  return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(sig)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
 }
 
 
@@ -2330,7 +2315,7 @@ let openCat = 'forex';
 function toggleAcc(cat) {
   const isOpen = openCat === cat;
   // Close all
-  cats.forEach(c => {
+  cats.forEach(function(c) {
     const item = document.getElementById('acc-'+c);
     const body = document.getElementById('body-'+c);
     item.className = 'acc-item cat-'+c;
@@ -2398,7 +2383,7 @@ let trades=0, wins=0, losses=0, lastSignal='none';
 let rsiHistory=[], macdHistory=[], macdSigHistory=[], macdHistHistory=[];
 
 function selInst(btn, sym, cat) {
-  document.querySelectorAll('.inst-btn').forEach(b => b.className='inst-btn');
+  document.querySelectorAll('.inst-btn').forEach(function(b) { b.className='inst-btn'; });
   btn.classList.add('sel-'+cat);
   currentInst=sym; currentCat=cat;
   const inst=INSTRUMENTS[sym];
@@ -2444,8 +2429,8 @@ function toggleCharts() {
 
 function switchTab(tab){
   const allTabs = ['bot','indicators','history','opt'];
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active', allTabs[i]===tab));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active', allTabs[i]===tab);});
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
   const tabEl = document.getElementById('tab-'+tab);
   if(tabEl) tabEl.classList.add('active');
   if(tab==='bot') setTimeout(resizeAllCanvases,50);
@@ -2496,7 +2481,7 @@ function toggleDropdown() {
 
 function updateDropdownRates() {
   // Show approximate exchange rates vs USD
-  Object.keys(BASE_RATES).forEach(code => {
+  Object.keys(BASE_RATES).forEach(function(code) {
     const el = document.getElementById('rate-' + code);
     if(!el) return;
     if(code === 'USD' || code === 'USDT') return;
@@ -2512,7 +2497,7 @@ function updateDropdownRates() {
 function selectCurrency(code, icon, name, type, el) {
   selectedCurrency = { code, icon, name, type };
   // Update checkmarks
-  document.querySelectorAll('.curr-option').forEach(o => {
+  document.querySelectorAll('.curr-option').forEach(function(o) {
     o.classList.remove('selected');
     const chk = o.querySelector('.curr-option-check');
     if(chk) chk.remove();
@@ -2551,7 +2536,7 @@ function refreshAmountDisplay() {
 }
 
 // Close dropdown when clicking outside
-document.addEventListener('click', e => {
+document.addEventListener('click', function(e) {
   if(!e.target.closest('.curr-dropdown-wrap')) {
     dropdownOpen = false;
     const menu = document.getElementById('currDropMenu');
@@ -2570,7 +2555,7 @@ let tradeMode = 'both'; // 'buy', 'sell', 'both'
 function setAmount(val, btn) {
   tradeAmount = val;
   document.getElementById('bigAmountVal').textContent = val;
-  document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.amount-btn').forEach(function(b) { b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
   refreshAmountDisplay();
   addLog('💰 Monto: '+val+' '+selectedCurrency.code, 'warn');
@@ -2581,7 +2566,7 @@ function setCustomAmount() {
   if(!val || val <= 0) return;
   tradeAmount = val;
   document.getElementById('bigAmountVal').textContent = val;
-  document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.amount-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('customAmount').value = '';
   refreshAmountDisplay();
   addLog('💰 Monto personalizado: '+val+' '+selectedCurrency.code, 'warn');
@@ -2589,7 +2574,7 @@ function setCustomAmount() {
 
 function setMode(mode, btn) {
   tradeMode = mode;
-  document.querySelectorAll('.trade-mode-btn').forEach(b => b.classList.remove('buy-mode','sell-mode','both-mode'));
+  document.querySelectorAll('.trade-mode-btn').forEach(function(b) { b.classList.remove('buy-mode','sell-mode','both-mode'); });
   const modeEl = document.getElementById('amountMode');
   if(mode === 'buy') {
     btn.classList.add('buy-mode');
@@ -2624,7 +2609,7 @@ let aiWeights = { rsi: 25, macd: 25, bb: 25, ema: 25 };
 let aiPredictions = { rsi: [], macd: [], bb: [], ema: [] };
 let aiThreshold = 60;
 let lastIndSignals = { rsi: 0, macd: 0, bb: 0, ema: 0 };
-let lastDivSignal  = ''; // tracks last RSI divergence to avoid spam logs
+let lastDivSignal  = '';
 
 // Trend filter state
 let trendDirection = 0; // 1=up, -1=down, 0=flat
@@ -2755,19 +2740,19 @@ function updateAIWeights(winner) {
   const correct = winner ? 1 : -1;
   const LEARNING_RATE = 3.5; // faster learning (was 2)
 
-  Object.keys(aiWeights).forEach(ind => {
+  Object.keys(aiWeights).forEach(function(ind) {
     if(lastIndSignals[ind] !== 0) {
       const wasRight = lastIndSignals[ind] === correct;
       // Faster learning: bigger reward for strong consensus signals
-      const consensus = Object.values(lastIndSignals).filter(s=>s===lastIndSignals[ind]).length;
+      const consensus = Object.values(lastIndSignals).filter(function(s){ return s===lastIndSignals[ind]; }).length;
       const lr = LEARNING_RATE * (consensus >= 3 ? 1.5 : 1);
       aiWeights[ind] = Math.max(5, Math.min(60, aiWeights[ind] + (wasRight ? lr : -lr)));
     }
   });
 
   // Normalize to 100%
-  const total = Object.values(aiWeights).reduce((a,b)=>a+b,0);
-  Object.keys(aiWeights).forEach(ind=>{ aiWeights[ind]=Math.round(aiWeights[ind]/total*100); });
+  const total = Object.values(aiWeights).reduce(function(a,b) { return a+b; },0);
+  Object.keys(aiWeights).forEach(function(ind) { aiWeights[ind]=Math.round(aiWeights[ind]/total*100); });
 
   // Dynamic threshold: stricter in flat markets
   const vol = calcVolatility();
@@ -2781,10 +2766,11 @@ function updateAIWeights(winner) {
 function calcVolatility() {
   if(prices.length < 20) return 0.5;
   const recent = prices.slice(-20);
-  const avg = recent.reduce((a,b)=>a+b,0)/recent.length;
-  const variance = recent.reduce((s,p)=>s+Math.pow(p-avg,2),0)/recent.length;
+  const avg = recent.reduce(function(a,b) { return a+b; },0)/recent.length;
+  const variance = recent.reduce(function(s,p){return s+Math.pow(p-avg,2);},0)/recent.length;
   return Math.min(1, Math.sqrt(variance)/avg * 1000);
 }
+
 
 /** Calculate Average True Range */
 function calcATR(period) {
@@ -2792,27 +2778,25 @@ function calcATR(period) {
   if(prices.length < period + 1) return prices.length > 1 ? Math.abs(prices[prices.length-1] - prices[prices.length-2]) : 1;
   var trSum = 0;
   var start = prices.length - period;
-  for(var i = start; i < prices.length; i++) {
-    trSum += Math.abs(prices[i] - prices[i-1]);
+  for(var _ai=start; _ai<prices.length; _ai++) {
+    trSum += Math.abs(prices[_ai] - prices[_ai-1]);
   }
   return trSum / period;
 }
 
-/** Get SL/TP levels based on ATR — ratio 1:2 */
+/** SL/TP levels based on ATR - ratio 1:2 professional standard */
 function getATRLevels() {
-  const inst = INSTRUMENTS[currentInst];
-  const atr = calcATR(14);
-  const atrPips = atr * inst.pipMul;
-  const mult = freedomMode ? aiFreeMult : activePirateMult;
-  // SL = 1x ATR, TP = 2x ATR (ratio 1:2 — professional standard)
-  const sl = Math.max(5,  Math.round(atrPips * 1.0 * mult));
-  const tp = Math.max(10, Math.round(atrPips * 2.0 * mult));
+  var inst = INSTRUMENTS[currentInst];
+  var atr = calcATR(14);
+  var atrPips = atr * inst.pipMul;
+  var mult = freedomMode ? aiFreeMult : activePirateMult;
+  var sl = Math.max(5, Math.round(atrPips * 1.0 * mult));
+  var tp = Math.max(10, Math.round(atrPips * 2.0 * mult));
   return { sl: sl, tp: tp, atrPips: atrPips };
 }
 
-
 function updateAIDisplay() {
-  ['RSI','MACD','BB','EMA'].forEach((key,i) => {
+  ['RSI','MACD','BB','EMA'].forEach(function(key, i) {
     const ind = key.toLowerCase();
     const w = aiWeights[ind] || 25;
     const el = document.getElementById('aiWeight'+key);
@@ -2832,8 +2816,8 @@ let emaHistory = { fast:[], slow:[] };
 function calcBollinger(prices, period, multiplier) { if(!period)period=20; if(!multiplier)multiplier=2;
   if(prices.length < period) return { upper: prices[prices.length-1], mid: prices[prices.length-1], lower: prices[prices.length-1] };
   const slice = prices.slice(-period);
-  const mid = slice.reduce((a,b)=>a+b,0)/period;
-  const variance = slice.reduce((s,p)=>s+Math.pow(p-mid,2),0)/period;
+  const mid = slice.reduce(function(a,b) { return a+b; },0)/period;
+  const variance = slice.reduce(function(s,p){return s+Math.pow(p-mid,2);},0)/period;
   const std = Math.sqrt(variance);
   return { upper: mid + multiplier*std, mid, lower: mid - multiplier*std };
 }
@@ -2906,8 +2890,8 @@ function drawBollinger() {
   const mn = Math.min.apply(null, allVals) * 0.9992;
   const mx = Math.max.apply(null, allVals) * 1.0008;
   const range = mx - mn || 1;
-  const toY = v => h - ((v - mn) / range) * h;
-  const toX = i => (i / Math.max(n - 1, 1)) * w;
+  function toY(v) { return h - ((v - mn) / range) * h; }
+  function toX(i) { return (i / Math.max(n - 1, 1)) * w; }
 
   var _mo=makeOffscreen(w,h); var off=_mo.canvas, cx=_mo.ctx;
   cx.fillStyle = '#0d1117'; cx.fillRect(0, 0, w, h);
@@ -2922,30 +2906,30 @@ function drawBollinger() {
 
   // Fill between bands
   cx.beginPath();
-  bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.upper)) : cx.lineTo(toX(i), toY(b.upper)); });
-  bbArr.slice().reverse().forEach((b, i) => cx.lineTo(toX(n - 1 - i), toY(b.lower)));
+  bbArr.forEach(function(b, i) { i === 0 ? cx.moveTo(toX(i), toY(b.upper)) : cx.lineTo(toX(i), toY(b.upper)); });
+  bbArr.slice().reverse().forEach(function(b,i){cx.lineTo(toX(n-1-i),toY(b.lower));});
   cx.closePath();
   cx.fillStyle = 'rgba(59,158,255,0.05)'; cx.fill();
 
   // Upper band
   cx.beginPath();
-  bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.upper)) : cx.lineTo(toX(i), toY(b.upper)); });
+  bbArr.forEach(function(b, i) { i === 0 ? cx.moveTo(toX(i), toY(b.upper)) : cx.lineTo(toX(i), toY(b.upper)); });
   cx.strokeStyle = 'rgba(255,77,106,0.8)'; cx.lineWidth = 1.5; cx.stroke();
 
   // Lower band
   cx.beginPath();
-  bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.lower)) : cx.lineTo(toX(i), toY(b.lower)); });
+  bbArr.forEach(function(b, i) { i === 0 ? cx.moveTo(toX(i), toY(b.lower)) : cx.lineTo(toX(i), toY(b.lower)); });
   cx.strokeStyle = 'rgba(0,229,160,0.8)'; cx.lineWidth = 1.5; cx.stroke();
 
   // Mid band
   cx.beginPath();
-  bbArr.forEach((b, i) => { i === 0 ? cx.moveTo(toX(i), toY(b.mid)) : cx.lineTo(toX(i), toY(b.mid)); });
+  bbArr.forEach(function(b, i) { i === 0 ? cx.moveTo(toX(i), toY(b.mid)) : cx.lineTo(toX(i), toY(b.mid)); });
   cx.strokeStyle = 'rgba(59,158,255,0.6)'; cx.lineWidth = 1; cx.stroke();
 
   // Price line
   const data = prices.slice(-n);
   cx.beginPath();
-  data.forEach((p, i) => { i === 0 ? cx.moveTo(toX(i), toY(p)) : cx.lineTo(toX(i), toY(p)); });
+  data.forEach(function(p, i) { i === 0 ? cx.moveTo(toX(i), toY(p)) : cx.lineTo(toX(i), toY(p)); });
   cx.strokeStyle = '#00e5a0'; cx.lineWidth = 1.8; cx.stroke();
 
   // Commit
@@ -2991,8 +2975,8 @@ function drawEMA() {
   const mn = Math.min.apply(null, allVals) * 0.9992;
   const mx = Math.max.apply(null, allVals) * 1.0008;
   const range = mx - mn || 1;
-  const toY = v => h - ((v - mn) / range) * h;
-  const toX = i => (i / Math.max(n - 1, 1)) * w;
+  function toY(v) { return h - ((v - mn) / range) * h; }
+  function toX(i) { return (i / Math.max(n - 1, 1)) * w; }
 
   var _mo=makeOffscreen(w,h); var off=_mo.canvas, cx=_mo.ctx;
   cx.fillStyle = '#0d1117'; cx.fillRect(0, 0, w, h);
@@ -3016,17 +3000,17 @@ function drawEMA() {
 
   // Price line (dim)
   cx.beginPath();
-  data.forEach((p, i) => { i === 0 ? cx.moveTo(toX(i), toY(p)) : cx.lineTo(toX(i), toY(p)); });
+  data.forEach(function(p, i) { i === 0 ? cx.moveTo(toX(i), toY(p)) : cx.lineTo(toX(i), toY(p)); });
   cx.strokeStyle = 'rgba(0,229,160,0.2)'; cx.lineWidth = 1; cx.stroke();
 
   // EMA Fast (9) — orange
   cx.beginPath();
-  fastArr.forEach((v, i) => { i === 0 ? cx.moveTo(toX(i), toY(v)) : cx.lineTo(toX(i), toY(v)); });
+  fastArr.forEach(function(v, i) { i === 0 ? cx.moveTo(toX(i), toY(v)) : cx.lineTo(toX(i), toY(v)); });
   cx.strokeStyle = '#fb923c'; cx.lineWidth = 2; cx.stroke();
 
   // EMA Slow (21) — purple
   cx.beginPath();
-  slowArr.forEach((v, i) => { i === 0 ? cx.moveTo(toX(i), toY(v)) : cx.lineTo(toX(i), toY(v)); });
+  slowArr.forEach(function(v, i) { i === 0 ? cx.moveTo(toX(i), toY(v)) : cx.lineTo(toX(i), toY(v)); });
   cx.strokeStyle = '#a78bfa'; cx.lineWidth = 2; cx.stroke();
 
   // ── Crossover dots — only SIGNIFICANT crosses ──────────────
@@ -3094,15 +3078,15 @@ function updateChartVisibility() {
     tvMacdPanel: indMACD,
 
   };
-  Object.entries(panels).forEach(([id, visible]) => {
+  Object.keys(panels).forEach(function(id) { var visible=panels[id];
     const el = document.getElementById(id);
     if(el) el.style.display = visible ? 'block' : 'none';
   });
 
   // Dar tiempo al DOM para mostrar el panel antes de dibujar
   // NO tocar .width/.height aquí — safeResize lo maneja en cada draw function
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
       drawPrice();
       const rsiOB = +document.getElementById('rsiOB').value;
       const rsiOS = +document.getElementById('rsiOS').value;
@@ -3171,16 +3155,16 @@ function addTradeToHistory(sym, type, entryPrice, result, amount, currCode) {
 
 function updateHistorySummary() {
   const total = tradeHistory.length;
-  const wins = tradeHistory.filter(t => t.result === 'WIN').length;
+  const wins = tradeHistory.filter(function(t) { return t.result === 'WIN'; }).length;
   const losses = total - wins;
   const wr = total > 0 ? ((wins/total)*100).toFixed(1)+'%' : '—%';
-  const allAmounts = tradeHistory.map(t => t.amount);
+  const allAmounts = tradeHistory.map(function(t) { return t.amount; });
   const currCode = selectedCurrency.code;
   const currSym = CURR_SYMS[currCode] || currCode+' ';
 
   const best  = allAmounts.length > 0 ? formatConverted(Math.max.apply(null, allAmounts), currCode) : '—';
   const worst = allAmounts.length > 0 ? formatConverted(Math.min.apply(null, allAmounts), currCode) : '—';
-  const total_amt = allAmounts.reduce((a,b)=>a+b, 0);
+  const total_amt = allAmounts.reduce(function(a,b) { return a+b; }, 0);
 
   document.getElementById('hst_total').textContent = total;
   document.getElementById('hst_wins').textContent = wins;
@@ -3204,7 +3188,7 @@ function renderHistory() {
   const scrollEl = document.querySelector('.history-scroll');
 
   // Remove old cards
-  document.querySelectorAll('.trade-card').forEach(c => c.remove());
+  document.querySelectorAll('.trade-card').forEach(function(c) { c.remove(); });
 
   if(tradeHistory.length === 0) {
     emptyEl.style.display = 'block';
@@ -3212,7 +3196,7 @@ function renderHistory() {
   }
   emptyEl.style.display = 'none';
 
-  tradeHistory.forEach(t => {
+  tradeHistory.forEach(function(t) {
     const isWin = t.result === 'WIN';
     const code = t.currCode || 'USD';
     const fmtAmt = formatConverted(Math.abs(t.amount), code);
@@ -3236,7 +3220,7 @@ function renderHistory() {
 function clearHistory() {
   if(tradeHistory.length === 0) return;
   tradeHistory = []; opCounter = 0; currentStreak = 0; totalPips = 0;
-  document.querySelectorAll('.trade-card').forEach(c => c.remove());
+  document.querySelectorAll('.trade-card').forEach(function(c) { c.remove(); });
   document.getElementById('historyEmpty').style.display = 'block';
   updateHistorySummary();
   addLog('🗑 Historial limpiado', 'warn');
@@ -3269,9 +3253,9 @@ function redrawAllCharts(){
 }
 
 resizeAllCanvases();
-window.addEventListener('resize', () => {
+window.addEventListener('resize', function() {
   resizeAllCanvases();
-  requestAnimationFrame(() => redrawAllCharts());
+  requestAnimationFrame(function() { redrawAllCharts(); });
 });
 
 // ======================== WATCHDOG — ANTI PANTALLA EN BLANCO ========================
@@ -3281,7 +3265,7 @@ let watchdogInterval = null;
 
 function startWatchdog() {
   if(watchdogInterval) clearInterval(watchdogInterval);
-  watchdogInterval = setInterval(() => {
+  watchdogInterval = setInterval(function() {
     const c = document.getElementById('priceChart');
     if(!c) return;
     // If canvas has no size or bot is running and chart looks blank, redraw
@@ -3297,8 +3281,8 @@ function startWatchdog() {
 
 function forceRedraw() {
   // Try multiple times with increasing delays to handle slow mobile browsers
-  [50, 150, 300, 600, 1000].forEach(delay => {
-    setTimeout(() => {
+  [50, 150, 300, 600, 1000].forEach(function(delay) {
+    setTimeout(function() {
       resizeAllCanvases();
       drawPrice();
       if(indRSI) drawRSI(+document.getElementById('rsiOB').value, +document.getElementById('rsiOS').value);
@@ -3308,7 +3292,7 @@ function forceRedraw() {
 }
 
 // Trigger on every possible return-to-app event
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', function() {
   if(document.visibilityState === 'visible') forceRedraw();
 });
 window.addEventListener('focus', forceRedraw);
@@ -3317,7 +3301,7 @@ window.addEventListener('resume', forceRedraw); // Android WebView
 document.addEventListener('resume', forceRedraw); // Cordova/hybrid
 
 // Also intercept touch — when user touches screen after being away
-document.addEventListener('touchstart', () => {
+document.addEventListener('touchstart', function() {
   const c = document.getElementById('priceChart');
   if(c && (c.width === 0 || c.height === 0)) forceRedraw();
 }, { passive: true });
@@ -3335,7 +3319,7 @@ function calcRSI(p,period){
 }
 function calcEMA(p,period){
   if(p.length<period)return p[p.length-1];
-  const k=2/(period+1);let ema=p.slice(0,period).reduce((a,b)=>a+b,0)/period;
+  const k=2/(period+1);let ema=p.slice(0,period).reduce(function(a,b) { return a+b; },0)/period;
   for(let i=period;i<p.length;i++)ema=p[i]*k+ema*(1-k);
   return ema;
 }
@@ -3364,44 +3348,15 @@ function getSignal(rsi, macd, cfg) {
   const emaFast  = calcEMA(prices, 9);
   const emaSlow  = calcEMA(prices, 21);
   const emaSig   = getEMASignal(emaFast, emaSlow);
+  // Stochastic RSI signal — fine entry timing
   const stochSig = stoch.k < 20 ? 1 : stoch.k > 80 ? -1 : 0;
-
-  // ── LAYER 2B: RSI DIVERGENCE — señal de reversión ────────────
-  // Bullish divergence: precio hace mínimo más bajo, RSI hace mínimo más alto → BUY
-  // Bearish divergence: precio hace máximo más alto, RSI hace máximo más bajo → SELL
-  var divSig = 0;
-  if(prices.length >= 20 && rsiHistory.length >= 20) {
-    var recentPrices = prices.slice(-20);
-    var recentRSI    = rsiHistory.slice(-20);
-    var priceMin1 = Math.min.apply(null, recentPrices.slice(0, 10));
-    var priceMin2 = Math.min.apply(null, recentPrices.slice(10));
-    var rsiMin1   = Math.min.apply(null, recentRSI.slice(0, 10));
-    var rsiMin2   = Math.min.apply(null, recentRSI.slice(10));
-    var priceMax1 = Math.max.apply(null, recentPrices.slice(0, 10));
-    var priceMax2 = Math.max.apply(null, recentPrices.slice(10));
-    var rsiMax1   = Math.max.apply(null, recentRSI.slice(0, 10));
-    var rsiMax2   = Math.max.apply(null, recentRSI.slice(10));
-    // Bullish: precio baja pero RSI sube
-    if(priceMin2 < priceMin1 * 0.9995 && rsiMin2 > rsiMin1 * 1.02) {
-      divSig = 1;
-      if(lastDivSignal !== 'BUY') { addLog('📐 Divergencia RSI alcista detectada — señal BUY', 'buy'); lastDivSignal = 'BUY'; }
-    }
-    // Bearish: precio sube pero RSI baja
-    else if(priceMax2 > priceMax1 * 1.0005 && rsiMax2 < rsiMax1 * 0.98) {
-      divSig = -1;
-      if(lastDivSignal !== 'SELL') { addLog('📐 Divergencia RSI bajista detectada — señal SELL', 'sell'); lastDivSignal = 'SELL'; }
-    } else {
-      lastDivSignal = '';
-    }
-  }
 
   lastIndSignals.rsi  = rsiSig;
   lastIndSignals.macd = macdSig;
   lastIndSignals.bb   = bbSig;
   lastIndSignals.ema  = emaSig;
 
-  // ── LAYER 3: Weighted AI scores (divergencia suma bonus) ──────
-  const divBonus = 15; // divergence adds extra weight
+  // ── LAYER 3: Weighted AI scores ──────────────────────────────
   const buyScore  = (rsiSig===1   ? aiWeights.rsi  : 0) +
                     (macdSig===1  ? aiWeights.macd : 0) +
                     (bbSig===1    ? aiWeights.bb   : 0) +
@@ -3418,8 +3373,20 @@ function getSignal(rsi, macd, cfg) {
   updateATRDisplay(levels);
   updateStochDisplay(stoch);
 
-  const buyVotesArr  = [rsiSig,macdSig,bbSig,emaSig,stochSig].filter(s=>s===1).length;
-  const sellVotesArr = [rsiSig,macdSig,bbSig,emaSig,stochSig].filter(s=>s===-1).length;
+  var _sigs = [rsiSig,macdSig,bbSig,emaSig,stochSig];
+  var buyVotesArr=0, sellVotesArr=0;
+  for(var _vi2=0;_vi2<_sigs.length;_vi2++){if(_sigs[_vi2]===1)buyVotesArr++;else if(_sigs[_vi2]===-1)sellVotesArr++;}
+  var divSig = 0; var divBonus = 15;
+  if(prices.length>=20&&rsiHistory.length>=20){
+    var rP=prices.slice(-20),rR=rsiHistory.slice(-20);
+    var pMin1=Math.min.apply(null,rP.slice(0,10)),pMin2=Math.min.apply(null,rP.slice(10));
+    var rMin1=Math.min.apply(null,rR.slice(0,10)),rMin2=Math.min.apply(null,rR.slice(10));
+    var pMax1=Math.max.apply(null,rP.slice(0,10)),pMax2=Math.max.apply(null,rP.slice(10));
+    var rMax1=Math.max.apply(null,rR.slice(0,10)),rMax2=Math.max.apply(null,rR.slice(10));
+    if(pMin2<pMin1*0.9995&&rMin2>rMin1*1.02){divSig=1;if(lastDivSignal!=='BUY'){addLog('Divergencia RSI alcista - BUY','buy');lastDivSignal='BUY';}}
+    else if(pMax2>pMax1*1.0005&&rMax2<rMax1*0.98){divSig=-1;if(lastDivSignal!=='SELL'){addLog('Divergencia RSI bajista - SELL','sell');lastDivSignal='SELL';}}
+    else{lastDivSignal='';}
+  }
 
   // ── MOMENTUM FILTER — price direction last 3 candles ─────────
   var priceMomentum = 0;
@@ -3430,79 +3397,64 @@ function getSignal(rsi, macd, cfg) {
     else if(last < prev3 * 0.9998) priceMomentum = -1;
   }
 
-  // ── MINIMUM MARGIN FILTER ────────────────────────────────────
+  // ── MINIMUM MARGIN FILTER — avoid near-equal scores ──────────
   const scoreDiff = Math.abs(buyScore - sellScore);
 
-  // ══════════════════════════════════════════════════════════════
-  // ARQUITECTURA: INDICADORES COMO SUGERENCIA — IA COMO DECISOR
-  // ══════════════════════════════════════════════════════════════
+  // ARQUITECTURA: INDICADORES COMO SUGERENCIA - IA COMO DECISOR
+  var totalW = 0;
+  var wKeys = Object.keys(aiWeights);
+  for(var _wk=0;_wk<wKeys.length;_wk++) totalW+=aiWeights[wKeys[_wk]];
+  totalW = totalW + 15 || 100;
+  var indBuyStr  = buyScore  / totalW;
+  var indSellStr = sellScore / totalW;
+  var indDir = buyScore > sellScore ? 1 : sellScore > buyScore ? -1 : 0;
 
-  // Factor A: Opinión de indicadores (qué dicen RSI, MACD, BB, EMA, Div)
-  const indBuyStrength  = buyScore  / (Object.values(aiWeights).reduce(function(a,b){return a+b;},0) + 15 || 100);
-  const indSellStrength = sellScore / (Object.values(aiWeights).reduce(function(a,b){return a+b;},0) + 15 || 100);
-  const indDirection    = buyScore > sellScore ? 1 : sellScore > buyScore ? -1 : 0;
+  // Contexto del mercado
+  var ctxScore = 0;
+  if(trendDirection===indDir) ctxScore+=35;
+  else if(trendDirection===0) ctxScore+=15;
+  if(priceMomentum===indDir)  ctxScore+=35;
+  else if(priceMomentum===0)  ctxScore+=15;
+  if(vol<0.5)       ctxScore+=15;
+  else if(vol<0.8)  ctxScore+=8;
+  if(divSig===indDir&&divSig!==0) ctxScore+=15;
 
-  // Factor B: Contexto del mercado (tendencia + volatilidad + momentum)
-  var contextScore = 0;
-  if(trendDirection === indDirection)  contextScore += 35; // tendencia confirma
-  else if(trendDirection === 0)        contextScore += 15; // mercado lateral — duda
-  else                                 contextScore += 0;  // tendencia contradice
-  if(priceMomentum === indDirection)   contextScore += 35; // momentum confirma
-  else if(priceMomentum === 0)         contextScore += 15; // momentum neutro
-  else                                 contextScore += 0;  // momentum contradice
-  if(vol < 0.5)                        contextScore += 15; // volatilidad baja = más predecible
-  else if(vol < 0.8)                   contextScore += 8;
-  else                                 contextScore += 0;  // alta volatilidad = riesgo
-  if(divSig === indDirection && divSig !== 0) contextScore += 15; // divergencia confirma
-  // contextScore: 0-100
-
-  // Factor C: Red Neuronal (solo cuenta cuando tiene experiencia)
-  var nnScore = 50; // neutral por defecto
-  if(nnSamples >= 10) {
-    if(nnLastDecision === 'BUY'  && indDirection === 1)  nnScore = 85;
-    else if(nnLastDecision === 'SELL' && indDirection === -1) nnScore = 85;
-    else if(nnLastDecision === 'NEUTRAL')                nnScore = 40;
-    else                                                 nnScore = 20; // NN contradice
+  // Red Neuronal
+  var nnScore = 50;
+  if(nnSamples>=10){
+    if(nnLastDecision==='BUY'&&indDir===1)       nnScore=85;
+    else if(nnLastDecision==='SELL'&&indDir===-1) nnScore=85;
+    else if(nnLastDecision==='NEUTRAL')           nnScore=40;
+    else                                          nnScore=20;
   }
 
-  // ── TRAINING MODE — indicadores 60%, contexto 40%, NN observa ─
-  if(trainingMode) {
-    updateFreedomAI(maxScore, vol, trendDirection);
-    // Peso: indicadores 60% + contexto 40%
-    const trainDecision = (indBuyStrength * 60) + (contextScore * 0.4);
-    const trainSell     = (indSellStrength * 60) + (contextScore * 0.4);
-    // Opera con umbral bajo — prioridad es aprender
-    if(trainDecision > trainSell && indBuyStrength > 0.08 && (tradeMode==='buy' || tradeMode==='both')) return 'BUY';
-    if(trainSell > trainDecision && indSellStrength > 0.08 && (tradeMode==='sell' || tradeMode==='both')) return 'SELL';
+  // TRAINING MODE - indicadores 60%, contexto 40%
+  if(trainingMode){
+    updateFreedomAI(maxScore,vol,trendDirection);
+    var tBuy  = (indBuyStr*60)  + (ctxScore*0.4);
+    var tSell = (indSellStr*60) + (ctxScore*0.4);
+    if(tBuy>tSell  && indBuyStr>0.08 && (tradeMode==='buy' ||tradeMode==='both')) return 'BUY';
+    if(tSell>tBuy  && indSellStr>0.08&& (tradeMode==='sell'||tradeMode==='both')) return 'SELL';
     return 'NEUTRAL';
   }
 
-  // ── FREEDOM MODE — indicadores 40%, contexto 35%, NN 25% ──────
-  if(freedomMode) {
-    updateFreedomAI(lastAIConfidence, vol, trendDirection);
-    // Decisión compuesta — la IA pondera los 3 factores
-    var freeDecisionBuy  = (indBuyStrength  * 40) + (contextScore * 0.35) + (nnScore * 0.25 * (indDirection===1  ? 1 : 0.3));
-    var freeDecisionSell = (indSellStrength * 40) + (contextScore * 0.35) + (nnScore * 0.25 * (indDirection===-1 ? 1 : 0.3));
-    // Umbral dinámico — sube si racha mala, baja si racha buena
-    var freeThresh = 18 - momentumBonus * 0.3;
-    freeThresh = Math.max(10, Math.min(30, freeThresh));
-    if(freeDecisionBuy  >= freeThresh && scoreDiff >= 3 && (tradeMode==='buy'  || tradeMode==='both')) return 'BUY';
-    if(freeDecisionSell >= freeThresh && scoreDiff >= 3 && (tradeMode==='sell' || tradeMode==='both')) return 'SELL';
+  // FREEDOM MODE - indicadores 40%, contexto 35%, NN 25%
+  if(freedomMode){
+    updateFreedomAI(lastAIConfidence,vol,trendDirection);
+    var fBuy  = (indBuyStr*40)  + (ctxScore*0.35) + (nnScore*0.25*(indDir===1  ?1:0.3));
+    var fSell = (indSellStr*40) + (ctxScore*0.35) + (nnScore*0.25*(indDir===-1 ?1:0.3));
+    var fThresh = Math.max(10, Math.min(30, 18 - momentumBonus*0.3));
+    if(fBuy>=fThresh  && scoreDiff>=3 && (tradeMode==='buy' ||tradeMode==='both')) return 'BUY';
+    if(fSell>=fThresh && scoreDiff>=3 && (tradeMode==='sell'||tradeMode==='both')) return 'SELL';
     return 'NEUTRAL';
   }
 
-  // ── NORMAL MODE — indicadores 40%, contexto 35%, NN 25% ───────
-  // La IA tiene criterio propio — indicadores son solo una voz
-  var normDecisionBuy  = (indBuyStrength  * 40) + (contextScore * 0.35) + (nnScore * 0.25 * (indDirection===1  ? 1 : 0.2));
-  var normDecisionSell = (indSellStrength * 40) + (contextScore * 0.35) + (nnScore * 0.25 * (indDirection===-1 ? 1 : 0.2));
-
-  // Umbral más exigente en modo normal — calidad sobre cantidad
-  var normThresh = 22 - momentumBonus * 0.2;
-  normThresh = normThresh * (1 / activePirateMult); // perfil de riesgo ajusta
-  normThresh = Math.max(14, Math.min(35, normThresh));
-
-  if(normDecisionBuy  >= normThresh && buyVotesArr  >= 1 && scoreDiff >= 5 && (tradeMode==='buy'  || tradeMode==='both')) return 'BUY';
-  if(normDecisionSell >= normThresh && sellVotesArr >= 1 && scoreDiff >= 5 && (tradeMode==='sell' || tradeMode==='both')) return 'SELL';
+  // NORMAL MODE - indicadores 40%, contexto 35%, NN 25%
+  var nBuy  = (indBuyStr*40)  + (ctxScore*0.35) + (nnScore*0.25*(indDir===1  ?1:0.2));
+  var nSell = (indSellStr*40) + (ctxScore*0.35) + (nnScore*0.25*(indDir===-1 ?1:0.2));
+  var nThresh = Math.max(14, Math.min(35, (22-momentumBonus*0.2)*(1/activePirateMult)));
+  if(nBuy>=nThresh  && buyVotesArr>=1  && scoreDiff>=5 && (tradeMode==='buy' ||tradeMode==='both')) return 'BUY';
+  if(nSell>=nThresh && sellVotesArr>=1 && scoreDiff>=5 && (tradeMode==='sell'||tradeMode==='both')) return 'SELL';
   return 'NEUTRAL';
 }
 
@@ -3529,7 +3481,7 @@ function drawPrice(){
 
   const data=prices.slice(-100);
   const mn=Math.min.apply(null, data)*0.9994, mx=Math.max.apply(null, data)*1.0006, range=mx-mn||1;
-  const toY=v=>h-((v-mn)/range)*(h-20)-10;
+  function toY(v) { return h-((v-mn)/range)*(h-20)-10; }
   const n=data.length;
 
   // Subtle grid
@@ -3548,13 +3500,13 @@ function drawPrice(){
   const g=cx.createLinearGradient(0,toY(Math.max.apply(null, data)),0,h);
   g.addColorStop(0,'rgba(0,229,160,0.18)'); g.addColorStop(0.5,'rgba(0,229,160,0.05)'); g.addColorStop(1,'rgba(0,229,160,0)');
   cx.beginPath();
-  data.forEach((p,i)=>{const x=(i/(n-1))*w,y=toY(p);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
+  data.forEach(function(p, i) {const x=(i/(n-1))*w,y=toY(p);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
   cx.lineTo(w,h); cx.lineTo(0,h); cx.fillStyle=g; cx.fill();
 
   // Price line with glow
   cx.shadowColor='rgba(0,229,160,0.4)'; cx.shadowBlur=6;
   cx.beginPath();
-  data.forEach((p,i)=>{const x=(i/(n-1))*w,y=toY(p);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
+  data.forEach(function(p, i) {const x=(i/(n-1))*w,y=toY(p);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
   cx.strokeStyle='#00e5a0'; cx.lineWidth=2; cx.stroke();
   cx.shadowBlur=0;
 
@@ -3575,7 +3527,7 @@ function drawPrice(){
 
   // Trade markers
   const totalPrices=prices.length, startIdx=Math.max(0,totalPrices-100);
-  tradeMarkers.forEach(m=>{
+  tradeMarkers.forEach(function(m) {
     const relIdx=m.priceIndex-startIdx;
     if(relIdx<0||relIdx>=data.length)return;
     const x=(relIdx/(data.length-1))*w, y=toY(m.price);
@@ -3615,13 +3567,13 @@ function drawRSI(rsiOB,rsiOS){
   cx.fillStyle='rgba(155,89,232,0.05)';cx.fillRect(PL,PT,cw,obY-PT);
   cx.fillStyle='rgba(155,89,232,0.05)';cx.fillRect(PL,osY,cw,PT+ch-osY);
   cx.setLineDash([5,4]);cx.lineWidth=1;cx.strokeStyle='rgba(180,180,200,0.3)';
-  [obY,PT+ch*0.5,osY].forEach(y=>{cx.beginPath();cx.moveTo(PL,y);cx.lineTo(PL+cw,y);cx.stroke();});
+  [obY,PT+ch*0.5,osY].forEach(function(y) {cx.beginPath();cx.moveTo(PL,y);cx.lineTo(PL+cw,y);cx.stroke();});
   cx.setLineDash([]);
   cx.fillStyle='rgba(160,160,180,0.5)';cx.font='10px Space Mono';cx.textAlign='left';
   cx.fillText(rsiOB,PL+cw+4,obY+4);cx.fillText('50',PL+cw+4,PT+ch*0.5+4);cx.fillText(rsiOS,PL+cw+4,osY+4);
   if(rsiHistory.length<2)return;
   const data=rsiHistory.slice(-120);
-  cx.beginPath();data.forEach((v,i)=>{const x=PL+(i/(data.length-1))*cw,y=PT+ch*(1-v/100);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
+  cx.beginPath();data.forEach(function(v, i) {const x=PL+(i/(data.length-1))*cw,y=PT+ch*(1-v/100);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
   cx.strokeStyle='#9b59e8';cx.lineWidth=1.8;cx.stroke();
   const ly=PT+ch*(1-data[data.length-1]/100);
   cx.beginPath();cx.arc(PL+cw,ly,3,0,Math.PI*2);cx.fillStyle='#9b59e8';cx.fill();
@@ -3635,20 +3587,20 @@ function drawMACD(){
   if(n<2)return;
   const mArr=macdHistory.slice(-n),sArr=macdSigHistory.slice(-n),hArr=macdHistHistory.slice(-n);
   var allV=mArr.concat(sArr).concat(hArr),mn=Math.min.apply(null, allV)*1.15,mx=Math.max.apply(null, allV)*1.15,range=mx-mn||0.0001;
-  const toY=v=>PT+ch*(1-(v-mn)/range),zeroY=toY(0);
+  function toY(v) { return PT+ch*(1-(v-mn)/range),zeroY=toY(0); }
   cx.strokeStyle='rgba(120,120,140,0.25)';cx.lineWidth=1;cx.setLineDash([4,3]);
   cx.beginPath();cx.moveTo(PL,zeroY);cx.lineTo(PL+cw,zeroY);cx.stroke();cx.setLineDash([]);
   cx.fillStyle='rgba(160,160,180,0.5)';cx.font='10px Space Mono';cx.textAlign='left';
   cx.fillText(mx.toFixed(3),PL+cw+4,PT+8);cx.fillText('0',PL+cw+4,zeroY+4);cx.fillText(mn.toFixed(3),PL+cw+4,PT+ch);
   const barW=Math.max(1,cw/n-0.8);
-  hArr.forEach((v,i)=>{
+  hArr.forEach(function(v, i) {
     const x=PL+(i/(n-1))*cw-barW/2,y=toY(Math.max(v,0)),bh=Math.abs(toY(v)-zeroY);
     cx.fillStyle=v>=0?'rgba(38,166,154,0.75)':'rgba(255,69,96,0.75)';
     cx.fillRect(x,v>=0?y:zeroY,barW,bh);
   });
-  cx.beginPath();mArr.forEach((v,i)=>{const x=PL+(i/(n-1))*cw,y=toY(v);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
+  cx.beginPath();mArr.forEach(function(v, i) {const x=PL+(i/(n-1))*cw,y=toY(v);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
   cx.strokeStyle='#2196f3';cx.lineWidth=1.8;cx.stroke();
-  cx.beginPath();sArr.forEach((v,i)=>{const x=PL+(i/(n-1))*cw,y=toY(v);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
+  cx.beginPath();sArr.forEach(function(v, i) {const x=PL+(i/(n-1))*cw,y=toY(v);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});
   cx.strokeStyle='#f6862a';cx.lineWidth=1.8;cx.stroke();
   const months=['Ene','Feb','Mar','Ab','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const now=new Date();
@@ -3720,8 +3672,8 @@ function tick(){
   document.getElementById('macdHistBadge').textContent=macdData.hist.toFixed(4);
 
   const box=document.getElementById('signalBox');box.className='signal-box';
-  const buyVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(s=>s===1).length;
-  const sellVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(s=>s===-1).length;
+  const buyVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===1; }).length;
+  const sellVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===-1; }).length;
   if(signal==='BUY'){
     box.classList.add('signal-buy');document.getElementById('sigIcon').textContent='📈';
     document.getElementById('signalText').textContent='SEÑAL DE COMPRA';
@@ -3747,7 +3699,6 @@ function tick(){
       tradeMarkers.push({ priceIndex: prices.length - 1, price: np, type: signal });
       if(tradeMarkers.length > 20) tradeMarkers.shift();
       const levels = getATRLevels();
-      // Open operation — SL/TP stored in pips, closed by updateOpsProgress
       const op = openOperation(signal, ps, levels.sl, levels.tp, selectedCurrency.code);
       trades++;
     }
@@ -3874,11 +3825,11 @@ let activeOps = []; // Array of active operations
 let opIdCounter = 0;
 
 function canOpenNewOp(signal) {
-  const maxOps = trainingMode ? 5 : MAX_OPS;
+  var maxOps = trainingMode ? 5 : MAX_OPS;
   if(activeOps.length >= maxOps) return false;
   if(ksTriggered) return false;
   // Don't open same direction if already 2 of that type
-  const sameDir = activeOps.filter(o => o.type === signal).length;
+  const sameDir = activeOps.filter(function(o) { return o.type === signal; }).length;
   if(sameDir >= 2) return false;
   return true;
 }
@@ -3901,7 +3852,7 @@ function openOperation(signal, price, sl, tp, currCode) {
 }
 
 function closeOperation(id, won) {
-  const idx = activeOps.findIndex(o => o.id === id);
+  const idx = activeOps.findIndex(function(o) { return o.id === id; });
   if(idx === -1) return;
   const op = activeOps[idx];
   activeOps.splice(idx, 1);
@@ -3939,7 +3890,7 @@ function closeOperation(id, won) {
 function updateOpsProgress(currentPrice) {
   if(activeOps.length === 0) return;
   const inst = INSTRUMENTS[currentInst];
-  activeOps.forEach(op => {
+  activeOps.forEach(function(op) {
     if(op.instrument !== currentInst) return;
     const diff = (currentPrice - op.entryPrice) * (op.type==='BUY' ? 1 : -1);
     const pips = diff * inst.pipMul;
@@ -3947,16 +3898,16 @@ function updateOpsProgress(currentPrice) {
     op.progress = Math.max(0, Math.min(100, (pips / op.tp) * 100));
     // Auto-close if TP or SL hit
     if(pips >= op.tp) {
-      setTimeout(() => closeOperation(op.id, true), 100);
+      setTimeout(function(){closeOperation(op.id,true);},100);
     } else if(pips <= -op.sl) {
-      setTimeout(() => closeOperation(op.id, false), 100);
+      setTimeout(function(){closeOperation(op.id,false);},100);
     }
   });
   renderOps();
 }
 
 function manualCloseOp(id) {
-  const op = activeOps.find(o => o.id === id);
+  const op = activeOps.find(function(o) { return o.id === id; });
   if(!op) return;
   const won = op.currentPnl > 0;
   closeOperation(id, won);
@@ -3971,7 +3922,7 @@ function renderOps() {
   if(countEl) countEl.textContent = activeOps.length+' / '+MAX_OPS;
 
   // Remove old cards
-  container.querySelectorAll('.op-card').forEach(c => c.remove());
+  container.querySelectorAll('.op-card').forEach(function(c) { c.remove(); });
 
   if(activeOps.length === 0) {
     if(emptyEl) emptyEl.style.display = 'flex';
@@ -3980,7 +3931,7 @@ function renderOps() {
   if(emptyEl) emptyEl.style.display = 'none';
 
   const inst = INSTRUMENTS[currentInst];
-  activeOps.forEach(op => {
+  activeOps.forEach(function(op) {
     const isBuy = op.type === 'BUY';
     const pnlColor = op.currentPnl > 0 ? 'positive' : op.currentPnl < 0 ? 'negative' : 'neutral';
     const pnlSign  = op.currentPnl > 0 ? '+' : '';
@@ -4011,8 +3962,10 @@ let nnLearningRate = 0.05;
 
 // Initialize random weights
 function nnInit() {
-  nnWeights1 = Array.from({length:6}, () => Array.from({length:8}, () => (Math.random()-0.5)*0.5));
-  nnWeights2 = Array.from({length:8}, () => Array.from({length:3}, () => (Math.random()-0.5)*0.5));
+  nnWeights1 = [];
+  for(var _ni1=0;_ni1<6;_ni1++){var _nr1=[];for(var _nj1=0;_nj1<8;_nj1++)_nr1.push((Math.random()-0.5)*0.5);nnWeights1.push(_nr1);}
+  nnWeights2 = [];
+  for(var _ni2=0;_ni2<8;_ni2++){var _nr2=[];for(var _nj2=0;_nj2<3;_nj2++)_nr2.push((Math.random()-0.5)*0.5);nnWeights2.push(_nr2);}
 }
 nnInit();
 
@@ -4022,21 +3975,21 @@ function sigmoidDeriv(x) { const s=sigmoid(x); return s*(1-s); }
 /** Forward pass — returns output probabilities [buy, sell, neutral] */
 function nnForward(inputs) {
   // Hidden layer
-  const hidden = nnBias1.map((b,j) => {
+  var hidden = nnBias1.map(function(b,j) {
     let sum = b;
-    inputs.forEach((inp, i) => { sum += inp * nnWeights1[i][j]; });
+    inputs.forEach(function(inp, i) { sum += inp * nnWeights1[i][j]; });
     return sigmoid(sum);
   });
   // Output layer
-  const rawOut = nnBias2.map((b,k) => {
+  var rawOut = nnBias2.map(function(b,k) {
     let sum = b;
-    hidden.forEach((h, j) => { sum += h * nnWeights2[j][k]; });
+    hidden.forEach(function(h, j) { sum += h * nnWeights2[j][k]; });
     return sigmoid(sum);
   });
   // Softmax
-  const expOut = rawOut.map(v => Math.exp(v));
-  const sumExp = expOut.reduce((a,b) => a+b, 0);
-  return { probs: expOut.map(v => v/sumExp), hidden };
+  const expOut = rawOut.map(function(v) { return Math.exp(v); });
+  const sumExp = expOut.reduce(function(a,b) { return a+b; }, 0);
+  return { probs: expOut.map(function(v) { return v/sumExp; }), hidden };
 }
 
 /** Get NN inputs from current market state */
@@ -4059,8 +4012,8 @@ function nnLearn(won) {
   // If won: reinforce current decision, if lost: weaken it
   const lr = won ? nnLearningRate : -nnLearningRate * 0.5;
   // Simple weight nudge based on outcome
-  nnWeights2.forEach((row, j) => {
-    row.forEach((w, k) => {
+  nnWeights2.forEach(function(row, j) {
+    row.forEach(function(w, k) {
       nnWeights2[j][k] += lr * (Math.random() - 0.5) * 0.1;
       nnWeights2[j][k] = Math.max(-2, Math.min(2, nnWeights2[j][k]));
     });
@@ -4089,7 +4042,7 @@ function updateNNDisplay(inputs, result) {
   }
 
   // Animate hidden nodes
-  hidden.forEach((v, i) => {
+  hidden.forEach(function(v, i) {
     const el = document.getElementById('nn-h'+i);
     if(el) el.classList.toggle('active', v > 0.5);
   });
@@ -4097,7 +4050,7 @@ function updateNNDisplay(inputs, result) {
   // Output nodes
   const oNodes = ['nn-o0','nn-o1','nn-o2'];
   const oClasses = ['output-buy','output-sell','output-neutral'];
-  oNodes.forEach((id, i) => {
+  oNodes.forEach(function(id, i) {
     const el = document.getElementById(id);
     if(!el) return;
     el.className = 'nn-node';
@@ -4133,12 +4086,12 @@ function calcStochRSI(period, smoothK, smoothD) { if(!period)period=14; if(!smoo
   const minRSI = Math.min.apply(null, recentRSI), maxRSI = Math.max.apply(null, recentRSI);
   const rawK = maxRSI===minRSI ? 50 : ((rsiArr[rsiArr.length-1]-minRSI)/(maxRSI-minRSI))*100;
   // Smooth K
-  const kArr = rsiArr.slice(-smoothK).map((_,i,a)=>{
+  var kArr = rsiArr.slice(-smoothK).map(function(_,i) {
     const slice=rsiArr.slice(Math.max(0,rsiArr.length-smoothK+i-smoothK+1),rsiArr.length-smoothK+i+1);
     const mn=Math.min.apply(null, slice),mx=Math.max.apply(null, slice);
     return mx===mn?50:((slice[slice.length-1]-mn)/(mx-mn))*100;
   });
-  const k = kArr.reduce((a,b)=>a+b,0)/kArr.length;
+  const k = kArr.reduce(function(a,b) { return a+b; },0)/kArr.length;
   const d = k; // simplified
   return { k: Math.min(100,Math.max(0,k)), d: Math.min(100,Math.max(0,d)) };
 }
@@ -4184,7 +4137,7 @@ function setRiskFromSlider(val) {
 
 function setPirateProfile(key, el) {
   // Legacy — now handled by slider, map key to slider value
-  const idx = RISK_LEVELS.findIndex(r => r.key === key);
+  const idx = RISK_LEVELS.findIndex(function(r) { return r.key === key; });
   if(idx >= 0) {
     const slider = document.getElementById('riskSlider');
     if(slider) slider.value = idx + 1;
@@ -4196,28 +4149,23 @@ function setPirateProfile(key, el) {
 
 // ── FREEDOM MODE ─────────────────────────────────────────────────
 let aiFreeMult = 1.0; // IA decides this dynamically
-let freedomMode = false; // Libertad Absoluta — IA sin restricciones
-let trainingMode = false; // Modo Entrenamiento — opera al máximo
+let freedomMode = false; // Libertad Absoluta
+let trainingMode = false;
 
 function toggleTraining() {
   trainingMode = !trainingMode;
-  const btn   = document.getElementById('trainingBtn');
-  const state = document.getElementById('trainingState');
+  var btn = document.getElementById('trainingBtn');
+  var state = document.getElementById('trainingState');
   if(trainingMode) {
-    btn.style.borderColor   = 'rgba(168,85,247,0.6)';
-    btn.style.background    = 'rgba(168,85,247,0.12)';
-    state.textContent       = 'ACTIVO';
-    state.style.color       = 'var(--purple)';
-    addLog('🧠 Modo Entrenamiento ACTIVO — operando al máximo', 'opt');
+    if(btn) { btn.style.borderColor='rgba(168,85,247,0.6)'; btn.style.background='rgba(168,85,247,0.12)'; }
+    if(state) { state.textContent='ACTIVO'; state.style.color='var(--purple)'; }
+    addLog('Modo Entrenamiento ACTIVO - operando al maximo', 'opt');
   } else {
-    btn.style.borderColor   = 'rgba(168,85,247,0.3)';
-    btn.style.background    = 'rgba(168,85,247,0.06)';
-    state.textContent       = 'INACTIVO';
-    state.style.color       = 'var(--muted)';
-    addLog('🧠 Modo Entrenamiento desactivado', 'warn');
+    if(btn) { btn.style.borderColor='rgba(168,85,247,0.3)'; btn.style.background='rgba(168,85,247,0.06)'; }
+    if(state) { state.textContent='INACTIVO'; state.style.color='var(--muted)'; }
+    addLog('Modo Entrenamiento desactivado', 'warn');
   }
 }
-
 
 function toggleFreedom() {
   freedomMode = !freedomMode;
@@ -4275,6 +4223,7 @@ function updateFreedomAI(confidence, volatility, trend) {
 function startBot(){
   if(ksTriggered){ addLog('🔴 Kill Switch activo — reinicia primero','sell'); return; }
   running=true;prices=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];
+  recentResults=[];consecutiveWins=0;consecutiveLoss=0;momentumBonus=0;lastDivSignal="";
   tradeMarkers=[];activeOps=[];opIdCounter=0;
   recentResults=[]; consecutiveWins=0; consecutiveLoss=0; momentumBonus=0;
   ksSessionLoss=0; updateKSBar(); renderOps();
@@ -4375,7 +4324,7 @@ function importBotData(input) {
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
       applyBotData(data);
@@ -4408,9 +4357,7 @@ let protPaused    = false;
 let protPauseUntil = 0;
 
 function checkProtections() {
-  // Modo Entrenamiento — sin bloqueos, opera siempre
   if(trainingMode) return false;
-
   const now = Date.now();
 
   // 1. Horario — no operar de 22:00 a 04:00 (baja liquidez)
@@ -4472,13 +4419,13 @@ let bestParams = null;
 
 function setOptMarket(type, el) {
   optMarket = type;
-  document.querySelectorAll('.opt-market-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.opt-market-tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
 }
 
 function setOptProfile(key, el) {
   optProfile = key;
-  document.querySelectorAll('.opt-profile-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.opt-profile-chip').forEach(function(c) { c.classList.remove('active'); });
   el.classList.add('active');
   estimateCombos();
 }
@@ -4633,7 +4580,7 @@ async function runOptimizerPro() {
     await new Promise(function(r){ setTimeout(r, 0); });
   }
 
-  results.sort((a,b) => b.score - a.score);
+  results.sort(function(a,b) { return b.score - a.score; });
   const top10 = results.slice(0, 10);
   bestParams  = top10[0];
 
@@ -4664,7 +4611,7 @@ async function runOptimizerPro() {
   // Results table
   document.getElementById('resultsPanel').style.display = 'block';
   const tbody = document.getElementById('resultsBody'); tbody.innerHTML = '';
-  top10.forEach((r, i) => {
+  top10.forEach(function(r, i) {
     const tr2 = document.createElement('tr');
     if(i === 0) tr2.classList.add('best');
     const rankColor  = i===0 ? 'var(--accent)' : i===1 ? 'var(--accent2)' : 'var(--warn)';
@@ -4717,7 +4664,7 @@ async function hashPIN(pin) {
   const encoder = new TextEncoder();
   const data = encoder.encode(pin + 'forexbot_salt_v19');
   const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(hash)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
 }
 
 // Encrypt data with PIN-derived key
@@ -4728,8 +4675,8 @@ async function encryptData(data, pin) {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encrypted = await crypto.subtle.encrypt({name:'AES-GCM',iv}, keyMaterial, enc.encode(JSON.stringify(data)));
     return {
-      iv: Array.from(iv).map(b=>b.toString(16).padStart(2,'0')).join(''),
-      data: Array.from(new Uint8Array(encrypted)).map(b=>b.toString(16).padStart(2,'0')).join('')
+      iv: Array.from(iv).map(function(b){ return b.toString(16).padStart(2,'0'); }).join(''),
+      data: Array.from(new Uint8Array(encrypted)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('')
     };
   } catch(e) { return null; }
 }
@@ -4739,8 +4686,8 @@ async function decryptData(encObj, pin) {
   try {
     const enc = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pin.padEnd(16,'0')), 'AES-GCM', false, ['decrypt']);
-    const iv = new Uint8Array(encObj.iv.match(/.{2}/g).map(b=>parseInt(b,16)));
-    const data = new Uint8Array(encObj.data.match(/.{2}/g).map(b=>parseInt(b,16)));
+    const iv = new Uint8Array(encObj.iv.match(/.{2}/g).map(function(b){return parseInt(b,16);}));
+    const data = new Uint8Array(encObj.data.match(/.{2}/g).map(function(b){return parseInt(b,16);}));
     const decrypted = await crypto.subtle.decrypt({name:'AES-GCM',iv}, keyMaterial, data);
     return JSON.parse(new TextDecoder().decode(decrypted));
   } catch(e) { return null; }
@@ -4805,7 +4752,7 @@ async function pinSetupConfirm() {
   if(pinBuffer !== pinFirstEntry) {
     updatePinDots('sd', 6, true);
     setPinMsg('Los PINs no coinciden — intenta de nuevo', true);
-    setTimeout(() => {
+    setTimeout(function() {
       pinBuffer = ''; pinFirstEntry = ''; pinMode = 'setup';
       updatePinDots('sd', 0);
       document.getElementById('pinSetupSub').innerHTML = 'Crea tu PIN de seguridad<br><span style="color:var(--warn)">6 dígitos — no lo olvides</span>';
@@ -4819,7 +4766,7 @@ async function pinSetupConfirm() {
   localStorage.setItem(PIN_ATTEMPTS, '0');
   updatePinDots('sd', 6);
   setPinMsg('✓ PIN creado correctamente', false, true);
-  setTimeout(() => unlockApp(pinBuffer), 800);
+  setTimeout(function(){unlockApp(pinBuffer);},800);
 }
 
 async function pinCheckUnlock() {
@@ -4832,7 +4779,7 @@ async function pinCheckUnlock() {
     localStorage.removeItem(PIN_LOCKED);
     updatePinDots('ud', 6);
     setPinMsg('✓ Acceso concedido', false, true);
-    setTimeout(() => unlockApp(pinBuffer), 600);
+    setTimeout(function(){unlockApp(pinBuffer);},600);
   } else {
     // Failed attempt
     pinAttempts = parseInt(localStorage.getItem(PIN_ATTEMPTS) || '0') + 1;
@@ -4849,7 +4796,7 @@ async function pinCheckUnlock() {
       setPinMsg('PIN incorrecto — '+remaining+' intento(s) restante(s)', true);
     }
 
-    setTimeout(() => {
+    setTimeout(function() {
       pinBuffer = '';
       updatePinDots('ud', 0);
       setPinMsg('');
@@ -4868,7 +4815,7 @@ function unlockApp(pin) {
   document.getElementById('appContent').style.display = 'block';
   const badge = document.getElementById('securityBadge');
   if(badge) { badge.textContent = '🔒 SEGURO'; badge.className = 'security-badge'; }
-  setTimeout(() => { resizeAllCanvases(); redrawAllCharts(); }, 100);
+  setTimeout(function() { resizeAllCanvases(); redrawAllCharts(); }, 100);
 }
 
 function pinForgot() {
@@ -4909,14 +4856,14 @@ async function importBotDataSecure(input) {
   const file = input.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = async (e) => {
+  reader.onload = async function(e) {
     try {
       const obj = JSON.parse(e.target.result);
       let data;
       if(obj.encrypted && obj.payload) {
         data = await decryptData(obj.payload, currentPIN);
         if(!data) {
-          addLog('❌ No se pudo descifrar — PIN incorrecto o archivo corrupto', 'sell');
+          addLog('No se pudo descifrar - PIN incorrecto o archivo corrupto', 'sell');
           return;
         }
       } else {
@@ -4924,9 +4871,9 @@ async function importBotDataSecure(input) {
       }
       applyBotData(data);
       localStorage.setItem(DB_KEY, JSON.stringify(getBotData()));
-      addLog('🔒 Datos importados y verificados correctamente', 'buy');
+      addLog('Datos importados y verificados correctamente', 'buy');
     } catch(err) {
-      addLog('❌ Error al importar — archivo inválido', 'sell');
+      addLog('Error al importar - archivo invalido', 'sell');
     }
   };
   reader.readAsText(file);
@@ -4934,7 +4881,7 @@ async function importBotDataSecure(input) {
 }
 
 // Initialize combo estimator when optimizer tab opens
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   const exportBtn = document.querySelector('.data-btn-export');
   if(exportBtn) exportBtn.onclick = exportBotDataSecure;
   const importInput = document.getElementById('importFile');
@@ -4943,7 +4890,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ['rsiP_min','rsiP_max','rsiP_step','rsiOB_min','rsiOB_max','rsiOB_step',
    'rsiOS_min','rsiOS_max','rsiOS_step','mF_min','mF_max','mF_step',
    'mS_min','mS_max','mS_step','atrMult_min','atrMult_max','atrMult_step'
-  ].forEach(id => {
+  ].forEach(function(id) {
     const el = document.getElementById(id);
     if(el) el.addEventListener('input', estimateCombos);
   });
