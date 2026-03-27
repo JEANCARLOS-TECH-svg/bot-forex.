@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.9 — PC Edition</title>
+<title>ForexBot v24.9.1 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.9 — PC Edition</small>
+        <small>v24.9.1 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1538,7 +1538,7 @@
           </div>
 
           <button class="btn btn-start" id="btnStart" onclick="startBot()" style="margin-top:12px">▶ INICIAR BOT</button>
-          <button class="btn btn-stop" id="btnStop" onclick="stopBot()">■ DETENER</button>
+          <button class="btn btn-stop" id="btnStop" onclick="requestManualStop()">■ DETENER</button>
         </div>
 
         <!-- SIGNAL -->
@@ -2018,8 +2018,10 @@ let wsRetry = { spot: 0, futures: 0 };
 const WS_MAX_RETRY = 8;
 const WS_RETRY_BASE_MS = 2000;
 
-// Live price cache  {SYMBOL: price}
+// Live price cache  {SYMBOL: price} + timestamp para detectar precios obsoletos
 const livePriceCache  = {};
+const livePriceTime   = {}; // {SYMBOL: timestamp} — cuándo llegó el último precio
+const PRICE_STALE_MS  = 15000; // 15s sin actualización = precio obsoleto
 const liveCandleCache = {}; // OHLCV por símbolo — alimenta PVT y Pivotes
 
 // ── Expanded symbol map  (Spot Testnet) ─────────────────────────
@@ -2078,7 +2080,7 @@ function connectSpotWS() {
         var hi  = parseFloat(k.h); // high
         var lo  = parseFloat(k.l); // low
         var op  = parseFloat(k.o); // open
-        if(px) livePriceCache[sym] = px;
+        if(px) { livePriceCache[sym] = px; livePriceTime[sym] = Date.now(); }
         if(vol) liveCandleCache[sym] = { close: px, volume: vol, high: hi, low: lo, open: op, isFinal: k.x };
         // Trailing Stop — solo se activa al cerrar la vela
         if(k.x && running && activeOps.length > 0) {
@@ -2114,10 +2116,22 @@ function connectFuturesWS() {
 function getLivePrice(instSym) {
   const bSym = BINANCE_SYMBOLS[instSym];
   if(!bSym) return null;
-  // Try Spot first
-  if(livePriceCache[bSym]) return livePriceCache[bSym];
+  const now = Date.now();
+  // Try Spot — verificar que el precio no sea obsoleto (> 15s sin actualizar)
+  if(livePriceCache[bSym]) {
+    const age = now - (livePriceTime[bSym] || 0);
+    if(age > PRICE_STALE_MS) {
+      addLog('⚠️ Precio obsoleto — ' + bSym + ' sin actualizar hace ' + Math.round(age/1000) + 's · esperando WebSocket', 'warn');
+      return null;
+    }
+    return livePriceCache[bSym];
+  }
   // Try Futures
-  if(livePriceCache['F_' + bSym]) return livePriceCache['F_' + bSym];
+  if(livePriceCache['F_' + bSym]) {
+    const age = now - (livePriceTime['F_' + bSym] || 0);
+    if(age > PRICE_STALE_MS) return null;
+    return livePriceCache['F_' + bSym];
+  }
   return null;
 }
 
@@ -4462,6 +4476,8 @@ function updateFreedomAI(confidence, volatility, trend) {
 
 async function startBot(){
   if(ksTriggered){ addLog('🔴 Kill Switch activo — reinicia primero','sell'); return; }
+  // Guardar flag de auto-arranque en clave independiente — sobrevive a stopBot y sesión expirada
+  try { localStorage.setItem(AUTOSTART_KEY, JSON.stringify({ on: true, savedAt: Date.now(), modes: { shadow: shadowMode, freedom: freedomMode, training: trainingMode }, tradeAmount: tradeAmount })); } catch(e) {}
 
   // Intentar restaurar sesión previa antes de limpiar
   const restored = restoreSessionState();
@@ -4522,6 +4538,10 @@ async function startBot(){
     interval = setInterval(tick, 700);
   }
 }
+// Flag interno — el bot distingue parada manual de parada automática sin necesitar parámetros
+let _manualStopIntent = false;
+function requestManualStop() { _manualStopIntent = true; stopBot(); }
+
 function stopBot(){
   running=false;
   // Detener Web Worker o setInterval según cuál esté activo
@@ -4530,11 +4550,15 @@ function stopBot(){
   stopPing();
   releaseWakeLock();
   localStorage.removeItem(SESSION_KEY);
+  // El bot decide solo: solo borra la intención de auto-arranque si fue parada manual
+  if(_manualStopIntent) { try { localStorage.removeItem(AUTOSTART_KEY); } catch(e) {} }
+  var wasManual = _manualStopIntent;
+  _manualStopIntent = false; // Resetear para la próxima vez
   document.getElementById('btnStart').style.display='block';
   document.getElementById('btnStop').style.display='none';
   document.getElementById('statusDot').classList.add('off');
   document.getElementById('statusText').textContent='INACTIVO';
-  addLog('■ Bot detenido','warn');
+  addLog('■ Bot detenido' + (wasManual ? ' — manual' : ' — automático'), 'warn');
 }
 
 // ======================== TRAILING STOP ========================
@@ -5402,7 +5426,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.2</b>\n' +
+      '<b>ForexBot v24.9.1</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5472,7 +5496,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.2 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.9.1 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
@@ -5538,7 +5562,8 @@ function stopPing() {
 }
 
 // ======================== ESTADO DE SESIÓN ========================
-const SESSION_KEY = 'forexbot_session_state';
+const SESSION_KEY    = 'forexbot_session_state';
+const AUTOSTART_KEY  = 'forexbot_autostart';  // Clave independiente — solo se borra con DETENER manual
 
 function saveSessionState() {
   try {
@@ -5557,7 +5582,12 @@ function saveSessionState() {
       currentInst,
       trendDirection,
       lastAIConfidence,
-      wasRunning: running  // Auto-arranque: guarda si el bot estaba activo
+      wasRunning: running,    // Auto-arranque: guarda si el bot estaba activo
+      // Modos — crítico: restaurar el estado exacto tras recarga
+      savedShadowMode:   shadowMode,
+      savedFreedomMode:  freedomMode,
+      savedTrainingMode: trainingMode,
+      savedTradeAmount:  tradeAmount   // Capital configurado
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(state));
   } catch(e) { console.warn('Session save error:', e); }
@@ -5569,8 +5599,8 @@ function restoreSessionState() {
     if (!raw) return false;
     const state = JSON.parse(raw);
     const age = Date.now() - state.savedAt;
-    // Solo restaurar si tiene menos de 10 minutos
-    if (age > 600000) {
+    // Solo restaurar si tiene menos de 30 minutos
+    if (age > 1800000) {
       localStorage.removeItem(SESSION_KEY);
       return false;
     }
@@ -5586,8 +5616,20 @@ function restoreSessionState() {
     if (state.momentumBonus !== undefined)                 momentumBonus = state.momentumBonus;
     if (state.trendDirection !== undefined)                trendDirection = state.trendDirection;
     if (state.lastAIConfidence !== undefined)              lastAIConfidence = state.lastAIConfidence;
+    // Restaurar modos — evita que un recargo cambie Shadow a Real sin avisar
+    var modesRestored = [];
+    if (state.savedShadowMode   !== undefined && state.savedShadowMode   !== shadowMode)   { toggleShadow();   modesRestored.push('Shadow'); }
+    if (state.savedFreedomMode  !== undefined && state.savedFreedomMode  !== freedomMode)  { toggleFreedom();  modesRestored.push('Freedom'); }
+    if (state.savedTrainingMode !== undefined && state.savedTrainingMode !== trainingMode) { toggleTraining(); modesRestored.push('Training'); }
+    // Restaurar capital
+    if (state.savedTradeAmount  !== undefined) {
+      tradeAmount = state.savedTradeAmount;
+      var amtEl = document.getElementById('tradeAmount');
+      if(amtEl) amtEl.value = tradeAmount;
+    }
     const mins = Math.round(age / 60000);
-    addLog('♻ Estado restaurado — ausencia de ' + (mins < 1 ? 'menos de 1' : mins) + ' min · ' + prices.length + ' velas recuperadas', 'opt');
+    var modesTxt = modesRestored.length > 0 ? ' · Modos: ' + modesRestored.join('+') : '';
+    addLog('♻ Estado restaurado — ausencia de ' + (mins < 1 ? 'menos de 1' : mins) + ' min · ' + prices.length + ' velas recuperadas' + modesTxt, 'opt');
     return true;
   } catch(e) {
     console.warn('Session restore error:', e);
@@ -6173,20 +6215,30 @@ function unlockApp(pin) {
   if(badge) { badge.textContent = '🔒 SEGURO'; badge.className = 'security-badge'; }
   setTimeout(function() { resizeAllCanvases(); redrawAllCharts(); }, 100);
 
-  // AUTO-ARRANQUE: si el bot estaba activo antes de cerrar/recargar, reinicia solo
+  // AUTO-ARRANQUE: lee AUTOSTART_KEY — clave independiente que sobrevive a stopBot y sesión expirada
   setTimeout(function() {
     try {
-      const raw = localStorage.getItem(SESSION_KEY);
+      const raw = localStorage.getItem(AUTOSTART_KEY);
       if(raw) {
-        const state = JSON.parse(raw);
-        const age = Date.now() - state.savedAt;
-        if(state.wasRunning && age < 600000) {
-          addLog('⚡ Auto-arranque — sesión previa detectada · reiniciando bot', 'warn');
+        const auto = JSON.parse(raw);
+        if(auto.on) {
+          // Restaurar modos guardados en el flag antes de arrancar
+          if(auto.modes) {
+            if(auto.modes.shadow   !== undefined && auto.modes.shadow   !== shadowMode)   toggleShadow();
+            if(auto.modes.freedom  !== undefined && auto.modes.freedom  !== freedomMode)  toggleFreedom();
+            if(auto.modes.training !== undefined && auto.modes.training !== trainingMode) toggleTraining();
+          }
+          if(auto.tradeAmount) {
+            tradeAmount = auto.tradeAmount;
+            var amtEl = document.getElementById('tradeAmount');
+            if(amtEl) amtEl.value = tradeAmount;
+          }
+          addLog('⚡ Auto-arranque activado — modos y capital restaurados', 'warn');
           startBot();
         }
       }
     } catch(e) { console.warn('Auto-start error:', e); }
-  }, 600);
+  }, 800);
 }
 
 function pinForgot() {
