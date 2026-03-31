@@ -2804,6 +2804,8 @@ let lastDivSignal  = '';
 // Trend filter state
 let trendDirection = 0; // 1=up, -1=down, 0=flat
 let lastAIConfidence = 0;
+let lastBuyScore  = 0;
+let lastSellScore = 0;
 
 // ── SISTEMA PROBABILÍSTICO — Gemini/Josfman Fix ──────────────────
 let historialConfianza   = [];   // Últimas 180 lecturas de confianza (~3h)
@@ -3620,6 +3622,8 @@ function getSignal(rsi, macd, cfg) {
                     (divSig===-1  ? divBonus   : 0);
 
   const maxScore = Math.max(buyScore, sellScore);
+  lastBuyScore  = buyScore;
+  lastSellScore = sellScore;
   updateATRDisplay(levels);
   updateStochDisplay(stoch);
 
@@ -4019,7 +4023,7 @@ function tick(){
   const box=document.getElementById('signalBox');box.className='signal-box';
   const buyVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===1; }).length;
   const sellVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===-1; }).length;
-  updateConfidenceBar(buyVotes, sellVotes, 0, 0, trendDirection);
+  updateConfidenceBar(buyVotes, sellVotes, lastBuyScore, lastSellScore, trendDirection);
   if(signal==='BUY'){
     box.classList.add('signal-buy');document.getElementById('sigIcon').textContent='📈';
     document.getElementById('signalText').textContent='SEÑAL DE COMPRA';
