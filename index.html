@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.7 — PC Edition</title>
+<title>ForexBot v24.10.8 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.7 — PC Edition</small>
+        <small>v24.10.8 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1320,6 +1320,15 @@
             <div style="font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:5px;text-align:center" id="brainStatus">
               Muestras NN: <span id="brainSamples" style="color:var(--purple)">0</span>
             </div>
+          </div>
+          <!-- AUTO-BACKUP AUTONOMO -->
+          <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+            <div style="font-size:9px;color:#38bdf8;font-family:'Space Mono',monospace;letter-spacing:1.5px;margin-bottom:7px">⏱ AUTO-BACKUP CADA 2H</div>
+            <button class="data-btn" id="backupFolderBtn" style="width:100%;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.3);color:#38bdf8" onclick="selectBackupFolder()">
+              📁 Seleccionar Carpeta
+            </button>
+            <div style="font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:5px;text-align:center" id="backupStatus">Sin carpeta configurada</div>
+            <div style="font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:2px;text-align:center" id="backupNext"></div>
           </div>
         </div>
 
@@ -5663,7 +5672,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.7</b>\n' +
+      '<b>ForexBot v24.10.8</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5733,7 +5742,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.7 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.8 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
@@ -5968,6 +5977,167 @@ function importBotData(input) {
   reader.readAsText(file);
   input.value = '';
 }
+
+// ======================== AUTO-BACKUP AUTÓNOMO CADA 2 HORAS ========================
+var autoBackupInterval  = null;
+var autoBackupDirHandle = null;
+var AB_IDB_NAME  = 'forexbot_backup_db';
+var AB_IDB_STORE = 'backup_handles';
+
+function abOpenIDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(AB_IDB_NAME, 1);
+    req.onupgradeneeded = function(e) { e.target.result.createObjectStore(AB_IDB_STORE); };
+    req.onsuccess  = function(e) { resolve(e.target.result); };
+    req.onerror    = function()  { reject(req.error); };
+  });
+}
+
+async function abSaveHandle(handle) {
+  try {
+    var db = await abOpenIDB();
+    var tx = db.transaction(AB_IDB_STORE, 'readwrite');
+    tx.objectStore(AB_IDB_STORE).put(handle, 'dir');
+  } catch(e) { console.warn('AutoBackup: no se pudo guardar handle', e); }
+}
+
+async function abLoadHandle() {
+  try {
+    var db = await abOpenIDB();
+    return await new Promise(function(resolve, reject) {
+      var tx  = db.transaction(AB_IDB_STORE, 'readonly');
+      var req = tx.objectStore(AB_IDB_STORE).get('dir');
+      req.onsuccess = function() { resolve(req.result || null); };
+      req.onerror   = function() { reject(req.error); };
+    });
+  } catch(e) { return null; }
+}
+
+async function abVerifyPermission(handle) {
+  try {
+    var p = await handle.queryPermission({ mode: 'readwrite' });
+    if(p === 'granted') return true;
+    p = await handle.requestPermission({ mode: 'readwrite' });
+    return p === 'granted';
+  } catch(e) { return false; }
+}
+
+async function selectBackupFolder() {
+  if(!('showDirectoryPicker' in window)) {
+    addLog('⚠ Navegador sin soporte File System API — usa Chrome o Edge', 'warn');
+    return;
+  }
+  try {
+    var handle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
+    autoBackupDirHandle = handle;
+    await abSaveHandle(handle);
+    var btn = document.getElementById('backupFolderBtn');
+    if(btn) btn.textContent = '📁 ' + handle.name;
+    startAutoBackupTimer();
+    abUpdateStatus('✓ Activo — ' + handle.name);
+    addLog('📁 Auto-backup activado — carpeta: ' + handle.name, 'opt');
+    await performAutoBackup();
+  } catch(e) {
+    if(e.name !== 'AbortError') addLog('❌ Error al seleccionar carpeta de backup', 'sell');
+  }
+}
+
+async function performAutoBackup() {
+  if(!autoBackupDirHandle) return;
+  var ok = await abVerifyPermission(autoBackupDirHandle);
+  if(!ok) { abUpdateStatus('⚠ Sin permiso — haz clic para reactivar'); return; }
+
+  var ts      = new Date();
+  var dateStr = ts.toISOString().slice(0,16).replace('T','_').replace(':','-');
+
+  var brain = {
+    version: 'v24.1', backupAt: ts.toISOString(),
+    aiWeights, aiThreshold,
+    nnWeights1, nnWeights2, nnBias1, nnBias2,
+    nnSamples, nnLearningRate,
+    recentResults, consecutiveWins, consecutiveLoss, momentumBonus,
+    tradeHistory: tradeHistory.slice(0, 200),
+    wins, losses, trades
+  };
+
+  var shadowTotal = shadowWins + shadowLosses;
+  var shadow = {
+    backupAt: ts.toISOString(),
+    shadowWins, shadowLosses, shadowProfit, shadowSlippageSum,
+    total: shadowTotal,
+    winRate:    shadowTotal > 0 ? ((shadowWins / shadowTotal) * 100).toFixed(1) + '%' : '0%',
+    avgSlippage:shadowTotal > 0 ? (shadowSlippageSum / shadowTotal).toFixed(3) + '%' : '0%',
+    trades: shadowTrades.slice(0, 500)
+  };
+
+  try {
+    var bfh = await autoBackupDirHandle.getFileHandle('forexbot_brain_'  + dateStr + '.json', { create: true });
+    var bfw = await bfh.createWritable();
+    await bfw.write(JSON.stringify(brain, null, 2));
+    await bfw.close();
+
+    var sfh = await autoBackupDirHandle.getFileHandle('forexbot_shadow_' + dateStr + '.json', { create: true });
+    var sfw = await sfh.createWritable();
+    await sfw.write(JSON.stringify(shadow, null, 2));
+    await sfw.close();
+
+    var hm = ts.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    abUpdateStatus('✓ ' + hm + ' — ' + autoBackupDirHandle.name);
+    abUpdateNext();
+    addLog('💾 Auto-backup completado — cerebro (' + nnSamples + ' muestras) + shadow (' + shadowTotal + ' ops) → ' + dateStr, 'opt');
+  } catch(e) {
+    console.warn('AutoBackup write error:', e);
+    abUpdateStatus('❌ Error al escribir — ' + e.message);
+    addLog('❌ Auto-backup falló: ' + e.message, 'sell');
+  }
+}
+
+function startAutoBackupTimer() {
+  if(autoBackupInterval) clearInterval(autoBackupInterval);
+  autoBackupInterval = setInterval(performAutoBackup, 2 * 60 * 60 * 1000);
+  abUpdateNext();
+}
+
+function abUpdateStatus(msg) {
+  var el = document.getElementById('backupStatus');
+  if(el) el.textContent = msg;
+}
+
+function abUpdateNext() {
+  var el = document.getElementById('backupNext');
+  if(!el || !autoBackupDirHandle) return;
+  var next = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  el.textContent = 'Próximo: ' + next.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Restaurar handle guardado al cargar la página
+(async function initAutoBackup() {
+  try {
+    var handle = await abLoadHandle();
+    if(!handle) return;
+    autoBackupDirHandle = handle;
+    var btn = document.getElementById('backupFolderBtn');
+    if(btn) btn.textContent = '📁 ' + handle.name;
+    var perm = await handle.queryPermission({ mode: 'readwrite' });
+    if(perm === 'granted') {
+      startAutoBackupTimer();
+      abUpdateStatus('✓ Activo — ' + handle.name);
+      abUpdateNext();
+    } else {
+      abUpdateStatus('⚡ Clic para reactivar backup automático');
+      if(btn) btn.onclick = async function() {
+        var ok = await abVerifyPermission(handle);
+        if(ok) {
+          startAutoBackupTimer();
+          abUpdateStatus('✓ Activo — ' + handle.name);
+          btn.textContent = '📁 ' + handle.name;
+          btn.onclick = selectBackupFolder;
+          await performAutoBackup();
+        }
+      };
+    }
+  } catch(e) { console.warn('AutoBackup init:', e); }
+})();
 
 // Load saved data on startup
 (function loadSavedData() {
