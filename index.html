@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.6 — PC Edition</title>
+<title>ForexBot v24.10.7 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.6 — PC Edition</small>
+        <small>v24.10.7 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3724,8 +3724,8 @@ function getSignal(rsi, macd, cfg) {
   // Umbral dinámico — se ajusta según aceleración del ADX y Bollinger
   var dynamicThresh = calcularUmbralDinamico(regime.adx, bbWidth);
   var nThresh = Math.min(dynamicThresh, Math.max(14, (22-momentumBonus*0.2)*(1/activePirateMult)));
-  // Capa 0 — ajuste por sentimiento de noticias
-  nThresh = Math.max(10, nThresh - newsConfBonus);
+  // Capa 0 — ajuste por sentimiento de noticias (no aplica en Entrenamiento ni Training)
+  if(!trainingMode) nThresh = Math.max(10, nThresh - newsConfBonus);
 
   // PVT suavizado con WMA
   var pvtSmooth = calcPVTSmoothed();
@@ -5659,7 +5659,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.6</b>\n' +
+      '<b>ForexBot v24.10.7</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5729,7 +5729,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.6 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.7 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
