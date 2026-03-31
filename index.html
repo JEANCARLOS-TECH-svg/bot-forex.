@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.8 — PC Edition</title>
+<title>ForexBot v24.10.9 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.8 — PC Edition</small>
+        <small>v24.10.9 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3363,7 +3363,8 @@ function addTradeToHistory(sym, type, entryPrice, result, amount, currCode) {
   const now = new Date();
   const fecha = now.toLocaleDateString('es-ES');
   const hora = now.toTimeString().split(' ')[0];
-  tradeHistory.unshift({ id: opCounter, fecha, hora, sym, type, entryPrice, result, amount, currCode });
+  const t = { id: opCounter, fecha, hora, sym, type, entryPrice, result, amount, currCode };
+  tradeHistory.unshift(t);
   if(tradeHistory.length > 200) tradeHistory.pop();
 
   // Update streak
@@ -3372,6 +3373,38 @@ function addTradeToHistory(sym, type, entryPrice, result, amount, currCode) {
   totalPips += amount;
 
   updateHistorySummary();
+  prependTradeCard(t);
+}
+
+function prependTradeCard(t) {
+  const scrollEl = document.querySelector('.history-scroll');
+  if(!scrollEl) return;
+  const emptyEl = document.getElementById('historyEmpty');
+  if(emptyEl) emptyEl.style.display = 'none';
+
+  const isWin    = t.result === 'WIN';
+  const code     = t.currCode || 'USD';
+  const fmtAmt   = formatConverted(Math.abs(t.amount), code);
+  const typeIcon  = t.type === 'BUY' ? '📈' : '📉';
+  const typeColor = t.type === 'BUY' ? 'var(--accent)' : 'var(--danger)';
+  const modeTag  = trainingMode ? ' <span style="font-size:9px;color:var(--purple);opacity:0.8">🧠TRAIN</span>' : '';
+
+  const card = document.createElement('div');
+  card.className = 'trade-card ' + (isWin ? 'card-win' : 'card-loss');
+  card.innerHTML =
+    '<div class="trade-card-header"><div><div class="trade-card-id">#' + t.id + ' · ' + t.fecha + ' ' + t.hora + modeTag + '</div></div>' +
+    '<span class="trade-card-badge ' + (isWin ? 'badge-win' : 'badge-loss') + '">' + (isWin ? '✓ GANANCIA' : '✗ PÉRDIDA') + '</span></div>' +
+    '<div class="trade-card-row"><span class="trade-card-label">INSTRUMENTO</span><span class="trade-card-value" style="font-weight:800">' + t.sym + '</span></div>' +
+    '<div class="trade-card-row"><span class="trade-card-label">TIPO</span><span class="trade-card-value" style="color:' + typeColor + '">' + typeIcon + ' ' + (t.type === 'BUY' ? 'COMPRA' : 'VENTA') + '</span></div>' +
+    '<div class="trade-card-row"><span class="trade-card-label">PRECIO ENTRADA</span><span class="trade-card-value">' + t.entryPrice + '</span></div>' +
+    '<div class="trade-card-row"><span class="trade-card-label">' + (isWin ? 'GANANCIA' : 'PÉRDIDA') + '</span>' +
+    '<span class="trade-card-value ' + (isWin ? 'hist-win' : 'hist-loss') + '">' + (isWin ? '+' : '-') + fmtAmt + ' ' + code + '</span></div>';
+
+  scrollEl.insertBefore(card, scrollEl.firstChild);
+
+  // Mantener máximo 200 tarjetas en el DOM
+  const cards = scrollEl.querySelectorAll('.trade-card');
+  if(cards.length > 200) cards[cards.length - 1].remove();
 }
 
 function updateHistorySummary() {
@@ -5672,7 +5705,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.8</b>\n' +
+      '<b>ForexBot v24.10.9</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5742,7 +5775,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.8 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.9 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
