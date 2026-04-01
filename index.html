@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.12 — PC Edition</title>
+<title>ForexBot v24.10.13 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.12 — PC Edition</small>
+        <small>v24.10.13 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3756,8 +3756,24 @@ function getSignal(rsi, macd, cfg) {
 
   // TRAINING MODE solo — sin filtros PVT ni Pivote
   if(trainingMode) {
-    // Lateral extremo: ADX < 15 → sin dirección clara, no operar
-    if(regime.adx < 15) return 'NEUTRAL';
+    // Pausa activa por ADX<15 previo — mostrar countdown cada ~30s
+    if(trainingPauseUntil > Date.now()) {
+      var _rem = trainingPauseUntil - Date.now();
+      if(Date.now() - trainingPauseLoggedAt > 30000) {
+        trainingPauseLoggedAt = Date.now();
+        var _m = Math.floor(_rem / 60000);
+        var _s = Math.floor((_rem % 60000) / 1000);
+        addLog('⏳ Training pausado — ADX lateral extremo. Reanuda en ' + _m + 'm ' + _s + 's', 'warn');
+      }
+      return 'NEUTRAL';
+    }
+    // Lateral extremo: ADX < 15 → pausar 5 minutos
+    if(regime.adx < 15) {
+      trainingPauseUntil = Date.now() + 5 * 60 * 1000;
+      trainingPauseLoggedAt = Date.now();
+      addLog('⏳ Training pausado 5min — ADX lateral extremo (' + regime.adx.toFixed(1) + '). Sin dirección clara.', 'warn');
+      return 'NEUTRAL';
+    }
     var tBuy  = (indBuyStr*60)  + (ctxScore*0.4);
     var tSell = (indSellStr*60) + (ctxScore*0.4);
     if(tBuy>tSell  && indBuyStr>0.08 && (tradeMode==='buy' ||tradeMode==='both')) return 'BUY';
@@ -4691,9 +4707,12 @@ function setPirateProfile(key, el) {
 let aiFreeMult = 1.0; // IA decides this dynamically
 let freedomMode = false; // Libertad Absoluta
 let trainingMode = false;
+let trainingPauseUntil = 0;     // timestamp hasta el que training está pausado por ADX<15
+let trainingPauseLoggedAt = 0;  // evita spam de logs durante la pausa
 
 function toggleTraining() {
   trainingMode = !trainingMode;
+  if(!trainingMode) { trainingPauseUntil = 0; trainingPauseLoggedAt = 0; } // limpiar pausa al desactivar
   var btn   = document.getElementById('trainingBtn');
   var state = document.getElementById('trainingState');
   if(btn) { btn.style.borderColor = trainingMode ? 'rgba(168,85,247,0.6)' : 'rgba(168,85,247,0.3)'; btn.style.background = trainingMode ? 'rgba(168,85,247,0.12)' : 'rgba(168,85,247,0.06)'; }
@@ -5723,7 +5742,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.12</b>\n' +
+      '<b>ForexBot v24.10.13</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5793,7 +5812,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.12 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.13 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
