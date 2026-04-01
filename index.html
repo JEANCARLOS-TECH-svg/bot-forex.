@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.9 — PC Edition</title>
+<title>ForexBot v24.10.10 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.9 — PC Edition</small>
+        <small>v24.10.10 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3777,11 +3777,17 @@ function getSignal(rsi, macd, cfg) {
   var pvtSmooth = calcPVTSmoothed();
 
   var nDiff = autoAjustarDiferencial(regime.adx, 'normal');
-  // Umbral final — relativo al día + relajación por inactividad
+  // Umbral final — relativo al día + ajuste por régimen
   var umbralFinal = calcularUmbralFinal();
-  nThresh = Math.min(nThresh, umbralFinal);
+  if(regime.adx < 20) {
+    // Lateral: umbralFinal > base → Math.max garantiza que nThresh sube
+    nThresh = Math.max(nThresh, umbralFinal);
+  } else {
+    // Tendencia/transición: umbralFinal puede bajar por inactividad → Math.min
+    nThresh = Math.min(nThresh, umbralFinal);
+  }
   // Log diferencial cada 50 ticks
-  if(prices.length % 50 === 0) addLog('[Capa 3] Umbral: ' + umbralFinal.toFixed(1) + '% | Diff: ' + scoreDiff.toFixed(2) + '/' + nDiff.toFixed(1) + ' | Inactivos: ' + ticksSinOperar, 'opt');
+  if(prices.length % 50 === 0) addLog('[Capa 3] Umbral: ' + nThresh.toFixed(1) + '% (ADX:' + regime.adx.toFixed(1) + (regime.adx < 20 ? ' LATERAL↑' : ' tendencia') + ') | Diff: ' + scoreDiff.toFixed(2) + '/' + nDiff.toFixed(1) + ' | Inactivos: ' + ticksSinOperar, 'opt');
   if(nBuy>=nThresh && buyVotesArr>=1 && scoreDiff>=nDiff && (tradeMode==='buy'||tradeMode==='both')) {
 
     // PVT suavizado — acelerador en tendencia fuerte
@@ -4731,9 +4737,19 @@ function updateFreedomAI(confidence, volatility, trend) {
 // ── SISTEMA DE EXPLORACIÓN Y RELAJACIÓN POR INACTIVIDAD ────────
 function calcularUmbralFinal() {
   var base = umbralRelativo;
+  var regime = getMarketRegime();
 
-  // Relajación por inactividad — si lleva mucho tiempo sin operar
-  // el umbral baja progresivamente hasta un mínimo de 20
+  // Mercado lateral (ADX < 20) — NO relajar por inactividad, SUBIR exigencia
+  // Cuanto más lateral (ADX bajo), más puntos se añaden al umbral
+  if(regime.adx < 20) {
+    var exigencia = Math.min(12, (20 - regime.adx) * 0.6); // +0 a +12 puntos
+    if(ticksSinOperar > INACTIVIDAD_LIMITE && ticksSinOperar % 240 === 0) {
+      addLog('⏸ Lateral ADX:' + regime.adx.toFixed(1) + ' — umbral elevado a ' + (base + exigencia).toFixed(1) + '% (inactividad no relaja en lateral)', 'warn');
+    }
+    return base + exigencia; // retorna MÁS ALTO que base
+  }
+
+  // Relajación por inactividad — SOLO cuando ADX >= 20 (mercado con potencial de tendencia)
   if(ticksSinOperar > INACTIVIDAD_LIMITE) {
     var exceso = ticksSinOperar - INACTIVIDAD_LIMITE;
     var relajacion = Math.min(15, exceso * 0.05); // máx -15 puntos
@@ -5705,7 +5721,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.9</b>\n' +
+      '<b>ForexBot v24.10.10</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5775,7 +5791,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.9 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.10 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
