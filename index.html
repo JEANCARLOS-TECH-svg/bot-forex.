@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.10 — PC Edition</title>
+<title>ForexBot v24.10.11 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.10 — PC Edition</small>
+        <small>v24.10.11 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -2820,7 +2820,7 @@ let lastSellScore = 0;
 let historialConfianza   = [];   // Últimas 180 lecturas de confianza (~3h)
 let ticksSinOperar       = 0;    // Contador de inactividad
 let umbralRelativo       = 35;   // Umbral que se adapta al mercado del día
-let epsilonExplora       = 0.05; // 5% de probabilidad de exploración
+let epsilonExplora       = 0.02; // 2% de probabilidad de exploración
 const INACTIVIDAD_LIMITE = 120;  // Ticks sin operar antes de relajar umbral
 
 /** Detect market trend using EMA200 vs EMA50 + price slope */
@@ -3743,8 +3743,8 @@ function getSignal(rsi, macd, cfg) {
       : Math.max(25, Math.min(40, 28 - momentumBonus*0.3));
     var fDiff = autoAjustarDiferencial(regime.adx, trainingMode ? 'training' : 'freedom');
 
-    // Exploración epsilon — 5% del tiempo prueba señales débiles en entrenamiento
-    if(esExploracion()) {
+    // Exploración epsilon — 2% del tiempo prueba señales débiles en entrenamiento (desactivada en lateral ADX<20)
+    if(regime.adx >= 20 && esExploracion()) {
       fThresh = Math.max(10, fThresh * 0.6);
       addLog('🎲 Exploración — umbral relajado a ' + fThresh.toFixed(1) + '% para aprender', 'opt');
     }
@@ -4762,8 +4762,8 @@ function calcularUmbralFinal() {
 }
 
 function esExploracion() {
-  // 5% del tiempo — exploración epsilon para aprender de señales débiles
-  // Solo en modo entrenamiento o shadow
+  // 2% del tiempo — exploración epsilon para aprender de señales débiles
+  // Solo en modo entrenamiento o shadow; desactivada en mercado lateral (ADX<20)
   if(!trainingMode && !shadowMode) return false;
   return Math.random() < epsilonExplora;
 }
@@ -5721,7 +5721,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.10</b>\n' +
+      '<b>ForexBot v24.10.11</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5791,7 +5791,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.10 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.11 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
