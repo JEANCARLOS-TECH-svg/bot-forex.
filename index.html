@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.11 — PC Edition</title>
+<title>ForexBot v24.10.12 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.11 — PC Edition</small>
+        <small>v24.10.12 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3756,6 +3756,8 @@ function getSignal(rsi, macd, cfg) {
 
   // TRAINING MODE solo — sin filtros PVT ni Pivote
   if(trainingMode) {
+    // Lateral extremo: ADX < 15 → sin dirección clara, no operar
+    if(regime.adx < 15) return 'NEUTRAL';
     var tBuy  = (indBuyStr*60)  + (ctxScore*0.4);
     var tSell = (indSellStr*60) + (ctxScore*0.4);
     if(tBuy>tSell  && indBuyStr>0.08 && (tradeMode==='buy' ||tradeMode==='both')) return 'BUY';
@@ -5721,7 +5723,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.11</b>\n' +
+      '<b>ForexBot v24.10.12</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5791,7 +5793,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.11 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.12 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
