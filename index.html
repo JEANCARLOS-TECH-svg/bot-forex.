@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.18 — PC Edition</title>
+<title>ForexBot v24.10.19 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -143,8 +143,6 @@
   .btn-start { background:linear-gradient(135deg,var(--accent),#00c880); color:#000; }
   .btn-start:hover { transform:translateY(-1px); }
   .btn-stop { background:rgba(255,69,96,0.12); border:1px solid rgba(255,69,96,0.35); color:var(--danger); display:none; }
-  .btn-optimize { background:linear-gradient(135deg,var(--purple),#7c3aed); color:#fff; }
-  .btn-apply { background:rgba(0,229,160,0.12); border:1px solid rgba(0,229,160,0.35); color:var(--accent); }
   .btn:disabled { opacity:0.5; cursor:not-allowed; transform:none!important; }
 
   /* INSTRUMENT DISPLAY */
@@ -205,28 +203,6 @@
   .ai-confidence-bar-fill { height:100%; border-radius:6px; transition:width .6s ease, background .4s; }
   .ai-confidence-val { font-size:18px; font-weight:800; font-family:'Space Mono',monospace; margin-top:4px; }
 
-  /* OPTIMIZER */
-  .opt-grid { display:grid; grid-template-columns:270px 1fr; gap:16px; }
-  .range-group { margin-bottom:11px; }
-  .range-group label { font-size:10px; color:var(--muted); font-family:'Space Mono',monospace; display:block; margin-bottom:3px; }
-  .range-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; }
-  .range-row input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 7px; border-radius:6px; font-family:'Space Mono',monospace; font-size:11px; outline:none; }
-  .range-row input:focus { border-color:var(--purple); }
-  .range-hint { font-size:9px; color:var(--muted); font-family:'Space Mono',monospace; display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin-top:1px; text-align:center; }
-  .progress-bar-bg { height:5px; background:var(--border); border-radius:3px; overflow:hidden; margin-top:5px; }
-  .progress-bar-fill { height:100%; background:linear-gradient(90deg,var(--purple),var(--accent2)); border-radius:3px; width:0%; transition:width .3s; }
-  .results-table { width:100%; border-collapse:collapse; font-family:'Space Mono',monospace; font-size:10px; }
-  .results-table th { padding:6px 8px; text-align:left; color:var(--muted); border-bottom:1px solid var(--border); font-weight:400; font-size:9px; }
-  .results-table td { padding:5px 8px; border-bottom:1px solid rgba(42,46,57,0.4); }
-  .results-table tr.best td { background:rgba(0,229,160,0.05); }
-  .results-table tr.best td:first-child { border-left:2px solid var(--accent); }
-  .table-wrap { max-height:240px; overflow-y:auto; scrollbar-width:thin; }
-  .best-params { background:rgba(0,229,160,0.05); border:1px solid rgba(0,229,160,0.18); border-radius:9px; padding:12px; margin-bottom:12px; }
-  .params-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:7px; }
-  .param-chip { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:6px; text-align:center; }
-  .param-chip .val { font-size:15px; font-weight:800; font-family:'Space Mono',monospace; color:var(--accent); }
-  .param-chip .lbl { font-size:9px; color:var(--muted); margin-top:1px; }
-  .equity-wrap { height:130px; background:var(--bg); border-radius:8px; overflow:hidden; }
   .disclaimer { margin-top:14px; padding:10px 13px; background:rgba(255,176,31,0.05); border:1px solid rgba(255,176,31,0.15); border-radius:8px; font-size:10px; color:#8a6a20; line-height:1.6; font-family:'Space Mono',monospace; }
 
   /* ===== KILL SWITCH ===== */
@@ -339,26 +315,6 @@
   .protection-badge.off { background:rgba(71,85,105,0.1);  border:1px solid var(--border);         color:var(--muted); }
   .protection-badge.warn{ background:rgba(255,77,106,0.1); border:1px solid rgba(255,77,106,0.3); color:var(--danger); }
 
-  /* ===== OPTIMIZER PRO ===== */
-  .opt-pro-grid { display:grid; grid-template-columns:280px 1fr; gap:16px; }
-  .opt-metric-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:12px; }
-  .opt-metric-card { background:var(--panel2); border:1px solid var(--border); border-radius:9px; padding:10px; text-align:center; }
-  .opt-metric-val { font-size:18px; font-weight:800; font-family:'Space Mono',monospace; }
-  .opt-metric-lbl { font-size:8px; color:var(--muted); margin-top:2px; letter-spacing:1px; }
-  .opt-results-table { width:100%; border-collapse:collapse; font-family:'Space Mono',monospace; font-size:10px; }
-  .opt-results-table th { padding:6px 8px; text-align:left; color:var(--muted); border-bottom:1px solid var(--border); font-size:9px; font-weight:400; letter-spacing:1px; }
-  .opt-results-table td { padding:5px 8px; border-bottom:1px solid rgba(30,42,58,0.5); }
-  .opt-results-table tr.best td { background:rgba(0,229,160,0.04); }
-  .opt-results-table tr.best td:first-child { border-left:2px solid var(--accent); }
-  .opt-apply-btn {
-    width:100%; padding:11px; border:none; border-radius:9px; cursor:pointer;
-    background:linear-gradient(135deg,var(--purple),#7c3aed); color:#fff;
-    font-family:'Syne',sans-serif; font-size:13px; font-weight:700; transition:all .2s;
-    display:none; margin-top:8px;
-  }
-  .opt-apply-btn:hover { transform:translateY(-1px); box-shadow:0 4px 15px rgba(167,139,250,0.3); }
-  .drawdown-badge { color:var(--danger); }
-  .streak-badge   { color:var(--warn); }
 
   /* ===== MULTI-OPERATION CARDS ===== */
   .ops-container {
@@ -844,7 +800,7 @@
   .empty-history { text-align:center; padding:30px; color:var(--muted); font-family:'Space Mono',monospace; font-size:11px; }
 
 
-    .main-grid,.opt-grid{grid-template-columns:1fr;}
+    .main-grid{grid-template-columns:1fr;}
     .stats-row{grid-template-columns:1fr 1fr;}
     .inst-grid{grid-template-columns:repeat(2,1fr);}
   }
@@ -1012,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.18 — PC Edition</small>
+        <small>v24.10.19 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1030,7 +986,6 @@
     <button class="tab" onclick="switchTab('indicators')">📊 Indicadores</button>
     <button class="tab" onclick="switchTab('history')">📋 Historial</button>
     <button class="tab" onclick="switchTab('shadow')">👻 Shadow</button>
-    <button class="tab" onclick="switchTab('opt')">🧬 Optimizador</button>
   </div>
 
   <!-- ===== TAB BOT ===== -->
@@ -1909,109 +1864,7 @@
     </div>
   </div>
 
-  <div class="tab-content" id="tab-opt">
-    <div class="opt-pro-grid">
 
-      <!-- LEFT: Config -->
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div class="panel">
-          <div class="panel-title">🧬 Optimizador Pro</div>
-
-          <div class="field"><label>INSTRUMENTO</label>
-            <select id="optPair">
-              <optgroup label="CRYPTO">
-                <option>BTC/USD</option><option>ETH/USD</option><option>BNB/USD</option>
-                <option>SOL/USD</option><option>XRP/USD</option><option>DOGE/USD</option>
-              </optgroup>
-              <optgroup label="FOREX"><option>EUR/USD</option><option>GBP/USD</option><option>USD/JPY</option></optgroup>
-              <optgroup label="METALES"><option>XAU/USD</option><option>XAG/USD</option></optgroup>
-              <optgroup label="ÍNDICES"><option>SP500</option><option>NASDAQ</option><option>DAX40</option></optgroup>
-            </select>
-          </div>
-
-          <div class="field"><label>OBJETIVO</label>
-            <select id="optGoal">
-              <option value="winrate">Maximizar Win Rate</option>
-              <option value="profit">Maximizar Ganancia</option>
-              <option value="sharpe">Mejor Ratio Riesgo/Ganancia</option>
-              <option value="drawdown">Minimizar Drawdown</option>
-            </select>
-          </div>
-
-          <div style="font-size:9px;color:var(--purple);font-family:'Space Mono',monospace;margin-bottom:9px;padding:7px 9px;background:rgba(167,139,250,0.06);border-radius:7px;border:1px solid rgba(167,139,250,0.15)">
-            Define rango: MÍN · MÁX · PASO
-          </div>
-          <div class="range-group"><label>RSI PERÍODO</label><div class="range-row"><input type="number" id="rsiP_min" value="10"><input type="number" id="rsiP_max" value="16"><input type="number" id="rsiP_step" value="3"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>RSI SOBRECOMPRA</label><div class="range-row"><input type="number" id="rsiOB_min" value="65"><input type="number" id="rsiOB_max" value="75"><input type="number" id="rsiOB_step" value="5"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>RSI SOBREVENTA</label><div class="range-row"><input type="number" id="rsiOS_min" value="25"><input type="number" id="rsiOS_max" value="35"><input type="number" id="rsiOS_step" value="5"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>MACD RÁPIDA</label><div class="range-row"><input type="number" id="mF_min" value="10"><input type="number" id="mF_max" value="14"><input type="number" id="mF_step" value="2"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>MACD LENTA</label><div class="range-row"><input type="number" id="mS_min" value="22"><input type="number" id="mS_max" value="26"><input type="number" id="mS_step" value="2"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-          <div class="range-group"><label>MULTIPLICADOR ATR</label><div class="range-row"><input type="number" id="atrMult_min" value="0.8" step="0.1"><input type="number" id="atrMult_max" value="1.3" step="0.1"><input type="number" id="atrMult_step" value="0.5" step="0.1"></div><div class="range-hint"><span>MÍN</span><span>MÁX</span><span>PASO</span></div></div>
-
-          <button class="btn btn-optimize" id="btnOptimize" onclick="runOptimizerPro()">🧬 EJECUTAR OPTIMIZADOR</button>
-          <div id="comboEstimate" style="font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);text-align:center;margin-top:6px;padding:5px;background:var(--panel2);border-radius:6px;border:1px solid var(--border)">
-            Combinaciones: <span id="comboCount" style="color:var(--accent)">calculando...</span>
-          </div>
-          <button class="opt-apply-btn" id="btnApply" onclick="applyBestParams()">✓ APLICAR MEJORES PARÁMETROS</button>
-
-          <!-- Hidden inputs for JS compatibility -->
-          <div style="display:none">
-            <input id="mSig_min" value="9"><input id="mSig_max" value="9"><input id="mSig_step" value="1">
-          </div>
-        </div>
-      </div>
-
-      <!-- RIGHT: Results -->
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div class="panel">
-          <div class="panel-title">⚙ Progreso</div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;font-family:'Space Mono',monospace;margin-bottom:5px">
-            <span style="color:var(--muted)">Combinaciones probadas</span>
-            <span style="color:var(--purple)" id="progressLabel">0 / 0</span>
-          </div>
-          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
-          <div style="font-size:10px;color:var(--purple);font-family:'Space Mono',monospace;margin-top:5px" id="progressText">Esperando...</div>
-        </div>
-
-        <div class="panel" id="optStats" style="display:none">
-          <div class="panel-title">📊 Resultados</div>
-          <div class="opt-metric-grid">
-            <div class="opt-metric-card"><div class="opt-metric-val c-pur"  id="os_total">—</div><div class="opt-metric-lbl">COMBOS</div></div>
-            <div class="opt-metric-card"><div class="opt-metric-val c-green" id="os_wr">—</div><div class="opt-metric-lbl">MEJOR WR</div></div>
-            <div class="opt-metric-card"><div class="opt-metric-val c-blue"  id="os_trades">—</div><div class="opt-metric-lbl">MAX OPS</div></div>
-            <div class="opt-metric-card"><div class="opt-metric-val c-green" id="os_profit">—</div><div class="opt-metric-lbl">MAX $</div></div>
-            <div class="opt-metric-card"><div class="opt-metric-val drawdown-badge" id="os_drawdown">—</div><div class="opt-metric-lbl">DRAWDOWN</div></div>
-            <div class="opt-metric-card"><div class="opt-metric-val streak-badge"   id="os_streak">—</div><div class="opt-metric-lbl">MAX RACHA</div></div>
-          </div>
-        </div>
-
-        <div class="panel" id="bestParamsPanel" style="display:none">
-          <div class="panel-title">🏆 Mejor Configuración</div>
-          <div class="best-params">
-            <div style="font-size:9px;color:var(--accent);font-family:'Space Mono',monospace;letter-spacing:1.5px;margin-bottom:8px">★ CONFIGURACIÓN ÓPTIMA</div>
-            <div class="params-grid">
-              <div class="param-chip"><div class="val" id="bp_rsiP">—</div><div class="lbl">RSI PER.</div></div>
-              <div class="param-chip"><div class="val" id="bp_rsiOB">—</div><div class="lbl">RSI OB</div></div>
-              <div class="param-chip"><div class="val" id="bp_rsiOS">—</div><div class="lbl">RSI OS</div></div>
-              <div class="param-chip"><div class="val" id="bp_mF">—</div><div class="lbl">MACD F</div></div>
-              <div class="param-chip"><div class="val" id="bp_mS">—</div><div class="lbl">MACD S</div></div>
-              <div class="param-chip"><div class="val" id="bp_atr" style="color:var(--warn)">—</div><div class="lbl">ATR ×</div></div>
-              <div class="param-chip" style="grid-column:span 3"><div class="val" id="bp_score" style="color:var(--accent)">—</div><div class="lbl">SCORE</div></div>
-            </div>
-          </div>
-          <div class="panel" id="resultsPanel" style="display:none">
-            <div class="panel-title">📋 Top 10</div>
-            <div class="table-wrap">
-              <table class="opt-results-table">
-                <thead><tr><th>#</th><th>RSI P</th><th>OB</th><th>OS</th><th>MF</th><th>MS</th><th>ATR×</th><th>WR%</th><th>OPS</th><th>$</th><th>DD%</th></tr></thead>
-                <tbody id="resultsBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <div class="disclaimer">⚠ SIMULACIÓN EDUCATIVA con precios reales vía WebSocket de Binance Testnet. La IA aplica filtro de tendencia y confirmación multi-indicador. No ejecuta operaciones reales. El trading implica riesgo de pérdida de capital.</div>
 </div>
@@ -5787,7 +5640,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.18</b>\n' +
+      '<b>ForexBot v24.10.19</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5857,7 +5710,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.18 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.19 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
@@ -6332,241 +6185,6 @@ function updateLiveBadge(instSym) {
   el.className      = 'inst-live-badge ' + (hasLive ? 'live' : 'sim');
 }
 
-// ======================== OPTIMIZER PRO ========================
-let optMarket  = 'all';
-let optProfile = 'grumete';
-let bestParams = null;
-
-function setOptMarket(type, el) {
-  optMarket = type;
-  document.querySelectorAll('.opt-market-tab').forEach(function(t) { t.classList.remove('active'); });
-  el.classList.add('active');
-}
-
-function setOptProfile(key, el) {
-  optProfile = key;
-  document.querySelectorAll('.opt-profile-chip').forEach(function(c) { c.classList.remove('active'); });
-  el.classList.add('active');
-  estimateCombos();
-}
-
-function estimateCombos() {
-  try {
-    const rsiPs  = rangeArr(+document.getElementById('rsiP_min').value,  +document.getElementById('rsiP_max').value,  +document.getElementById('rsiP_step').value);
-    const rsiOBs = rangeArr(+document.getElementById('rsiOB_min').value, +document.getElementById('rsiOB_max').value, +document.getElementById('rsiOB_step').value);
-    const rsiOSs = rangeArr(+document.getElementById('rsiOS_min').value, +document.getElementById('rsiOS_max').value, +document.getElementById('rsiOS_step').value);
-    const mFs    = rangeArr(+document.getElementById('mF_min').value,    +document.getElementById('mF_max').value,    +document.getElementById('mF_step').value);
-    const mSs    = rangeArr(+document.getElementById('mS_min').value,    +document.getElementById('mS_max').value,    +document.getElementById('mS_step').value);
-    const atrMs  = rangeArr(+document.getElementById('atrMult_min').value,+document.getElementById('atrMult_max').value,+document.getElementById('atrMult_step').value);
-    let count = 0;
-    for(var ri2=0;ri2<rsiPs.length;ri2++) for(var oi2=0;oi2<rsiOBs.length;oi2++) for(var si2=0;si2<rsiOSs.length;si2++)
-      for(var fi2=0;fi2<mFs.length;fi2++) for(var mi2=0;mi2<mSs.length;mi2++) for(var ai2=0;ai2<atrMs.length;ai2++)
-        if(mFs[fi2] < mSs[mi2] && rsiOBs[oi2] > rsiOSs[si2]) count++;
-    const el = document.getElementById('comboCount');
-    if(el) {
-      el.textContent = count.toLocaleString();
-      el.style.color = count > 5000 ? 'var(--danger)' : count > 2000 ? 'var(--warn)' : 'var(--accent)';
-    }
-  } catch(_) {}
-}
-
-/** Generate realistic price history based on market type */
-function genHistPro(n, base, vol, marketType) {
-  const p = [base];
-  let trend = 0;
-  for(let i = 1; i < n; i++) {
-    // Add trend component based on market type
-    if(marketType === 'bull') trend = vol * 0.15;
-    else if(marketType === 'bear') trend = -vol * 0.15;
-    else if(marketType === 'flat') trend = 0;
-    else {
-      // 'all' — cycles through phases
-      const phase = Math.floor(i / (n/3));
-      trend = phase === 0 ? vol*0.1 : phase === 1 ? -vol*0.1 : 0;
-    }
-    const noise = (Math.random() - 0.499) * vol;
-    p.push(Math.max(p[i-1] + noise + trend, base * 0.7));
-  }
-  return p;
-}
-
-/** Pro backtest with drawdown and streak tracking */
-function backtestPro(prices, cfg) {
-  var rsiPeriod=cfg.rsiPeriod, rsiOB=cfg.rsiOB, rsiOS=cfg.rsiOS, macdFast=cfg.macdFast, macdSlow=cfg.macdSlow, macdSig=cfg.macdSig, atrMult=cfg.atrMult||1.0, sym=cfg.sym||'EUR/USD';
-  const inst = INSTRUMENTS[sym] || INSTRUMENTS['EUR/USD'];
-  let eq = 10000, tr = 0, ws = 0, inT = false, dir = '', ent = 0;
-  let maxEq = 10000, maxDrawdown = 0, maxStreak = 0, curStreak = 0;
-  const ec = [10000];
-
-  for(let i = macdSlow + macdSig + 5; i < prices.length; i++) {
-    const s = prices.slice(0, i+1);
-    const rsi  = calcRSI(s, rsiPeriod);
-    const macd = calcMACD(s, macdFast, macdSlow, macdSig);
-
-    // ATR-based SL/TP
-    let atrSum = 0;
-    const atrPer = Math.min(14, s.length-1);
-    for(let j = s.length-atrPer; j < s.length; j++) atrSum += Math.abs(s[j]-(s[j-1]||s[j]));
-    const atr = atrSum / atrPer;
-    const atrPips = atr * inst.pipMul;
-    const sl = Math.max(5,  Math.round(atrPips * 1.0 * atrMult));
-    const tp = Math.max(10, Math.round(atrPips * 2.2 * atrMult));
-
-    if(!inT) {
-      if(rsi < rsiOS && macd.macd > macd.signal)      { inT=true; dir='BUY';  ent=prices[i]; }
-      else if(rsi > rsiOB && macd.macd < macd.signal) { inT=true; dir='SELL'; ent=prices[i]; }
-    } else {
-      const diff = (prices[i]-ent) * (dir==='BUY'?1:-1);
-      const pips = diff * inst.pipMul;
-      if(pips >= tp || pips <= -sl) {
-        const won = pips >= tp;
-        eq += won ? tp*10 : -sl*10;
-        if(won) { ws++; curStreak++; maxStreak=Math.max(maxStreak,curStreak); }
-        else    { curStreak=0; }
-        tr++; inT=false; ec.push(eq);
-        // Track drawdown
-        if(eq > maxEq) maxEq = eq;
-        const dd = ((maxEq-eq)/maxEq)*100;
-        if(dd > maxDrawdown) maxDrawdown = dd;
-      }
-    }
-  }
-  const winRate = tr > 0 ? (ws/tr)*100 : 0;
-  const profit  = eq - 10000;
-  const sharpe  = tr > 0 ? profit / (Math.sqrt(tr) * (sl||20)) : 0;
-  return { winRate, profit, trades:tr, equity_curve:ec, sharpe, maxDrawdown, maxStreak };
-}
-
-function rangeArr(min, max, step) {
-  const a=[];
-  for(let v=min; v<=max+0.0001; v+=step) a.push(Math.round(v*100)/100);
-  return a;
-}
-
-async function runOptimizerPro() {
-  const btn  = document.getElementById('btnOptimize');
-  btn.disabled = true; btn.textContent = '🔄 Optimizando...';
-
-  const goal = document.getElementById('optGoal').value;
-  const sym  = document.getElementById('optPair').value;
-  const inst = INSTRUMENTS[sym] || INSTRUMENTS['EUR/USD'];
-
-  const rsiPs  = rangeArr(+document.getElementById('rsiP_min').value,  +document.getElementById('rsiP_max').value,  +document.getElementById('rsiP_step').value);
-  const rsiOBs = rangeArr(+document.getElementById('rsiOB_min').value, +document.getElementById('rsiOB_max').value, +document.getElementById('rsiOB_step').value);
-  const rsiOSs = rangeArr(+document.getElementById('rsiOS_min').value, +document.getElementById('rsiOS_max').value, +document.getElementById('rsiOS_step').value);
-  const mFs    = rangeArr(+document.getElementById('mF_min').value,    +document.getElementById('mF_max').value,    +document.getElementById('mF_step').value);
-  const mSs    = rangeArr(+document.getElementById('mS_min').value,    +document.getElementById('mS_max').value,    +document.getElementById('mS_step').value);
-  const atrMs  = rangeArr(+document.getElementById('atrMult_min').value,+document.getElementById('atrMult_max').value,+document.getElementById('atrMult_step').value);
-
-  const combos = [];
-  var rP, rOB, rOS, mF, mS, aM;
-  for(var ri=0; ri<rsiPs.length; ri++) { rP=rsiPs[ri];
-  for(var oi=0; oi<rsiOBs.length; oi++) { rOB=rsiOBs[oi];
-  for(var si=0; si<rsiOSs.length; si++) { rOS=rsiOSs[si];
-  for(var fi=0; fi<mFs.length; fi++) { mF=mFs[fi];
-  for(var mi=0; mi<mSs.length; mi++) { mS=mSs[mi];
-  for(var ai=0; ai<atrMs.length; ai++) { aM=atrMs[ai];
-    if(mF < mS && rOB > rOS)
-      combos.push({ rsiPeriod:rP, rsiOB:rOB, rsiOS:rOS, macdFast:mF, macdSlow:mS, macdSig:9, atrMult:aM, sym:sym });
-  }}}}}}
-
-  const total = combos.length;
-  document.getElementById('progressLabel').textContent = '0 / '+total;
-
-  // Generate price history for selected market type
-  const hist = genHistPro(800, inst.base, inst.vol, optMarket);
-
-  const results = []; var processed = 0;
-  for(var i = 0; i < combos.length; i += 15) {
-    var batch = combos.slice(i, i+15);
-    for(var bi=0; bi<batch.length; bi++) {
-      var cfg = batch[bi];
-      const r = backtestPro(hist, cfg);
-      const score = goal==='winrate'   ? r.winRate
-                  : goal==='profit'    ? r.profit
-                  : goal==='drawdown'  ? -r.maxDrawdown
-                  : r.sharpe;
-      // Merge cfg and r without spread
-      var entry = {};
-      var ck = Object.keys(cfg); for(var x=0;x<ck.length;x++) entry[ck[x]]=cfg[ck[x]];
-      var rk = Object.keys(r);   for(var y=0;y<rk.length;y++) entry[rk[y]]=r[rk[y]];
-      entry.score = score;
-      results.push(entry);
-      processed++;
-    }
-    document.getElementById('progressFill').style.width = ((processed/total)*100)+'%';
-    document.getElementById('progressLabel').textContent = processed+' / '+total;
-    document.getElementById('progressText').textContent  = 'Probando '+processed+' de '+total+'...';
-    await new Promise(function(r){ setTimeout(r, 0); });
-  }
-
-  results.sort(function(a,b) { return b.score - a.score; });
-  const top10 = results.slice(0, 10);
-  bestParams  = top10[0];
-
-  document.getElementById('progressText').textContent = '✓ Completado — '+total+' combinaciones evaluadas';
-
-  // Metrics
-  document.getElementById('optStats').style.display = 'grid';
-  document.getElementById('os_total').textContent    = total;
-  document.getElementById('os_wr').textContent       = top10[0].winRate.toFixed(1)+'%';
-  document.getElementById('os_trades').textContent   = top10[0].trades;
-  document.getElementById('os_profit').textContent   = '$'+top10[0].profit.toFixed(0);
-  document.getElementById('os_drawdown').textContent = top10[0].maxDrawdown.toFixed(1)+'%';
-  document.getElementById('os_streak').textContent   = top10[0].maxStreak;
-
-  // Best params panel
-  document.getElementById('bestParamsPanel').style.display = 'block';
-  document.getElementById('bp_rsiP').textContent  = bestParams.rsiPeriod;
-  document.getElementById('bp_rsiOB').textContent = bestParams.rsiOB;
-  document.getElementById('bp_rsiOS').textContent = bestParams.rsiOS;
-  document.getElementById('bp_mF').textContent    = bestParams.macdFast;
-  document.getElementById('bp_mS').textContent    = bestParams.macdSlow;
-  document.getElementById('bp_atr').textContent   = '×'+bestParams.atrMult;
-  const scoreLabel = goal==='winrate'  ? bestParams.winRate.toFixed(1)+'%'
-                   : goal==='profit'   ? '$'+bestParams.profit.toFixed(0)
-                   : goal==='drawdown' ? bestParams.maxDrawdown.toFixed(1)+'%'
-                   : bestParams.sharpe.toFixed(2);
-  document.getElementById('bp_score').textContent = scoreLabel;
-  // Results table
-  document.getElementById('resultsPanel').style.display = 'block';
-  const tbody = document.getElementById('resultsBody'); tbody.innerHTML = '';
-  top10.forEach(function(r, i) {
-    const tr2 = document.createElement('tr');
-    if(i === 0) tr2.classList.add('best');
-    const rankColor  = i===0 ? 'var(--accent)' : i===1 ? 'var(--accent2)' : 'var(--warn)';
-    const rankText   = i===0 ? '★' : (i+1).toString();
-    const wrColor    = r.winRate>55 ? 'var(--accent)' : r.winRate>45 ? 'var(--warn)' : 'var(--danger)';
-    const profColor  = r.profit>0 ? 'var(--accent)' : 'var(--danger)';
-    tr2.innerHTML = '<td style="color:' + rankColor + '">' + rankText + '</td>' +
-      '<td>' + r.rsiPeriod + '</td><td>' + r.rsiOB + '</td><td>' + r.rsiOS + '</td>' +
-      '<td>' + r.macdFast + '</td><td>' + r.macdSlow + '</td>' +
-      '<td style="color:var(--warn)">×' + r.atrMult + '</td>' +
-      '<td style="color:' + wrColor + '">' + r.winRate.toFixed(1) + '%</td>' +
-      '<td>' + r.trades + '</td>' +
-      '<td style="color:' + profColor + '">$' + r.profit.toFixed(0) + '</td>' +
-      '<td style="color:var(--danger)">' + r.maxDrawdown.toFixed(1) + '%</td>';
-    tbody.appendChild(tr2);
-  });
-
-  document.getElementById('btnApply').style.display = 'block';
-  btn.disabled = false; btn.textContent = '🔄 Re-Optimizar';
-  addLog('🧬 Optimizador Pro completado. Mejor WR: '+top10[0].winRate.toFixed(1)+'% | DD: '+top10[0].maxDrawdown.toFixed(1)+'%', 'opt');
-}
-
-function applyBestParams() {
-  if(!bestParams) return;
-  document.getElementById('rsiPeriod').value  = bestParams.rsiPeriod;
-  document.getElementById('rsiOB').value      = bestParams.rsiOB;
-  document.getElementById('rsiOS').value      = bestParams.rsiOS;
-  document.getElementById('macdFast').value   = bestParams.macdFast;
-  document.getElementById('macdSlow').value   = bestParams.macdSlow;
-  document.getElementById('macdSignal').value = bestParams.macdSig;
-  // Apply ATR multiplier
-  activePirateMult = bestParams.atrMult;
-  switchTab('bot');
-  addLog('✦ Parámetros optimizados aplicados — ATR ×'+bestParams.atrMult, 'opt');
-}
 // ======================== SECURITY — PIN SYSTEM ========================
 const PIN_KEY      = 'forexbot_pin_hash';
 const PIN_ATTEMPTS = 'forexbot_pin_attempts';
@@ -6825,21 +6443,11 @@ async function importBotDataSecure(input) {
   input.value = '';
 }
 
-// Initialize combo estimator when optimizer tab opens
 document.addEventListener('DOMContentLoaded', function() {
   const exportBtn = document.querySelector('.data-btn-export');
   if(exportBtn) exportBtn.onclick = exportBotDataSecure;
   const importInput = document.getElementById('importFile');
   if(importInput) importInput.onchange = function() { importBotDataSecure(this); };
-  // Attach combo estimator to all range inputs
-  ['rsiP_min','rsiP_max','rsiP_step','rsiOB_min','rsiOB_max','rsiOB_step',
-   'rsiOS_min','rsiOS_max','rsiOS_step','mF_min','mF_max','mF_step',
-   'mS_min','mS_max','mS_step','atrMult_min','atrMult_max','atrMult_step'
-  ].forEach(function(id) {
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('input', estimateCombos);
-  });
-  setTimeout(estimateCombos, 500);
 });
 
 // Initialize PIN screen on load — always ask on every open
