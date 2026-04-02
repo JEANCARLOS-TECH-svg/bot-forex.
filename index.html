@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.16 — PC Edition</title>
+<title>ForexBot v24.10.17 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.16 — PC Edition</small>
+        <small>v24.10.17 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -4415,6 +4415,11 @@ function openOperation(signal, price, sl, tp, currCode) {
     progress: 0
   };
   activeOps.push(op);
+  // Training + ADX < 15 → iniciar cooling inmediatamente al abrir la op (mismo tick que updateDiagnostic)
+  if(trainingMode && currentRegime.adx < 15) {
+    trainingAdxCooldownEnd = Date.now() + 5*60*1000;
+    addLog('⏳ Cooling 5 min iniciado — ADX ' + currentRegime.adx.toFixed(1) + '<15. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
+  }
   renderOps();
   addLog('⚡ Op #'+id+' abierta — '+signal+' '+currentInst+' @ '+price+' | ADX entrada:'+currentRegime.adx.toFixed(1), signal==='BUY'?'buy':'sell');
   return op;
@@ -4455,11 +4460,13 @@ function closeOperation(id, won) {
   updateAIWeights(won);
   registerOpResult(won);
   nnLearn(won);
-  // Training + ADX lateral extremo → cooling 5 min; durante ese periodo solo >55% conf
-  // Usa adxAtEntry (ADX cuando se abrió la op) para evitar que el recálculo del cierre cambie el valor
-  if(trainingMode && op.adxAtEntry < 15) {
-    trainingAdxCooldownEnd = Date.now() + 5*60*1000;
-    addLog('⏳ Cooling 5 min — ADX entrada ' + op.adxAtEntry.toFixed(1) + '<15. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
+  // Training + ADX lateral extremo → reiniciar cooling 5 min desde el cierre
+  if(trainingMode) {
+    var closeAdx = getMarketRegime().adx;
+    if(closeAdx < 15 || op.adxAtEntry < 15) {
+      trainingAdxCooldownEnd = Date.now() + 5*60*1000;
+      addLog('⏳ Cooling 5 min (poscierre) — ADX ' + closeAdx.toFixed(1) + '. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
+    }
   }
   autoSave();
   renderOps();
@@ -5764,7 +5771,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.16</b>\n' +
+      '<b>ForexBot v24.10.17</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5834,7 +5841,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.16 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.17 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
