@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.14 — PC Edition</title>
+<title>ForexBot v24.10.15 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.14 — PC Edition</small>
+        <small>v24.10.15 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -4222,15 +4222,9 @@ function updateDiagnostic(signal, protBlocked, rsi) {
   var reasonEl = document.getElementById('diag_reason');
   if(!reasonEl) return;
 
-  if(!running)    { reasonEl.textContent = 'Bot inactivo — pulsa INICIAR'; reasonEl.style.color='var(--muted)'; return; }
-  if(!isLive)     { reasonEl.textContent = '⚠ Usando precios simulados — cambia a CRIPTO para datos LIVE'; reasonEl.style.color='var(--warn)'; return; }
-  if(!candlesOk)  { reasonEl.textContent = 'Acumulando velas... (' + prices.length + '/30)'; reasonEl.style.color='var(--warn)'; return; }
+  if(!running) { reasonEl.textContent = 'Bot inactivo — pulsa INICIAR'; reasonEl.style.color='var(--muted)'; return; }
 
-  if(freedomMode) {
-    if(protBlocked) { reasonEl.textContent = '🔒 Protección Freedom activa — ' + (badHour ? 'fuera de horario' : 'racha o volatilidad'); reasonEl.style.color='var(--warn)'; return; }
-    reasonEl.textContent = '⚡ LIBERTAD ABSOLUTA — operando sin restricciones'; reasonEl.style.color='var(--purple)'; return;
-  }
-
+  // Training mode — mostrar countdown ANTES del chequeo isLive para que sea visible con precios simulados
   if(trainingMode) {
     var cdRemaining = trainingAdxCooldownEnd - Date.now();
     if(cdRemaining > 0) {
@@ -4242,6 +4236,14 @@ function updateDiagnostic(signal, protBlocked, rsi) {
       reasonEl.textContent = '🧠 ENTRENAMIENTO — operando al máximo'; reasonEl.style.color='var(--purple)';
     }
     return;
+  }
+
+  if(!isLive)     { reasonEl.textContent = '⚠ Usando precios simulados — cambia a CRIPTO para datos LIVE'; reasonEl.style.color='var(--warn)'; return; }
+  if(!candlesOk)  { reasonEl.textContent = 'Acumulando velas... (' + prices.length + '/30)'; reasonEl.style.color='var(--warn)'; return; }
+
+  if(freedomMode) {
+    if(protBlocked) { reasonEl.textContent = '🔒 Protección Freedom activa — ' + (badHour ? 'fuera de horario' : 'racha o volatilidad'); reasonEl.style.color='var(--warn)'; return; }
+    reasonEl.textContent = '⚡ LIBERTAD ABSOLUTA — operando sin restricciones'; reasonEl.style.color='var(--purple)'; return;
   }
 
   if(!trendOk)    { reasonEl.textContent = 'Mercado lateral — umbral elevado a ' + aiThreshold + '%'; reasonEl.style.color='var(--warn)'; return; }
@@ -4438,12 +4440,10 @@ function closeOperation(id, won) {
   registerOpResult(won);
   nnLearn(won);
   // Training + ADX lateral extremo → cooling 5 min; durante ese periodo solo >55% conf
-  if(trainingMode) {
-    var closeRegime = getMarketRegime();
-    if(closeRegime.adx < 15) {
-      trainingAdxCooldownEnd = Date.now() + 5*60*1000;
-      addLog('⏳ Cooling 5 min — ADX ' + closeRegime.adx.toFixed(1) + '<15. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
-    }
+  // Usa adxAtEntry (ADX cuando se abrió la op) para evitar que el recálculo del cierre cambie el valor
+  if(trainingMode && op.adxAtEntry < 15) {
+    trainingAdxCooldownEnd = Date.now() + 5*60*1000;
+    addLog('⏳ Cooling 5 min — ADX entrada ' + op.adxAtEntry.toFixed(1) + '<15. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
   }
   autoSave();
   renderOps();
@@ -5746,7 +5746,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.14</b>\n' +
+      '<b>ForexBot v24.10.15</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5816,7 +5816,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.14 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.15 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
