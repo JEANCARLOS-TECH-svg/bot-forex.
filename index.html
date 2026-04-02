@@ -3937,7 +3937,7 @@ function tick(){
   const sellVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===-1; }).length;
   updateConfidenceBar(buyVotes, sellVotes, lastBuyScore, lastSellScore, trendDirection);
   // ADX < 15 en Training: filtro conf>=55% con lastAIConfidence ya actualizado en esta misma llamada
-  if(trainingMode && lastADX < 15 && lastAIConfidence < 55) signal = 'NEUTRAL';
+  if(trainingMode && lastADX < 15 && lastAIConfidence < 45) signal = 'NEUTRAL';
   if(signal==='BUY'){
     box.classList.add('signal-buy');document.getElementById('sigIcon').textContent='📈';
     document.getElementById('signalText').textContent='SEÑAL DE COMPRA';
