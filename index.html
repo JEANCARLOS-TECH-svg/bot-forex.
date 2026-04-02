@@ -2327,6 +2327,11 @@ async function connectAPI() {
             '<div class="api-balance-val">' + parseFloat(b.free).toFixed(4) + '</div></div>';
         }).join('');
       }
+    } else {
+      // Claves inválidas — limpiar credenciales y advertir; WebSocket sigue activo con precios públicos
+      apiKeyVal = ''; apiSecretVal = '';
+      if(balDiv) balDiv.innerHTML = '<div style="font-size:10px;color:var(--danger);font-family:Space Mono,monospace;padding:4px 0">⚠️ API Key inválida — verifica tus credenciales</div>';
+      addLog('⚠️ API Key inválida — operando solo con precios públicos', 'sell');
     }
   } catch(_) {
     addLog('📡 WebSocket activo — precios en vivo recibidos', 'buy');
@@ -2593,7 +2598,7 @@ function selInst(btn, sym, cat) {
   document.getElementById('chartPairLabel').textContent=sym;
   document.getElementById('instPriceDisplay').textContent=inst.base.toFixed(inst.decimals);
   document.getElementById('instPriceChg').textContent='—';
-  if(running){stopBot();prices=[];volumes=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];tradeMarkers=[];}
+  if(running){stopBot();prices=[];volumes=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];tradeMarkers=[];activeOps=[];}
   addLog('📌 '+sym+' seleccionado','warn');
   refreshAmountDisplay();
   updateLiveBadge(sym);
@@ -2935,7 +2940,6 @@ function updateConfidenceBar(buyVotes, sellVotes, buyScore, sellScore, trendDir)
   if(historialConfianza.length > 180) historialConfianza.shift();
   if(historialConfianza.length >= 10) {
     var promedioHoy = historialConfianza.reduce(function(a,b){return a+b;},0) / historialConfianza.length;
-    var maxHoy = Math.max.apply(null, historialConfianza);
     // Umbral = promedio del día × 1.15, nunca menor a 20 ni mayor a 65
     umbralRelativo = Math.max(20, Math.min(65, promedioHoy * 1.15));
   }
@@ -4875,6 +4879,11 @@ async function startBot(){
     const blob = new Blob([workerCode], { type: 'application/javascript' });
     tickWorker = new Worker(URL.createObjectURL(blob));
     tickWorker.onmessage = function() { if(running) tick(); };
+    tickWorker.onerror = function(e) {
+      addLog('⚠️ Web Worker falló — cambiando a setInterval', 'warn');
+      tickWorker = null;
+      if(running) interval = setInterval(tick, 700);
+    };
     tickWorker.postMessage('start');
     addLog('⚙️ Web Worker activo — tick protegido contra suspensión de Chrome', 'opt');
   } catch(e) {
@@ -6607,7 +6616,7 @@ function updatePinDots(prefix, len, error) { if(error===undefined)error=false;
 
 function pinPress(num) {
   // Check lockout
-  const lockedUntil = parseInt(localStorage.getItem(PIN_LOCKED) || '0');
+  const lockedUntil = parseInt(localStorage.getItem(PIN_LOCKED) || '0', 10);
   if(Date.now() < lockedUntil) {
     const mins = Math.ceil((lockedUntil - Date.now()) / 60000);
     setPinMsg('🔒 Bloqueado — espera '+mins+' minuto(s)', true);
@@ -6829,7 +6838,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Initialize PIN screen on load — always ask on every open
 (function initPinScreen() {
   const storedPin  = localStorage.getItem(PIN_KEY);
-  const lockedUntil = parseInt(localStorage.getItem(PIN_LOCKED) || '0');
+  const lockedUntil = parseInt(localStorage.getItem(PIN_LOCKED) || '0', 10);
   // sessionStorage tracks if unlocked in THIS session — cleared when browser closes
   const unlockedThisSession = sessionStorage.getItem('forexbot_unlocked');
 
