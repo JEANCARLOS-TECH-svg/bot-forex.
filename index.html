@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.20 — PC Edition</title>
+<title>ForexBot v24.10.21 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.20 — PC Edition</small>
+        <small>v24.10.21 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -4348,22 +4348,42 @@ function closeOperation(id, won) {
 }
 
 function updateOpsProgress(currentPrice) {
-  if(activeOps.length === 0) return;
   const inst = INSTRUMENTS[currentInst];
-  activeOps.forEach(function(op) {
-    if(op.instrument !== currentInst) return;
-    const diff = (currentPrice - op.entryPrice) * (op.type==='BUY' ? 1 : -1);
-    const pips = diff * inst.pipMul;
-    op.currentPnl = pips;
-    op.progress = Math.max(0, Math.min(100, (pips / op.tp) * 100));
-    // Auto-close if TP or SL hit
-    if(pips >= op.tp) {
-      setTimeout(function(){closeOperation(op.id,true);},100);
-    } else if(pips <= -op.sl) {
-      setTimeout(function(){closeOperation(op.id,false);},100);
-    }
-  });
-  renderOps();
+  if(activeOps.length > 0) {
+    activeOps.forEach(function(op) {
+      if(op.instrument !== currentInst) return;
+      const diff = (currentPrice - op.entryPrice) * (op.type==='BUY' ? 1 : -1);
+      const pips = diff * inst.pipMul;
+      op.currentPnl = pips;
+      op.progress = Math.max(0, Math.min(100, (pips / op.tp) * 100));
+      // Auto-close if TP or SL hit
+      if(pips >= op.tp) {
+        setTimeout(function(){closeOperation(op.id,true);},100);
+      } else if(pips <= -op.sl) {
+        setTimeout(function(){closeOperation(op.id,false);},100);
+      }
+    });
+    renderOps();
+  }
+  // Monitor shadow trades en cada tick — resuelve TP/SL continuamente
+  if(shadowMode) {
+    shadowTrades.forEach(function(trade) {
+      if(trade.result !== null) return;
+      var diff = (currentPrice - trade.entryPrice) * (trade.signal === 'BUY' ? 1 : -1);
+      var pips = diff * inst.pipMul;
+      var won = pips >= trade.tp;
+      var lost = pips <= -trade.sl;
+      if(!won && !lost) return;
+      trade.result = won ? 'WIN' : 'LOSS';
+      var pnl = won ? tradeAmount * 2 : -tradeAmount;
+      shadowProfit += pnl;
+      if(won) shadowWins++; else shadowLosses++;
+      shadowSlippageSum += Math.abs(currentPrice - trade.entryPrice) / trade.entryPrice * 100;
+      updateShadowStats();
+      addShadowLogEntry(trade, pnl);
+      addLog('👻 Shadow #' + trade.id + ' ' + (won ? 'WIN ✅ +$' + pnl.toFixed(2) : 'LOSS ❌ -$' + Math.abs(pnl).toFixed(2)), won ? 'buy' : 'sell');
+    });
+  }
 }
 
 function manualCloseOp(id) {
@@ -5440,26 +5460,7 @@ function recordShadowTrade(signal, entryPrice, sl, tp, size) {
       addLog('⏳ Cooling 5 min (shadow) — ADX ' + shadowRegime.adx.toFixed(1) + '<15. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
     }
   }
-  // Simulate result based on next price movement
-  setTimeout(function() {
-    if(prices.length < 2) return;
-    var currentPrice = prices[prices.length - 1];
-    var diff = (currentPrice - entryPrice) * (signal === 'BUY' ? 1 : -1);
-    var pips = diff * (INSTRUMENTS[currentInst] ? INSTRUMENTS[currentInst].pipMul : 10000);
-    var won = pips >= tp;
-    var lost = pips <= -sl;
-    if(won || lost) {
-      trade.result = won ? 'WIN' : 'LOSS';
-      var pnl = won ? tradeAmount * 2 : -tradeAmount;
-      shadowProfit += pnl;
-      if(won) shadowWins++; else shadowLosses++;
-      // Slippage — diferencia entre señal y precio de entrada real
-      var slippage = Math.abs(currentPrice - entryPrice) / entryPrice * 100;
-      shadowSlippageSum += slippage;
-      updateShadowStats();
-      addShadowLogEntry(trade, pnl);
-    }
-  }, 3000);
+  // Resultado evaluado en cada tick por updateOpsProgress — no setTimeout
   addLog('👻 Shadow #' + id + ' — ' + signal + ' @ ' + entryPrice.toFixed(INSTRUMENTS[currentInst].decimals), 'buy');
 }
 
@@ -5657,7 +5658,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.20</b>\n' +
+      '<b>ForexBot v24.10.21</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5727,7 +5728,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.20 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.21 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
