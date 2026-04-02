@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.13 — PC Edition</title>
+<title>ForexBot v24.10.14 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.13 — PC Edition</small>
+        <small>v24.10.14 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3756,8 +3756,14 @@ function getSignal(rsi, macd, cfg) {
 
   // TRAINING MODE solo — sin filtros PVT ni Pivote
   if(trainingMode) {
-    // Lateral extremo: ADX < 15 → exigir confianza mínima de 55%
-    if(regime.adx < 15 && lastAIConfidence < 55) return 'NEUTRAL';
+    // Lateral extremo ADX < 15 — cooling 5 min tras cada op; umbral 55% durante ese periodo
+    if(regime.adx < 15) {
+      if(Date.now() < trainingAdxCooldownEnd) {
+        if(lastAIConfidence < 55) return 'NEUTRAL';
+        // Confianza >= 55% → opera normalmente aunque esté en cooling
+      }
+      // Cooling expirado → evalúa fresh sin restricción extra
+    }
     var tBuy  = (indBuyStr*60)  + (ctxScore*0.4);
     var tSell = (indSellStr*60) + (ctxScore*0.4);
     if(tBuy>tSell  && indBuyStr>0.08 && (tradeMode==='buy' ||tradeMode==='both')) return 'BUY';
@@ -4226,7 +4232,16 @@ function updateDiagnostic(signal, protBlocked, rsi) {
   }
 
   if(trainingMode) {
-    reasonEl.textContent = '🧠 ENTRENAMIENTO — operando al máximo'; reasonEl.style.color='var(--purple)'; return;
+    var cdRemaining = trainingAdxCooldownEnd - Date.now();
+    if(cdRemaining > 0) {
+      var cdMins = Math.floor(cdRemaining/60000);
+      var cdSecs = Math.floor((cdRemaining%60000)/1000);
+      reasonEl.textContent = '⏳ Cooling ' + cdMins + ':' + (cdSecs<10?'0':'') + cdSecs + ' — ADX<15, conf>55% requerida';
+      reasonEl.style.color='var(--warn)';
+    } else {
+      reasonEl.textContent = '🧠 ENTRENAMIENTO — operando al máximo'; reasonEl.style.color='var(--purple)';
+    }
+    return;
   }
 
   if(!trendOk)    { reasonEl.textContent = 'Mercado lateral — umbral elevado a ' + aiThreshold + '%'; reasonEl.style.color='var(--warn)'; return; }
@@ -4422,6 +4437,14 @@ function closeOperation(id, won) {
   updateAIWeights(won);
   registerOpResult(won);
   nnLearn(won);
+  // Training + ADX lateral extremo → cooling 5 min; durante ese periodo solo >55% conf
+  if(trainingMode) {
+    var closeRegime = getMarketRegime();
+    if(closeRegime.adx < 15) {
+      trainingAdxCooldownEnd = Date.now() + 5*60*1000;
+      addLog('⏳ Cooling 5 min — ADX ' + closeRegime.adx.toFixed(1) + '<15. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
+    }
+  }
   autoSave();
   renderOps();
   updateHistorySummary();
@@ -4691,6 +4714,7 @@ function setPirateProfile(key, el) {
 let aiFreeMult = 1.0; // IA decides this dynamically
 let freedomMode = false; // Libertad Absoluta
 let trainingMode = false;
+let trainingAdxCooldownEnd = 0; // timestamp fin del cooling 5 min tras op con ADX<15
 function toggleTraining() {
   trainingMode = !trainingMode;
   var btn   = document.getElementById('trainingBtn');
@@ -5722,7 +5746,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.13</b>\n' +
+      '<b>ForexBot v24.10.14</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5792,7 +5816,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.13 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.14 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
