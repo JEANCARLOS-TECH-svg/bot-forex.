@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.17 — PC Edition</title>
+<title>ForexBot v24.10.18 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.17 — PC Edition</small>
+        <small>v24.10.18 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3761,14 +3761,7 @@ function getSignal(rsi, macd, cfg) {
 
   // TRAINING MODE solo — sin filtros PVT ni Pivote
   if(trainingMode) {
-    // Lateral extremo ADX < 15 — cooling 5 min tras cada op; umbral 55% durante ese periodo
-    if(regime.adx < 15) {
-      if(Date.now() < trainingAdxCooldownEnd) {
-        if(lastAIConfidence < 55) return 'NEUTRAL';
-        // Confianza >= 55% → opera normalmente aunque esté en cooling
-      }
-      // Cooling expirado → evalúa fresh sin restricción extra
-    }
+    // ADX < 15: filtro conf>=55% aplicado en tick() con lastAIConfidence fresco (post-updateConfidenceBar)
     var tBuy  = (indBuyStr*60)  + (ctxScore*0.4);
     var tSell = (indSellStr*60) + (ctxScore*0.4);
     if(tBuy>tSell  && indBuyStr>0.08 && (tradeMode==='buy' ||tradeMode==='both')) return 'BUY';
@@ -4063,7 +4056,7 @@ function tick(){
   }
   const rsi=calcRSI(prices,cfg.rsiPeriod);
   const macdData=calcMACD(prices,cfg.macdFast,cfg.macdSlow,cfg.macdSignal);
-  const signal=getSignal(rsi,macdData,cfg);
+  let signal=getSignal(rsi,macdData,cfg);
   rsiHistory.push(rsi);if(rsiHistory.length>200)rsiHistory.shift();
   macdHistory.push(macdData.macd);if(macdHistory.length>200)macdHistory.shift();
   macdSigHistory.push(macdData.signal);if(macdSigHistory.length>200)macdSigHistory.shift();
@@ -4090,6 +4083,8 @@ function tick(){
   const buyVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===1; }).length;
   const sellVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===-1; }).length;
   updateConfidenceBar(buyVotes, sellVotes, lastBuyScore, lastSellScore, trendDirection);
+  // ADX < 15 en Training: filtro conf>=55% con lastAIConfidence ya actualizado en esta misma llamada
+  if(trainingMode && lastADX < 15 && lastAIConfidence < 55) signal = 'NEUTRAL';
   if(signal==='BUY'){
     box.classList.add('signal-buy');document.getElementById('sigIcon').textContent='📈';
     document.getElementById('signalText').textContent='SEÑAL DE COMPRA';
@@ -4384,14 +4379,18 @@ let opIdCounter = 0;
 
 function canOpenNewOp(signal) {
   var maxOps = trainingMode ? 5 : MAX_OPS;
-  if(activeOps.length >= maxOps) return false;
+  // Shadow mode: limitar por trades shadow pendientes (result===null), no por activeOps
+  var pendingList = shadowMode
+    ? shadowTrades.filter(function(t) { return t.result === null; })
+    : activeOps;
+  if(pendingList.length >= maxOps) return false;
   if(ksTriggered) return false;
   // REGLA: Solo una dirección a la vez — no BUY si hay SELL abierto y viceversa
   var oppositeDir = signal === 'BUY' ? 'SELL' : 'BUY';
-  var hasOpposite = activeOps.filter(function(o) { return o.type === oppositeDir; }).length;
+  // Shadow trades usan .signal, real ops usan .type
+  var hasOpposite = pendingList.filter(function(o) { return (o.signal || o.type) === oppositeDir; }).length;
   if(hasOpposite > 0) return false;
-  // Don't open same direction if already 2 of that type
-  var sameDir = activeOps.filter(function(o) { return o.type === signal; }).length;
+  var sameDir = pendingList.filter(function(o) { return (o.signal || o.type) === signal; }).length;
   if(sameDir >= 2) return false;
   return true;
 }
@@ -5563,6 +5562,14 @@ function recordShadowTrade(signal, entryPrice, sl, tp, size) {
   var id = shadowTrades.length + 1;
   var trade = { id, signal, entryPrice, sl, tp, size, openTime: Date.now(), result: null };
   shadowTrades.push(trade);
+  // Training + ADX < 15 → iniciar cooling igual que openOperation y closeOperation
+  if(trainingMode) {
+    var shadowRegime = getMarketRegime();
+    if(shadowRegime.adx < 15) {
+      trainingAdxCooldownEnd = Date.now() + 5*60*1000;
+      addLog('⏳ Cooling 5 min (shadow) — ADX ' + shadowRegime.adx.toFixed(1) + '<15. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
+    }
+  }
   // Simulate result based on next price movement
   setTimeout(function() {
     if(prices.length < 2) return;
@@ -5780,7 +5787,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.17</b>\n' +
+      '<b>ForexBot v24.10.18</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5850,7 +5857,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.17 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.18 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
