@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.15 — PC Edition</title>
+<title>ForexBot v24.10.16 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1012,7 +1012,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.15 — PC Edition</small>
+        <small>v24.10.16 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -2452,6 +2452,7 @@ const INSTRUMENTS = {
 let currentInst='EUR/USD', currentCat='forex';
 let running=false, interval=null, tickWorker=null, prices=[], volumes=[], logCount=0;
 let trades=0, wins=0, losses=0, lastSignal='none';
+let warmupComplete = false; // true cuando prices >= 100 — ninguna op se abre antes
 
 // ── CAPA 0: SENTIMIENTO DE NOTICIAS ─────────────────────────────
 let newsSentiment  = 0;      // -1 negativo | 0 neutral | 1 positivo
@@ -4051,6 +4052,11 @@ function tick(){
   }
   prices.push(np);if(prices.length>400)prices.shift();
   volumes.push(nv);if(volumes.length>400)volumes.shift();
+  // Fase de calentamiento — completar cuando se alcanzan 100 velas
+  if(!warmupComplete && prices.length >= 100) {
+    warmupComplete = true;
+    addLog('🔥 Calentamiento completado — 100 velas cargadas. Operación normal activada.', 'opt');
+  }
   const rsi=calcRSI(prices,cfg.rsiPeriod);
   const macdData=calcMACD(prices,cfg.macdFast,cfg.macdSlow,cfg.macdSignal);
   const signal=getSignal(rsi,macdData,cfg);
@@ -4105,7 +4111,7 @@ function tick(){
     limpiarOrdenesPendientes(np);
   }
 
-  if(signal!=='NEUTRAL'&&!protBlocked){
+  if(signal!=='NEUTRAL' && !protBlocked && warmupComplete){
     updateOpsProgress(np);
     if(shadowMode) {
       if(canOpenNewOp(signal)) {
@@ -4195,7 +4201,10 @@ function updateDiagnostic(signal, protBlocked, rsi) {
   }
 
   setDiag('diag_live',    isLive,    'LIVE', 'SIM — sin datos reales');
-  setDiag('diag_candles', candlesOk, prices.length + ' velas', prices.length + ' / 30 mín');
+  setDiag('diag_candles',
+    warmupComplete ? candlesOk : false,
+    prices.length + ' velas',
+    warmupComplete ? (prices.length + ' / 30 mín') : (prices.length + ' / 100 calent.'));
 
   // Horario — solo relevante en Freedom Mode
   if(freedomMode) {
@@ -4223,6 +4232,13 @@ function updateDiagnostic(signal, protBlocked, rsi) {
   if(!reasonEl) return;
 
   if(!running) { reasonEl.textContent = 'Bot inactivo — pulsa INICIAR'; reasonEl.style.color='var(--muted)'; return; }
+
+  // Fase de calentamiento — bloquea operaciones hasta 100 velas (todos los modos)
+  if(!warmupComplete) {
+    reasonEl.textContent = '🔥 CALENTANDO ' + prices.length + '/100 velas — analizando sin operar';
+    reasonEl.style.color = 'var(--warn)';
+    return;
+  }
 
   // Training mode — mostrar countdown ANTES del chequeo isLive para que sea visible con precios simulados
   if(trainingMode) {
@@ -4806,6 +4822,8 @@ async function startBot(){
     prices=[];volumes=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];
     recentResults=[];consecutiveWins=0;consecutiveLoss=0;momentumBonus=0;
   }
+  // Calentamiento: completado solo si la sesión restaurada ya tiene 100+ velas
+  warmupComplete = prices.length >= 100;
 
   running=true;
   lastDivSignal="";
@@ -5746,7 +5764,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.15</b>\n' +
+      '<b>ForexBot v24.10.16</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5816,7 +5834,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.15 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.16 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
