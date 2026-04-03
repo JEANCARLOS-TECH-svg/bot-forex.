@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.23 — PC Edition</title>
+<title>ForexBot v24.10.24 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.23 — PC Edition</small>
+        <small>v24.10.24 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1337,15 +1337,6 @@
               </div>
             </div>
             <span class="ks-profile-label ks-profile-conservative" id="ksProfileLabel">🟢 CONSERVADOR</span>
-          </div>
-
-          <!-- Account capital -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0 2px;gap:8px">
-            <span style="font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);letter-spacing:1px">CAPITAL CUENTA ($)</span>
-            <input type="number" id="ksAccountCapital" min="1" step="1" value="100"
-              style="width:90px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;
-                     padding:4px 8px;color:var(--text);font-family:'Space Mono',monospace;font-size:11px;text-align:right"
-              oninput="updateKsCapital(this.value)">
           </div>
 
           <!-- Slider -->
@@ -4131,12 +4122,12 @@ function updateDiagnostic(signal, protBlocked, rsi) {
 // ======================== KILL SWITCH ========================
 let ksMaxLossPct  = 5;       // default 5%
 let ksSessionLoss = 0;       // accumulated loss this session in USD
-const KS_CAPITAL_KEY = 'forexbot_ks_capital';
-let ksCapital     = parseFloat(localStorage.getItem(KS_CAPITAL_KEY)) || 100;
+let ksCapital     = tradeAmount; // sincronizado con monto de operación en cada cálculo
 let ksTriggered   = false;
 
 function updateKillSwitch(val) {
   ksMaxLossPct = parseInt(val);
+  ksCapital = tradeAmount;
   const pct = ksMaxLossPct;
 
   // Update value display
@@ -4166,16 +4157,8 @@ function updateKillSwitch(val) {
   updateKSBar();
 }
 
-function updateKsCapital(val) {
-  var n = parseFloat(val);
-  if(isNaN(n) || n <= 0) return;
-  ksCapital = n;
-  try { localStorage.setItem(KS_CAPITAL_KEY, n); } catch(e) {}
-  updateKillSwitch(ksMaxLossPct);
-  updateKSBar();
-}
-
 function updateKSBar() {
+  ksCapital = tradeAmount;
   const maxLoss = ksCapital * ksMaxLossPct / 100;
   const pct = maxLoss > 0 ? Math.min(100, (Math.abs(ksSessionLoss) / maxLoss) * 100) : 0;
 
@@ -4379,6 +4362,7 @@ function updateOpsProgress(currentPrice) {
       shadowProfit += pnl;
       if(won) shadowWins++; else shadowLosses++;
       shadowSlippageSum += Math.abs(currentPrice - trade.entryPrice) / trade.entryPrice * 100;
+      registerTradeResult(pnl); // alimenta Kill Switch con resultado shadow
       updateShadowStats();
       addShadowLogEntry(trade, pnl);
       addLog('👻 Shadow #' + trade.id + ' ' + (won ? 'WIN ✅ +$' + pnl.toFixed(2) : 'LOSS ❌ -$' + Math.abs(pnl).toFixed(2)), won ? 'buy' : 'sell');
@@ -5659,7 +5643,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.23</b>\n' +
+      '<b>ForexBot v24.10.24</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5729,7 +5713,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.23 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.24 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
@@ -6373,11 +6357,6 @@ function unlockApp(pin) {
   const badge = document.getElementById('securityBadge');
   if(badge) { badge.textContent = '🔒 SEGURO'; badge.className = 'security-badge'; }
   setTimeout(function() { resizeAllCanvases(); redrawAllCharts(); }, 100);
-
-  // Restore Kill Switch account capital
-  var ksCapEl = document.getElementById('ksAccountCapital');
-  if(ksCapEl) ksCapEl.value = ksCapital;
-  updateKillSwitch(ksMaxLossPct);
 
   // AUTO-ARRANQUE: lee AUTOSTART_KEY — clave independiente que sobrevive a stopBot y sesión expirada
   setTimeout(function() {
