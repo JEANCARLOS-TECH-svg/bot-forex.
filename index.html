@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.26 — PC Edition</title>
+<title>ForexBot v24.10.27 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.26 — PC Edition</small>
+        <small>v24.10.27 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3647,9 +3647,10 @@ function getSignal(rsi, macd, cfg) {
   }
   // Log diferencial cada 50 ticks
   if(prices.length % 50 === 0) addLog('[Capa 3] Umbral: ' + nThresh.toFixed(1) + '% (ADX:' + regime.adx.toFixed(1) + (regime.adx < 20 ? ' LATERAL↑' : ' tendencia') + ') | Diff: ' + scoreDiff.toFixed(2) + '/' + nDiff.toFixed(1) + ' | Inactivos: ' + ticksSinOperar, 'opt');
-  if(nBuy>=nThresh && buyVotesArr>=1 && scoreDiff>=nDiff && (tradeMode==='buy'||tradeMode==='both')) {
 
-    // PVT suavizado — acelerador en tendencia fuerte
+  // ── PVT y PIVOTE: previos al umbral — bloquean señales débiles Y fuertes por igual ──
+  if(nBuy > nSell && (tradeMode==='buy'||tradeMode==='both')) {
+    // PVT BUY
     if(volumes.length >= 4) {
       var pvtOk = regime.adx > 40 ? !pvtSmooth.bearish : pvtSmooth.bullish;
       if(!pvtOk) {
@@ -3657,8 +3658,7 @@ function getSignal(rsi, macd, cfg) {
         return 'NEUTRAL';
       }
     }
-
-    // Filtro Pivote con orden de ruptura pendiente
+    // Pivote BUY
     if(pivots && isTooCloseToResistance(price, pivots)) {
       var dec = INSTRUMENTS[currentInst].decimals;
       if(lastAIConfidence >= dynamicThresh) {
@@ -3666,7 +3666,6 @@ function getSignal(rsi, macd, cfg) {
           addLog('🚀 Ruptura confirmada R1:' + pivots.r1.toFixed(dec) + ' — BUY ejecutado', 'buy');
           return 'BUY';
         } else {
-          // Crear orden de breakout pendiente
           crearOrdenBreakout('BUY', pivots.r1 * 1.0002, lastAIConfidence, pivots);
           registerBlock('pivot', 'BUY → Breakout pendiente R1:' + pivots.r1.toFixed(dec));
           return 'NEUTRAL';
@@ -3676,11 +3675,8 @@ function getSignal(rsi, macd, cfg) {
         return 'NEUTRAL';
       }
     }
-    return 'BUY';
-  }
-
-  if(nSell>=nThresh && sellVotesArr>=1 && scoreDiff>=nDiff && (tradeMode==='sell'||tradeMode==='both')) {
-
+  } else if(nSell > nBuy && (tradeMode==='sell'||tradeMode==='both')) {
+    // PVT SELL
     if(volumes.length >= 4) {
       var pvtOkS = regime.adx > 40 ? !pvtSmooth.bullish : pvtSmooth.bearish;
       if(!pvtOkS) {
@@ -3688,7 +3684,7 @@ function getSignal(rsi, macd, cfg) {
         return 'NEUTRAL';
       }
     }
-
+    // Pivote SELL
     if(pivots && isTooCloseToSupport(price, pivots)) {
       var decS = INSTRUMENTS[currentInst].decimals;
       if(lastAIConfidence >= dynamicThresh) {
@@ -3705,9 +3701,11 @@ function getSignal(rsi, macd, cfg) {
         return 'NEUTRAL';
       }
     }
-    return 'SELL';
   }
 
+  // Puerta de umbral — scoring mínimo para abrir operación
+  if(nBuy>=nThresh && buyVotesArr>=1 && scoreDiff>=nDiff && (tradeMode==='buy'||tradeMode==='both')) return 'BUY';
+  if(nSell>=nThresh && sellVotesArr>=1 && scoreDiff>=nDiff && (tradeMode==='sell'||tradeMode==='both')) return 'SELL';
   return 'NEUTRAL';
 }
 
@@ -5679,7 +5677,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.26</b>\n' +
+      '<b>ForexBot v24.10.27</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5749,7 +5747,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.26 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.27 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
