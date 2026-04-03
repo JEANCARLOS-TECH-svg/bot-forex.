@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.25 — PC Edition</title>
+<title>ForexBot v24.10.26 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.25 — PC Edition</small>
+        <small>v24.10.26 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1804,7 +1804,7 @@
     <div style="display:flex;flex-direction:column;gap:12px;padding:4px 0">
 
       <!-- Header -->
-      <div class="panel" style="padding:14px;background:rgba(59,158,255,0.04);border-color:rgba(59,158,255,0.2)">
+      <div class="panel" id="shadowHeaderPanel" style="padding:14px;background:rgba(59,158,255,0.04);border-color:rgba(59,158,255,0.2)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
           <span style="font-size:20px">👻</span>
           <div>
@@ -4205,6 +4205,7 @@ function resetKillSwitch() {
   ksTriggered          = false;
   ksSessionLoss        = 0;
   adxLowConfThreshold  = 45;
+  updateShadowPanelColor();
 
   const wrap   = document.getElementById('killswitchWrap');
   const status = document.getElementById('ksStatus');
@@ -4218,16 +4219,36 @@ function resetKillSwitch() {
   addLog('↺ Kill Switch reiniciado — bot disponible', 'buy');
 }
 
-/** Umbral dinámico conf% para ADX<15: sube con pérdidas, baja gradualmente con wins */
+/** Umbral dinámico conf% para ADX<15: sube 1 nivel por LOSS, baja 1 nivel por WIN */
 function updateAdxLowThreshold(won) {
   if(won) {
     adxLowConfThreshold = Math.max(45, adxLowConfThreshold - 5);
   } else {
-    var lossPct = tradeAmount > 0 ? Math.abs(ksSessionLoss) / tradeAmount * 100 : 0;
-    if(lossPct > 10)     adxLowConfThreshold = 65;
-    else if(lossPct > 5) adxLowConfThreshold = 55;
-    else                 adxLowConfThreshold = Math.max(45, adxLowConfThreshold);
+    adxLowConfThreshold = Math.min(65, adxLowConfThreshold + 5);
   }
+  updateShadowPanelColor();
+}
+
+/** Colorea el panel Shadow según adxLowConfThreshold: verde(45)→azul(50)→amarillo(55)→naranja(60)→rojo(65) */
+function updateShadowPanelColor() {
+  var panel = document.getElementById('shadowHeaderPanel');
+  if(!panel) return;
+  var bg, border, badgeColor;
+  if(adxLowConfThreshold <= 45) {
+    bg = 'rgba(0,229,160,0.07)';   border = 'rgba(0,229,160,0.4)';   badgeColor = '#00e5a0';
+  } else if(adxLowConfThreshold <= 50) {
+    bg = 'rgba(59,158,255,0.07)';  border = 'rgba(59,158,255,0.4)';  badgeColor = '#3b9eff';
+  } else if(adxLowConfThreshold <= 55) {
+    bg = 'rgba(255,176,31,0.07)';  border = 'rgba(255,176,31,0.4)';  badgeColor = '#ffb01f';
+  } else if(adxLowConfThreshold <= 60) {
+    bg = 'rgba(255,120,0,0.07)';   border = 'rgba(255,120,0,0.4)';   badgeColor = '#ff7800';
+  } else {
+    bg = 'rgba(255,69,96,0.07)';   border = 'rgba(255,69,96,0.4)';   badgeColor = '#ff4560';
+  }
+  panel.style.background   = bg;
+  panel.style.borderColor  = border;
+  var badge = document.getElementById('shadowStatusBadge');
+  if(badge) { badge.style.background = bg; badge.style.borderColor = border; badge.style.color = badgeColor; }
 }
 
 /** Call this after every trade result to track losses */
@@ -5658,7 +5679,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.25</b>\n' +
+      '<b>ForexBot v24.10.26</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5728,7 +5749,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.25 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.26 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
