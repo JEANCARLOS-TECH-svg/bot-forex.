@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.27 — PC Edition</title>
+<title>ForexBot v24.10.28 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.27 — PC Edition</small>
+        <small>v24.10.28 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3934,8 +3934,8 @@ function tick(){
   const buyVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===1; }).length;
   const sellVotes=[lastIndSignals.rsi,lastIndSignals.macd,lastIndSignals.bb,lastIndSignals.ema].filter(function(s){ return s===-1; }).length;
   updateConfidenceBar(buyVotes, sellVotes, lastBuyScore, lastSellScore, trendDirection);
-  // ADX < 15: umbral dinámico según pérdida sesión (45/55/65%) — aplica en todos los modos
-  if(lastADX < 15 && lastAIConfidence < adxLowConfThreshold) signal = 'NEUTRAL';
+  // Umbral shadow castigo/recompensa — aplica en TODOS los regímenes (no solo ADX<15)
+  if(lastAIConfidence < adxLowConfThreshold) signal = 'NEUTRAL';
   if(signal==='BUY'){
     box.classList.add('signal-buy');document.getElementById('sigIcon').textContent='📈';
     document.getElementById('signalText').textContent='SEÑAL DE COMPRA';
@@ -4279,7 +4279,7 @@ function canOpenNewOp(signal) {
   var hasOpposite = pendingList.filter(function(o) { return (o.signal || o.type) === oppositeDir; }).length;
   if(hasOpposite > 0) return false;
   var sameDir = pendingList.filter(function(o) { return (o.signal || o.type) === signal; }).length;
-  if(sameDir >= 2) return false;
+  if(sameDir >= 1) return false;
   return true;
 }
 
@@ -5677,7 +5677,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.27</b>\n' +
+      '<b>ForexBot v24.10.28</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5747,7 +5747,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.27 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.28 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
