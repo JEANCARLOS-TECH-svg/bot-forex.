@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.28 — PC Edition</title>
+<title>ForexBot v24.10.29 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.28 — PC Edition</small>
+        <small>v24.10.29 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -2308,7 +2308,7 @@ const INSTRUMENTS = {
 
 // ======================== STATE ========================
 let currentInst='EUR/USD', currentCat='forex';
-let running=false, interval=null, tickWorker=null, prices=[], volumes=[], logCount=0;
+let running=false, interval=null, tickWorker=null, prices=[], volumes=[], highs=[], lows=[], logCount=0;
 let trades=0, wins=0, losses=0, lastSignal='none';
 let warmupComplete = false; // true cuando prices >= 100 — ninguna op se abre antes
 
@@ -2370,21 +2370,23 @@ function fetchNewsSentiment() {
         var trend = fng > fngYesterday ? 'subiendo' : fng < fngYesterday ? 'bajando' : 'estable';
 
         // Clasificar sentimiento según el índice (0-100)
+        // LÓGICA: codicia alta = mercado sobrecomprado = subir umbral (newsConfBonus negativo resta de nThresh)
+        // miedo alto = posible reversión alcista contrarian = bajar umbral (newsConfBonus positivo)
         if(fng >= 75) {
-          newsSentiment = 1; newsConfBonus = 5;
-          newsLastTitle = 'Codicia Extrema (' + fng + '/100) — mercado eufórico, cautela';
+          newsSentiment = 1; newsConfBonus = -10;
+          newsLastTitle = 'Codicia Extrema (' + fng + '/100) — euforia, umbral más exigente';
         } else if(fng >= 55) {
-          newsSentiment = 1; newsConfBonus = 3;
-          newsLastTitle = 'Codicia (' + fng + '/100) — sentimiento positivo';
+          newsSentiment = 1; newsConfBonus = -5;
+          newsLastTitle = 'Codicia (' + fng + '/100) — sentimiento positivo, umbral ligeramente elevado';
         } else if(fng >= 45) {
           newsSentiment = 0; newsConfBonus = 0;
           newsLastTitle = 'Neutral (' + fng + '/100) — mercado indeciso';
         } else if(fng >= 25) {
-          newsSentiment = -1; newsConfBonus = -5;
-          newsLastTitle = 'Miedo (' + fng + '/100) — sentimiento negativo';
+          newsSentiment = -1; newsConfBonus = 5;
+          newsLastTitle = 'Miedo (' + fng + '/100) — sentimiento negativo, umbral relajado';
         } else {
-          newsSentiment = -1; newsConfBonus = -10;
-          newsLastTitle = 'Miedo Extremo (' + fng + '/100) — posible reversión alcista';
+          newsSentiment = -1; newsConfBonus = 10;
+          newsLastTitle = 'Miedo Extremo (' + fng + '/100) — posible reversión alcista, umbral mínimo';
         }
 
         newsCount = {
@@ -2451,7 +2453,7 @@ function selInst(btn, sym, cat) {
   document.getElementById('chartPairLabel').textContent=sym;
   document.getElementById('instPriceDisplay').textContent=inst.base.toFixed(inst.decimals);
   document.getElementById('instPriceChg').textContent='—';
-  if(running){stopBot();prices=[];volumes=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];tradeMarkers=[];activeOps=[];}
+  if(running){stopBot();prices=[];volumes=[];highs=[];lows=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];tradeMarkers=[];activeOps=[];}
   addLog('📌 '+sym+' seleccionado','warn');
   refreshAmountDisplay();
   updateLiveBadge(sym);
@@ -2663,10 +2665,10 @@ const CURR_SYMBOLS = CURR_SYMS;
 
 
 // ======================== AI INTELLIGENCE ENGINE v2 ========================
-let aiWeights = { rsi: 25, macd: 25, bb: 25, ema: 25 };
+let aiWeights = { rsi: 22, macd: 22, bb: 22, ema: 22, stoch: 12 };
 let aiPredictions = { rsi: [], macd: [], bb: [], ema: [] };
 let aiThreshold = 60;
-let lastIndSignals = { rsi: 0, macd: 0, bb: 0, ema: 0 };
+let lastIndSignals = { rsi: 0, macd: 0, bb: 0, ema: 0, stoch: 0 };
 let lastDivSignal  = '';
 
 // Trend filter state
@@ -3490,16 +3492,31 @@ function getSignal(rsi, macd, cfg) {
   // Stoch ajustado — neutral en tendencia fuerte (evita bloquear compras en impulso)
   const stochSig = ajustarVotoStoch(stoch.k, regime.adx);
 
-  lastIndSignals.rsi  = rsiSig;
-  lastIndSignals.macd = macdSig;
-  lastIndSignals.bb   = bbSig;
-  lastIndSignals.ema  = emaSig;
+  lastIndSignals.rsi   = rsiSig;
+  lastIndSignals.macd  = macdSig;
+  lastIndSignals.bb    = bbSig;
+  lastIndSignals.ema   = emaSig;
+  lastIndSignals.stoch = stochSig;
+
+  // ── Divergencia RSI — calculada ANTES del score (fix hoisting bug) ────
+  var divSig = 0; var divBonus = 15;
+  if(prices.length>=20&&rsiHistory.length>=20){
+    var rP=prices.slice(-20),rR=rsiHistory.slice(-20);
+    var pMin1=Math.min.apply(null,rP.slice(0,10)),pMin2=Math.min.apply(null,rP.slice(10));
+    var rMin1=Math.min.apply(null,rR.slice(0,10)),rMin2=Math.min.apply(null,rR.slice(10));
+    var pMax1=Math.max.apply(null,rP.slice(0,10)),pMax2=Math.max.apply(null,rP.slice(10));
+    var rMax1=Math.max.apply(null,rR.slice(0,10)),rMax2=Math.max.apply(null,rR.slice(10));
+    if(pMin2<pMin1*0.9995&&rMin2>rMin1*1.02){divSig=1;if(lastDivSignal!=='BUY'){addLog('Divergencia RSI alcista - BUY','buy');lastDivSignal='BUY';}}
+    else if(pMax2>pMax1*1.0005&&rMax2<rMax1*0.98){divSig=-1;if(lastDivSignal!=='SELL'){addLog('Divergencia RSI bajista - SELL','sell');lastDivSignal='SELL';}}
+    else{lastDivSignal='';}
+  }
 
   // ── LAYER 3: Pesos con redistribución NN y umbral dinámico ────
-  var rsiWeight  = regime.trending ? 0              : aiWeights.rsi;
-  var macdWeight = regime.trending ? aiWeights.macd : aiWeights.macd * 0.4;
-  var bbWeight   = regime.trending ? aiWeights.bb * 0.4 : aiWeights.bb;
-  var emaWeight  = regime.trending ? aiWeights.ema  : aiWeights.ema * 0.4;
+  var rsiWeight   = regime.trending ? 0                : aiWeights.rsi;
+  var macdWeight  = regime.trending ? aiWeights.macd   : aiWeights.macd * 0.4;
+  var bbWeight    = regime.trending ? aiWeights.bb*0.4 : aiWeights.bb;
+  var emaWeight   = regime.trending ? aiWeights.ema    : aiWeights.ema * 0.4;
+  var stochWeight = regime.trending ? 0                : aiWeights.stoch; // lateral: stoch activo; tendencia: 0
 
   // Red Neuronal redistribuye su 15% a MACD+EMA mientras tiene < 50 muestras
   var nnVoteWeight = 0.15;
@@ -3510,16 +3527,18 @@ function getSignal(rsi, macd, cfg) {
     nnVoteWeight = 0.15 * (nnSamples/50);
   }
 
-  const buyScore  = (rsiSig===1   ? rsiWeight  : 0) +
-                    (macdSig===1  ? macdWeight : 0) +
-                    (bbSig===1    ? bbWeight   : 0) +
-                    (emaSig===1   ? emaWeight  : 0) +
-                    (divSig===1   ? divBonus   : 0);
-  const sellScore = (rsiSig===-1  ? rsiWeight  : 0) +
-                    (macdSig===-1 ? macdWeight : 0) +
-                    (bbSig===-1   ? bbWeight   : 0) +
-                    (emaSig===-1  ? emaWeight  : 0) +
-                    (divSig===-1  ? divBonus   : 0);
+  const buyScore  = (rsiSig===1    ? rsiWeight   : 0) +
+                    (macdSig===1   ? macdWeight  : 0) +
+                    (bbSig===1     ? bbWeight    : 0) +
+                    (emaSig===1    ? emaWeight   : 0) +
+                    (stochSig===1  ? stochWeight : 0) +
+                    (divSig===1    ? divBonus    : 0);
+  const sellScore = (rsiSig===-1   ? rsiWeight   : 0) +
+                    (macdSig===-1  ? macdWeight  : 0) +
+                    (bbSig===-1    ? bbWeight    : 0) +
+                    (emaSig===-1   ? emaWeight   : 0) +
+                    (stochSig===-1 ? stochWeight : 0) +
+                    (divSig===-1   ? divBonus    : 0);
 
   const maxScore = Math.max(buyScore, sellScore);
   lastBuyScore  = buyScore;
@@ -3535,17 +3554,6 @@ function getSignal(rsi, macd, cfg) {
   var _sigs = [rsiSig,macdSig,bbSig,emaSig,stochSig];
   var buyVotesArr=0, sellVotesArr=0;
   for(var _vi2=0;_vi2<_sigs.length;_vi2++){if(_sigs[_vi2]===1)buyVotesArr++;else if(_sigs[_vi2]===-1)sellVotesArr++;}
-  var divSig = 0; var divBonus = 15;
-  if(prices.length>=20&&rsiHistory.length>=20){
-    var rP=prices.slice(-20),rR=rsiHistory.slice(-20);
-    var pMin1=Math.min.apply(null,rP.slice(0,10)),pMin2=Math.min.apply(null,rP.slice(10));
-    var rMin1=Math.min.apply(null,rR.slice(0,10)),rMin2=Math.min.apply(null,rR.slice(10));
-    var pMax1=Math.max.apply(null,rP.slice(0,10)),pMax2=Math.max.apply(null,rP.slice(10));
-    var rMax1=Math.max.apply(null,rR.slice(0,10)),rMax2=Math.max.apply(null,rR.slice(10));
-    if(pMin2<pMin1*0.9995&&rMin2>rMin1*1.02){divSig=1;if(lastDivSignal!=='BUY'){addLog('Divergencia RSI alcista - BUY','buy');lastDivSignal='BUY';}}
-    else if(pMax2>pMax1*1.0005&&rMax2<rMax1*0.98){divSig=-1;if(lastDivSignal!=='SELL'){addLog('Divergencia RSI bajista - SELL','sell');lastDivSignal='SELL';}}
-    else{lastDivSignal='';}
-  }
 
   // ── MOMENTUM FILTER — price direction last 3 candles ─────────
   var priceMomentum = 0;
@@ -3628,9 +3636,12 @@ function getSignal(rsi, macd, cfg) {
 
   // Umbral dinámico — se ajusta según aceleración del ADX y Bollinger
   var dynamicThresh = calcularUmbralDinamico(regime.adx, bbWidth);
-  var nThresh = Math.min(dynamicThresh, Math.max(14, (22-momentumBonus*0.2)*(1/activePirateMult)));
+  // dynamicThresh (65-85) es la base; pirateMult lo escala y momentumBonus lo ajusta
+  // pirate agresivo (mult>1) → umbral más bajo; conservador (mult<1) → umbral más alto
+  var nThresh = Math.max(14, Math.min(95, dynamicThresh / activePirateMult - momentumBonus * 0.5));
   // Capa 0 — ajuste por sentimiento de noticias (no aplica en Entrenamiento ni Training)
-  if(!trainingMode) nThresh = Math.max(10, nThresh - newsConfBonus);
+  // Fear & Greed solo aplica en crypto (Alternative.me es crypto-only)
+  if(!trainingMode && currentCat === 'crypto') nThresh = Math.max(10, nThresh - newsConfBonus);
 
   // PVT suavizado con WMA
   var pvtSmooth = calcPVTSmoothed();
@@ -3889,17 +3900,22 @@ function tick(){
   const livePrice = apiConnected ? getLivePrice(currentInst) : null;
   const bSym = BINANCE_SYMBOLS[currentInst];
   const liveCandle = bSym ? liveCandleCache[bSym] : null;
-  let np, nv;
+  let np, nv, nh, nl;
   if(livePrice && livePrice > 0) {
     const microNoise = (Math.random()-0.5) * livePrice * 0.0001;
     np = livePrice + microNoise;
     nv = liveCandle ? liveCandle.volume : (volumes.length > 0 ? volumes[volumes.length-1] : 0);
+    nh = liveCandle ? liveCandle.high : np;
+    nl = liveCandle ? liveCandle.low  : np;
   } else {
     np = Math.max(last+(Math.random()-0.498)*inst.vol, inst.base*0.85);
     nv = volumes.length > 0 ? volumes[volumes.length-1] * (0.8 + Math.random()*0.4) : 0;
+    nh = np; nl = np; // simulado: high=low=close (sin datos reales de vela)
   }
   prices.push(np);if(prices.length>400)prices.shift();
   volumes.push(nv);if(volumes.length>400)volumes.shift();
+  highs.push(nh);if(highs.length>400)highs.shift();
+  lows.push(nl);if(lows.length>400)lows.shift();
   // Fase de calentamiento — completar cuando se alcanzan 100 velas
   if(!warmupComplete && prices.length >= 100) {
     warmupComplete = true;
@@ -4065,7 +4081,9 @@ function updateDiagnostic(signal, protBlocked, rsi) {
 
   // Tendencia y confianza — solo relevantes en Modo Normal
   if(!freedomMode && !trainingMode) {
-    setDiag('diag_trend', trendOk,   trendDirection===1?'ALCISTA':'BAJISTA', 'LATERAL — umbral alto');
+    // Lateral no bloquea — solo ajusta pesos. Mostrar estado real sin icono ⛔
+    if(trendDirection === 0) setDiagInfo('diag_trend', 'LATERAL — pesos adaptativos, umbral elevado');
+    else setDiag('diag_trend', true, trendDirection===1?'ALCISTA':'BAJISTA', '');
     setDiag('diag_conf',  confOk,    lastAIConfidence + '% ≥ ' + aiThreshold + '%', lastAIConfidence + '% < ' + aiThreshold + '%');
     setDiag('diag_dir',   dirOk,     'OK', 'BUY+SELL simultáneos');
   } else if(trainingMode) {
@@ -4112,10 +4130,10 @@ function updateDiagnostic(signal, protBlocked, rsi) {
     reasonEl.textContent = '⚡ LIBERTAD ABSOLUTA — operando sin restricciones'; reasonEl.style.color='var(--purple)'; return;
   }
 
-  if(!trendOk)    { reasonEl.textContent = 'Mercado lateral — umbral elevado a ' + aiThreshold + '%'; reasonEl.style.color='var(--warn)'; return; }
-  if(!confOk)     { reasonEl.textContent = 'Confianza insuficiente (' + lastAIConfidence + '% < ' + aiThreshold + '%)'; reasonEl.style.color='var(--warn)'; return; }
-  if(signal==='NEUTRAL') { reasonEl.textContent = 'Señal neutral — esperando convergencia de indicadores'; reasonEl.style.color='var(--muted)'; return; }
-  reasonEl.textContent = '✅ Condiciones OK — operando'; reasonEl.style.color='var(--accent)';
+  if(!trendOk)    { reasonEl.textContent = '⏸ Lateral — umbrales elevados, señales posibles'; reasonEl.style.color='var(--warn)'; } // no return: puede seguir operando
+  else if(!confOk){ reasonEl.textContent = 'Confianza insuficiente (' + lastAIConfidence + '% < ' + aiThreshold + '%)'; reasonEl.style.color='var(--warn)'; return; }
+  else if(signal==='NEUTRAL') { reasonEl.textContent = 'Señal neutral — esperando convergencia de indicadores'; reasonEl.style.color='var(--muted)'; return; }
+  else { reasonEl.textContent = '✅ Condiciones OK — operando'; reasonEl.style.color='var(--accent)'; }
 }
 // ======================== KILL SWITCH ========================
 let ksMaxLossPct  = 5;       // default 5%
@@ -4739,7 +4757,7 @@ async function startBot(){
   loadVictusState(); // Restaurar breakouts pendientes y estado Victus
 
   if(!restored) {
-    prices=[];volumes=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];
+    prices=[];volumes=[];highs=[];lows=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];
     recentResults=[];consecutiveWins=0;consecutiveLoss=0;momentumBonus=0;
   }
   // Calentamiento: completado solo si la sesión restaurada ya tiene 100+ velas
@@ -5040,7 +5058,7 @@ function checkEmergencyExit(currentPrice) {
   // Solo verifica ops del instrumento actual
   var opsToClose = [];
   var currentRegime = getMarketRegime();
-  var currentPvt = calcPVT();
+  var currentPvt = calcPVTSmoothed(); // WMA — consistente con Capa 5 de entrada
 
   activeOps.forEach(function(op) {
     if(op.instrument !== currentInst) return;
@@ -5049,7 +5067,7 @@ function checkEmergencyExit(currentPrice) {
     var adxDrop = op.adxAtEntry - currentRegime.adx;
     var isBuy = op.type === 'BUY';
 
-    // Condición doble — ADX cayó 8+ puntos Y PVT ya no confirma
+    // Condición doble — ADX cayó 8+ puntos Y PVT WMA ya no confirma
     var adxLostMomentum = adxDrop >= ADX_DROP_THRESHOLD;
     var pvtLostMomentum = isBuy ? !currentPvt.bullish : !currentPvt.bearish;
 
@@ -5143,14 +5161,21 @@ function isTooCloseToSupport(price, pivots, thresholdPct) {
 function calcADX(period) {
   if(!period) period = 14;
   if(prices.length < period * 2) return 0;
-  var slice = prices.slice(-(period * 2));
+  var n = period * 2;
+  var sliceC = prices.slice(-n);
+  // Usar High/Low reales si están disponibles (crypto live), si no usar close como fallback
+  var hasHL = highs.length >= n && lows.length >= n;
+  var sliceH = hasHL ? highs.slice(-n) : sliceC;
+  var sliceL = hasHL ? lows.slice(-n)  : sliceC;
   var trueRanges = [], plusDM = [], minusDM = [];
-  for(var i = 1; i < slice.length; i++) {
-    var high = slice[i], low = slice[i], prev = slice[i-1];
-    // Simplified ATR-based ADX using price differences
-    var tr = Math.abs(high - prev);
-    var pdm = Math.max(high - prev, 0);
-    var mdm = Math.max(prev - low, 0);
+  for(var i = 1; i < sliceC.length; i++) {
+    var hi  = sliceH[i], lo = sliceL[i], prevC = sliceC[i-1];
+    var prevH = sliceH[i-1], prevL = sliceL[i-1];
+    // True Range según Wilder: max(H-L, |H-prevC|, |L-prevC|)
+    var tr = Math.max(hi - lo, Math.abs(hi - prevC), Math.abs(lo - prevC));
+    // Directional Movement
+    var pdm = Math.max(hi - prevH, 0);
+    var mdm = Math.max(prevL - lo, 0);
     if(pdm > mdm) { plusDM.push(pdm); minusDM.push(0); }
     else if(mdm > pdm) { plusDM.push(0); minusDM.push(mdm); }
     else { plusDM.push(0); minusDM.push(0); }
@@ -5195,7 +5220,7 @@ var victusState = {
   pendingBreakouts: [],
   activeTrades: {},
   brainStats: {
-    indicatorWeights: { rsi: 25, macd: 25, ema: 25, bb: 25, stoch: 0 },
+    indicatorWeights: { rsi: 22, macd: 22, ema: 22, bb: 22, stoch: 12 },
     neuralSamples: 0,
     dailyPnL: 0,
     killSwitchTriggered: false
@@ -5677,7 +5702,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.28</b>\n' +
+      '<b>ForexBot v24.10.29</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5747,7 +5772,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.28 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.29 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
