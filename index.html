@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.35 — PC Edition</title>
+<title>ForexBot v24.10.36 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -787,8 +787,11 @@
     font-size:11px; font-weight:700; font-family:'Space Mono',monospace;
     padding:3px 10px; border-radius:6px;
   }
-  .badge-win  { background:rgba(0,229,160,0.12); color:var(--accent); border:1px solid rgba(0,229,160,0.3); }
-  .badge-loss { background:rgba(255,69,96,0.12);  color:var(--danger); border:1px solid rgba(255,69,96,0.3); }
+  .badge-win       { background:rgba(0,229,160,0.12);  color:var(--accent); border:1px solid rgba(0,229,160,0.3); }
+  .badge-loss      { background:rgba(255,69,96,0.12);  color:var(--danger); border:1px solid rgba(255,69,96,0.3); }
+  .badge-breakeven { background:rgba(255,176,31,0.12); color:var(--warn);   border:1px solid rgba(255,176,31,0.3); }
+  .trade-card.card-breakeven { border-left:3px solid var(--warn); }
+  .hist-breakeven { color:var(--warn); font-weight:700; }
   .trade-card-row {
     display:flex; align-items:center; justify-content:space-between;
     padding:3px 0;
@@ -968,7 +971,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.35 — PC Edition</small>
+        <small>v24.10.36 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -3262,9 +3265,9 @@ function addTradeToHistory(sym, type, entryPrice, result, amount, currCode) {
   tradeHistory.unshift(t);
   if(tradeHistory.length > 200) tradeHistory.pop();
 
-  // Update streak
-  if(result === 'WIN') currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1;
-  else currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1;
+  // Update streak — BREAKEVEN es neutro, no altera la racha
+  if(result === 'WIN')           currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1;
+  else if(result !== 'BREAKEVEN') currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1;
   totalPips += amount;
 
   updateHistorySummary();
@@ -3277,23 +3280,30 @@ function prependTradeCard(t) {
   const emptyEl = document.getElementById('historyEmpty');
   if(emptyEl) emptyEl.style.display = 'none';
 
-  const isWin    = t.result === 'WIN';
-  const code     = t.currCode || 'USD';
-  const fmtAmt   = formatConverted(Math.abs(t.amount), code);
-  const typeIcon  = t.type === 'BUY' ? '📈' : '📉';
-  const typeColor = t.type === 'BUY' ? 'var(--accent)' : 'var(--danger)';
-  const modeTag  = trainingMode ? ' <span style="font-size:9px;color:var(--purple);opacity:0.8">🧠TRAIN</span>' : '';
+  const isWin       = t.result === 'WIN';
+  const isBreakeven = t.result === 'BREAKEVEN';
+  const code        = t.currCode || 'USD';
+  const fmtAmt      = formatConverted(Math.abs(t.amount), code);
+  const typeIcon    = t.type === 'BUY' ? '📈' : '📉';
+  const typeColor   = t.type === 'BUY' ? 'var(--accent)' : 'var(--danger)';
+  const modeTag     = trainingMode ? ' <span style="font-size:9px;color:var(--purple);opacity:0.8">🧠TRAIN</span>' : '';
+  const cardClass   = isWin ? 'card-win' : isBreakeven ? 'card-breakeven' : 'card-loss';
+  const badgeClass  = isWin ? 'badge-win' : isBreakeven ? 'badge-breakeven' : 'badge-loss';
+  const badgeText   = isWin ? '✓ GANANCIA' : isBreakeven ? '⚖ BREAKEVEN' : '✗ PÉRDIDA';
+  const amtClass    = isWin ? 'hist-win' : isBreakeven ? 'hist-breakeven' : 'hist-loss';
+  const amtLabel    = isWin ? 'GANANCIA' : isBreakeven ? 'RESULTADO' : 'PÉRDIDA';
+  const amtSign     = isWin ? '+' : '';
 
   const card = document.createElement('div');
-  card.className = 'trade-card ' + (isWin ? 'card-win' : 'card-loss');
+  card.className = 'trade-card ' + cardClass;
   card.innerHTML =
     '<div class="trade-card-header"><div><div class="trade-card-id">#' + t.id + ' · ' + t.fecha + ' ' + t.hora + modeTag + '</div></div>' +
-    '<span class="trade-card-badge ' + (isWin ? 'badge-win' : 'badge-loss') + '">' + (isWin ? '✓ GANANCIA' : '✗ PÉRDIDA') + '</span></div>' +
+    '<span class="trade-card-badge ' + badgeClass + '">' + badgeText + '</span></div>' +
     '<div class="trade-card-row"><span class="trade-card-label">INSTRUMENTO</span><span class="trade-card-value" style="font-weight:800">' + t.sym + '</span></div>' +
     '<div class="trade-card-row"><span class="trade-card-label">TIPO</span><span class="trade-card-value" style="color:' + typeColor + '">' + typeIcon + ' ' + (t.type === 'BUY' ? 'COMPRA' : 'VENTA') + '</span></div>' +
     '<div class="trade-card-row"><span class="trade-card-label">PRECIO ENTRADA</span><span class="trade-card-value">' + t.entryPrice + '</span></div>' +
-    '<div class="trade-card-row"><span class="trade-card-label">' + (isWin ? 'GANANCIA' : 'PÉRDIDA') + '</span>' +
-    '<span class="trade-card-value ' + (isWin ? 'hist-win' : 'hist-loss') + '">' + (isWin ? '+' : '-') + fmtAmt + ' ' + code + '</span></div>';
+    '<div class="trade-card-row"><span class="trade-card-label">' + amtLabel + '</span>' +
+    '<span class="trade-card-value ' + amtClass + '">' + amtSign + fmtAmt + ' ' + code + '</span></div>';
 
   scrollEl.insertBefore(card, scrollEl.firstChild);
 
@@ -3305,7 +3315,8 @@ function prependTradeCard(t) {
 function updateHistorySummary() {
   const total = tradeHistory.length;
   const wins = tradeHistory.filter(function(t) { return t.result === 'WIN'; }).length;
-  const losses = total - wins;
+  const breakevens = tradeHistory.filter(function(t) { return t.result === 'BREAKEVEN'; }).length;
+  const losses = total - wins - breakevens;
   const wr = total > 0 ? ((wins/total)*100).toFixed(1)+'%' : '—%';
   const allAmounts = tradeHistory.map(function(t) { return t.amount; });
   const currCode = selectedCurrency.code;
@@ -3341,21 +3352,28 @@ function renderHistory() {
   emptyEl.style.display = 'none';
 
   tradeHistory.forEach(function(t) {
-    const isWin = t.result === 'WIN';
-    const code = t.currCode || 'USD';
-    const fmtAmt = formatConverted(Math.abs(t.amount), code);
-    const typeIcon = t.type === 'BUY' ? '📈' : '📉';
-    const typeColor = t.type === 'BUY' ? 'var(--accent)' : 'var(--danger)';
+    const isWin       = t.result === 'WIN';
+    const isBreakeven = t.result === 'BREAKEVEN';
+    const code        = t.currCode || 'USD';
+    const fmtAmt      = formatConverted(Math.abs(t.amount), code);
+    const typeIcon    = t.type === 'BUY' ? '📈' : '📉';
+    const typeColor   = t.type === 'BUY' ? 'var(--accent)' : 'var(--danger)';
+    const cardClass   = isWin ? 'card-win' : isBreakeven ? 'card-breakeven' : 'card-loss';
+    const badgeClass  = isWin ? 'badge-win' : isBreakeven ? 'badge-breakeven' : 'badge-loss';
+    const badgeText   = isWin ? '✓ GANANCIA' : isBreakeven ? '⚖ BREAKEVEN' : '✗ PÉRDIDA';
+    const amtClass    = isWin ? 'hist-win' : isBreakeven ? 'hist-breakeven' : 'hist-loss';
+    const amtLabel    = isWin ? 'GANANCIA' : isBreakeven ? 'RESULTADO' : 'PÉRDIDA';
+    const amtSign     = isWin ? '+' : '';
 
     const card = document.createElement('div');
-    card.className = 'trade-card ' + (isWin ? 'card-win' : 'card-loss');
+    card.className = 'trade-card ' + cardClass;
     card.innerHTML = '<div class="trade-card-header"><div><div class="trade-card-id">#' + t.id + ' · ' + t.fecha + ' ' + t.hora + '</div></div>' +
-      '<span class="trade-card-badge ' + (isWin ? 'badge-win' : 'badge-loss') + '">' + (isWin ? '✓ GANANCIA' : '✗ PÉRDIDA') + '</span></div>' +
+      '<span class="trade-card-badge ' + badgeClass + '">' + badgeText + '</span></div>' +
       '<div class="trade-card-row"><span class="trade-card-label">INSTRUMENTO</span><span class="trade-card-value" style="font-weight:800">' + t.sym + '</span></div>' +
       '<div class="trade-card-row"><span class="trade-card-label">TIPO</span><span class="trade-card-value" style="color:' + typeColor + '">' + typeIcon + ' ' + (t.type==='BUY'?'COMPRA':'VENTA') + '</span></div>' +
       '<div class="trade-card-row"><span class="trade-card-label">PRECIO ENTRADA</span><span class="trade-card-value">' + t.entryPrice + '</span></div>' +
-      '<div class="trade-card-row"><span class="trade-card-label">' + (isWin?'GANANCIA':'PÉRDIDA') + '</span>' +
-      '<span class="trade-card-value ' + (isWin?'hist-win':'hist-loss') + '">' + (isWin?'+':'-') + fmtAmt + ' ' + code + '</span></div>';
+      '<div class="trade-card-row"><span class="trade-card-label">' + amtLabel + '</span>' +
+      '<span class="trade-card-value ' + amtClass + '">' + amtSign + fmtAmt + ' ' + code + '</span></div>';
     scrollEl.appendChild(card);
   });
   updateHistorySummary();
@@ -4391,47 +4409,51 @@ function closeOperation(id, won) {
   var op = activeOps[idx];
   activeOps.splice(idx, 1);
 
-  var currCode = op.currCode;
-  var instClose = INSTRUMENTS[op.instrument] || INSTRUMENTS[currentInst];
-  // PnL real en pips según cierre: TP o SL exacto
-  var pnlPips  = won ? op.tp : -op.sl;
-  // PnL en USD: pips * size / pipMul (o fallback ratio 2:1 si size no disponible)
-  var grossUSD = op.size
+  var isBreakeven = (!won && op.breakevenSet === true);
+  var currCode    = op.currCode;
+  var instClose   = INSTRUMENTS[op.instrument] || INSTRUMENTS[currentInst];
+  var pnlPips     = won ? op.tp : -op.sl;
+  var grossUSD    = op.size
     ? (pnlPips * op.size / instClose.pipMul)
     : (won ? tradeAmount * 2 : -tradeAmount);
-  // Comisión Binance: 0.1% entrada + 0.1% salida = 0.2% — solo aplica a crypto real
-  // FOREX/metales/índices son simulados sin comisión de exchange
-  var commission = instClose.binanceSymbol ? (tradeAmount * 0.002) : 0;
-  var netUSD   = grossUSD - commission;
-  // Display visual en divisa seleccionada
-  var dispAmt  = convertAmount(Math.abs(netUSD), currCode);
-  var fmtAmt   = formatConverted(dispAmt, currCode);
+  var commission  = instClose.binanceSymbol ? (tradeAmount * 0.002) : 0;
+  var netUSD      = grossUSD - commission;
+  var dispAmt     = convertAmount(Math.abs(netUSD), currCode);
+  var fmtAmt      = formatConverted(dispAmt, currCode);
+  var dec         = INSTRUMENTS[op.instrument] ? (INSTRUMENTS[op.instrument].decimals||2) : 2;
+
+  // Fix 1: registerOpResult ANTES de registerTradeResult
+  // Breakeven: neutro — no altera la racha de wins/losses
+  if(!isBreakeven) registerOpResult(won);
 
   if(won) {
     wins++;
     addLog('✓ Op #' + op.id + ' GANANCIA +' + fmtAmt + ' ' + currCode + ' (bruto:' + grossUSD.toFixed(2) + ' comis:-' + commission.toFixed(3) + ')', 'buy');
-    registerTradeResult(netUSD); // USD neto para Kill Switch
+    registerTradeResult(netUSD);
     registerProtectionResult(true);
-    var dec1 = INSTRUMENTS[op.instrument] ? (INSTRUMENTS[op.instrument].decimals||2) : 2;
-    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec1), 'WIN', dispAmt, currCode);
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec), 'WIN', dispAmt, currCode);
+  } else if(isBreakeven) {
+    addLog('⚖ Op #' + op.id + ' BREAKEVEN — SL en entrada | comis:-' + commission.toFixed(3) + ' ' + currCode, 'warn');
+    registerTradeResult(-commission); // solo comisión — no cuenta como pérdida en Kill Switch
+    // no llamar registerProtectionResult — breakeven no rompe la racha de protección
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec), 'BREAKEVEN', -commission, currCode);
   } else {
     losses++;
     addLog('✗ Op #' + op.id + ' PÉRDIDA ' + fmtAmt + ' ' + currCode + ' (bruto:' + grossUSD.toFixed(2) + ' comis:-' + commission.toFixed(3) + ')', 'sell');
-    registerTradeResult(netUSD); // USD neto para Kill Switch (negativo)
+    registerTradeResult(netUSD);
     registerProtectionResult(false);
-    var dec2 = INSTRUMENTS[op.instrument] ? (INSTRUMENTS[op.instrument].decimals||2) : 2;
-    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec2), 'LOSS', -dispAmt, currCode);
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec), 'LOSS', -dispAmt, currCode);
   }
   trades++;
   updateAIWeights(won);
-  registerOpResult(won);
   nnLearn(won);
-  // Training + ADX lateral extremo → reiniciar cooling 5 min desde el cierre
+  // Fix 2: usar op.adxAtEntry en vez de getMarketRegime() para evitar ADX 0.0
+  // Cooling activo para LOSS y BREAKEVEN por igual si ADX < 15 al entrar
   if(trainingMode) {
-    var closeAdx = getMarketRegime().adx;
-    if(closeAdx < 15 || op.adxAtEntry < 15) {
+    var closeAdx = (op.adxAtEntry > 0) ? op.adxAtEntry : lastADX;
+    if(closeAdx < 15) {
       trainingAdxCooldownEnd = Date.now() + 5*60*1000;
-      addLog('⏳ Cooling 5 min (poscierre) — ADX ' + closeAdx.toFixed(1) + '. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
+      addLog('⏳ Cooling 5 min (' + (isBreakeven ? 'BE' : 'poscierre') + ') — ADX entrada:' + closeAdx.toFixed(1) + '. Conf >55% requerida hasta ' + new Date(trainingAdxCooldownEnd).toLocaleTimeString(), 'warn');
     }
   }
   autoSave();
@@ -5824,7 +5846,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.35</b>\n' +
+      '<b>ForexBot v24.10.36</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5894,7 +5916,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.35 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.36 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
