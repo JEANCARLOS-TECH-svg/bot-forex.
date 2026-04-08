@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.34 — PC Edition</title>
+<title>ForexBot v24.10.35 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.34 — PC Edition</small>
+        <small>v24.10.35 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -4175,7 +4175,7 @@ let ksMaxLossPct  = 5;       // default 5%
 let ksSessionLoss = 0;       // accumulated loss this session in USD
 let ksCapital     = tradeAmount; // sincronizado con monto de operación en cada cálculo
 let ksTriggered   = false;
-let adxLowConfThreshold = 45; // umbral dinámico conf%: 45(0-5%)→50(5-8%)→55(8-12%)→60(>12%) pérdida sesión
+let adxLowConfThreshold = 45; // umbral dinámico conf%: 45(0)→50(1-2)→55(3-4)→60(5+) losses consecutivos
 
 function updateKillSwitch(val) {
   ksMaxLossPct = parseInt(val);
@@ -4272,19 +4272,18 @@ function resetKillSwitch() {
 
 /**
  * Umbral dinámico conf% — castigo/recompensa Capa 3
- * LOSS: umbral determinado por % pérdida acumulada de sesión
- *   0–5%  → 45% | 5–8%  → 50% | 8–12% → 55% | >12% → 60% (máximo)
- * WIN: baja 5 puntos inmediatamente hasta piso 45%
+ * Usa consecutiveLoss (variable global ya existente, persiste en sesión)
+ * WIN  → reset a 45% inmediato
+ * LOSS → sube según racha: 1-2→50% | 3-4→55% | 5+→60%
  */
 function updateAdxLowThreshold(won) {
   if(won) {
-    adxLowConfThreshold = Math.max(45, adxLowConfThreshold - 5);
+    adxLowConfThreshold = 45; // WIN: reset inmediato al piso
   } else {
-    var lossPct = ksCapital > 0 ? (Math.abs(ksSessionLoss) / ksCapital * 100) : 0;
-    if(lossPct > 12)     adxLowConfThreshold = 60;
-    else if(lossPct > 8) adxLowConfThreshold = 55;
-    else if(lossPct > 5) adxLowConfThreshold = 50;
-    else                 adxLowConfThreshold = 45;
+    if(consecutiveLoss >= 5)      adxLowConfThreshold = 60;
+    else if(consecutiveLoss >= 3) adxLowConfThreshold = 55;
+    else if(consecutiveLoss >= 1) adxLowConfThreshold = 50;
+    else                          adxLowConfThreshold = 45;
   }
   updateShadowPanelColor();
 }
@@ -5825,7 +5824,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.34</b>\n' +
+      '<b>ForexBot v24.10.35</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5895,7 +5894,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.34 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.35 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
