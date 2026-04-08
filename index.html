@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.37 — PC Edition</title>
+<title>ForexBot v24.10.38 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -976,7 +976,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.37 — PC Edition</small>
+        <small>v24.10.38 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -2496,7 +2496,7 @@ function selInst(btn, sym, cat) {
   document.getElementById('chartPairLabel').textContent=sym;
   document.getElementById('instPriceDisplay').textContent=inst.base.toFixed(inst.decimals);
   document.getElementById('instPriceChg').textContent='—';
-  if(running){stopBot();prices=[];volumes=[];highs=[];lows=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];tradeMarkers=[];activeOps=[];}
+  if(running){stopBot();prices=[];volumes=[];highs=[];lows=[];rsiHistory=[];macdHistory=[];macdSigHistory=[];macdHistHistory=[];tradeMarkers=[];activeOps=[];warmupComplete=false;}
   addLog('📌 '+sym+' seleccionado','warn');
   refreshAmountDisplay();
   updateLiveBadge(sym);
@@ -4334,10 +4334,11 @@ function updateShadowPanelColor() {
 }
 
 /** Call this after every trade result to track losses */
-function registerTradeResult(amount) {
+function registerTradeResult(amount, isNeutral) {
   // amount is positive for win, negative for loss (in USD)
+  // isNeutral=true (breakeven): no penaliza adxLowConfThreshold
   ksSessionLoss += amount < 0 ? amount : 0; // only count losses
-  updateAdxLowThreshold(amount > 0);
+  if(!isNeutral) updateAdxLowThreshold(amount > 0);
   updateKSBar();
   // Update limit display
   const limitEl = document.getElementById('ksLossLimit');
@@ -4417,10 +4418,14 @@ function closeOperation(id, won) {
   var isBreakeven = (!won && op.breakevenSet === true);
   var currCode    = op.currCode;
   var instClose   = INSTRUMENTS[op.instrument] || INSTRUMENTS[currentInst];
-  var pnlPips     = won ? op.tp : -op.sl;
-  var grossUSD    = op.size
-    ? (pnlPips * op.size / instClose.pipMul)
-    : (won ? tradeAmount * 2 : -tradeAmount);
+  // Fix: usar precio real de cierre (op.currentPnl = pips en el tick de cierre)
+  var pnlPips = (typeof op.currentPnl === 'number') ? op.currentPnl : (won ? op.tp : -op.sl);
+  // Fix: normalizar por SL original para obtener USD — evita unidades incorrectas de op.size
+  // grossUSD = (pnlPips / sl) * riskUSD → proporcional al riesgo real
+  var riskBase = op.riskUSD || tradeAmount;
+  var grossUSD = (op.sl > 0)
+    ? (pnlPips / op.sl) * riskBase
+    : (won ? riskBase * 2 : -riskBase);
   var commission  = instClose.binanceSymbol ? (tradeAmount * 0.002) : 0;
   var netUSD      = grossUSD - commission;
   var dispAmt     = convertAmount(Math.abs(netUSD), currCode);
@@ -4439,7 +4444,7 @@ function closeOperation(id, won) {
     addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec), 'WIN', dispAmt, currCode);
   } else if(isBreakeven) {
     addLog('⚖ Op #' + op.id + ' BREAKEVEN — SL en entrada | comis:-' + commission.toFixed(3) + ' ' + currCode, 'warn');
-    registerTradeResult(-commission); // solo comisión — no cuenta como pérdida en Kill Switch
+    registerTradeResult(-commission, true); // isNeutral=true — breakeven no penaliza adxLowConfThreshold
     // no llamar registerProtectionResult — breakeven no rompe la racha de protección
     addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec), 'BREAKEVEN', -commission, currCode);
   } else {
@@ -4478,13 +4483,20 @@ function updateOpsProgress(currentPrice) {
       // Breakeven: cuando el precio llega al 50% del camino al TP, mover SL a entrada
       if(op.progress >= 50 && !op.breakevenSet) {
         op.slPrice = op.entryPrice;
-        op.sl = 0; // SL en entry: cierra si pips <= 0 (precio retrocede al entry)
+        op.breakevenPrice = op.entryPrice; // precio exacto para comparación directa
+        // NO zerear op.sl — preservar SL original para PnL y trailing stop
         op.breakevenSet = true;
         addLog('🛡️ Breakeven — Op #' + op.id + ' SL movido a entrada @ ' + op.entryPrice, 'buy');
       }
       // Auto-close if TP or SL hit
       if(pips >= op.tp) {
         setTimeout(function(){closeOperation(op.id,true);},100);
+      } else if(op.breakevenSet) {
+        // Comparar precio real vs entrada — evita falsos cierres por float/spread de 1 pip
+        var returnedToEntry = op.type === 'BUY'
+          ? currentPrice <= op.breakevenPrice
+          : currentPrice >= op.breakevenPrice;
+        if(returnedToEntry) setTimeout(function(){closeOperation(op.id,false);},100);
       } else if(pips <= -op.sl) {
         setTimeout(function(){closeOperation(op.id,false);},100);
       }
@@ -4688,26 +4700,43 @@ function updateATRDisplay(levels) {
 }
 
 // ── Stochastic RSI ───────────────────────────────────────────────
-function calcStochRSI(period, smoothK, smoothD) { if(!period)period=14; if(!smoothK)smoothK=3; if(!smoothD)smoothD=3;
-  if(prices.length < period*2) return { k:50, d:50 };
-  // Build RSI array
-  const rsiArr = [];
-  for(let i=period; i<=prices.length; i++) {
-    rsiArr.push(calcRSI(prices.slice(0,i), period));
+function calcStochRSI(period, smoothK, smoothD) {
+  if(!period) period=14; if(!smoothK) smoothK=3; if(!smoothD) smoothD=3;
+  var needed = period * 2 + smoothK + smoothD;
+  if(prices.length < needed) return { k:50, d:50 };
+
+  // Build RSI history — need enough points to compute smoothK+smoothD smooth-K values
+  var rsiArr = [];
+  for(var _sri=period; _sri<=prices.length; _sri++) {
+    rsiArr.push(calcRSI(prices.slice(0,_sri), period));
   }
-  if(rsiArr.length < period) return { k:50, d:50 };
-  const recentRSI = rsiArr.slice(-period);
-  const minRSI = Math.min.apply(null, recentRSI), maxRSI = Math.max.apply(null, recentRSI);
-  const rawK = maxRSI===minRSI ? 50 : ((rsiArr[rsiArr.length-1]-minRSI)/(maxRSI-minRSI))*100;
-  // Smooth K
-  var kArr = rsiArr.slice(-smoothK).map(function(_,i) {
-    const slice=rsiArr.slice(Math.max(0,rsiArr.length-smoothK+i-smoothK+1),rsiArr.length-smoothK+i+1);
-    const mn=Math.min.apply(null, slice),mx=Math.max.apply(null, slice);
-    return mx===mn?50:((slice[slice.length-1]-mn)/(mx-mn))*100;
-  });
-  const k = kArr.reduce(function(a,b) { return a+b; },0)/kArr.length;
-  const d = k; // simplified
-  return { k: Math.min(100,Math.max(0,k)), d: Math.min(100,Math.max(0,d)) };
+  var minRsiNeeded = period + smoothK + smoothD - 1;
+  if(rsiArr.length < minRsiNeeded) return { k:50, d:50 };
+
+  // rawK(i): %K at position i in rsiArr using a rolling window of 'period' RSI values
+  function rawKAt(i) {
+    var sl = rsiArr.slice(Math.max(0, i-period+1), i+1);
+    var mn = Math.min.apply(null, sl), mx = Math.max.apply(null, sl);
+    return mx === mn ? 50 : ((rsiArr[i] - mn) / (mx - mn)) * 100;
+  }
+
+  // Build smoothed %K array: SMA(smoothK) of rawK — need smoothK+smoothD-1 values for %D
+  var smoothKArr = [];
+  var startSK = rsiArr.length - (smoothK + smoothD - 1) - smoothK + 1;
+  for(var _ski = startSK; _ski <= rsiArr.length - smoothK; _ski++) {
+    var sum = 0;
+    for(var _sj = _ski; _sj < _ski + smoothK; _sj++) sum += rawKAt(_sj);
+    smoothKArr.push(sum / smoothK);
+  }
+  if(smoothKArr.length === 0) return { k:50, d:50 };
+
+  var k = smoothKArr[smoothKArr.length - 1];
+
+  // %D = SMA(smoothD) of smoothed %K
+  var dSlice = smoothKArr.slice(-smoothD);
+  var d = dSlice.reduce(function(a,b){ return a+b; }, 0) / dSlice.length;
+
+  return { k: Math.min(100, Math.max(0, k)), d: Math.min(100, Math.max(0, d)) };
 }
 
 /** Update Stochastic display */
@@ -5858,7 +5887,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.37</b>\n' +
+      '<b>ForexBot v24.10.38</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5928,7 +5957,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.37 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.38 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
