@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.29 — PC Edition</title>
+<title>ForexBot v24.10.30 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.29 — PC Edition</small>
+        <small>v24.10.30 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -4311,17 +4311,25 @@ function openOperation(signal, price, sl, tp, currCode) {
     : entryPx + (sl / (inst ? inst.pipMul : 1));
   var currentRegime = getMarketRegime();
   var currentPvt = calcPVT();
+  // Calcular size real usando tradeAmount * activePirateMult
+  var riskUSD = tradeAmount * activePirateMult;
+  var atrAtEntry = calcATR(14);
+  var stepSizeAtEntry = symbolStepSize[currentInst] || null;
+  var opSize = calcDynamicPositionSize(riskUSD, atrAtEntry, stepSizeAtEntry) || riskUSD;
   const op = {
     id, type: signal, entryPrice: entryPx,
     sl, tp, currCode,
     slPrice: slPrice,
     slOrderId: null,
+    size: opSize,                    // tamaño real de posición en unidades
+    riskUSD: riskUSD,                // capital arriesgado para comisión y PnL
     adxAtEntry: currentRegime.adx,   // ADX al momento de entrada — base para Escotilla
     pvtAtEntry: currentPvt.bullish,  // PVT al momento de entrada
     instrument: currentInst,
     openTime: Date.now(),
     currentPnl: 0,
-    progress: 0
+    progress: 0,
+    breakevenSet: false
   };
   activeOps.push(op);
   // Training + ADX < 15 → iniciar cooling inmediatamente al abrir la op (mismo tick que updateDiagnostic)
@@ -4341,29 +4349,34 @@ function closeOperation(id, won) {
   activeOps.splice(idx, 1);
 
   var currCode = op.currCode;
-  // Kill Switch y aprendizaje SIEMPRE en USD internamente
-  var gainUSD  = tradeAmount * 2;
-  var lossUSD  = tradeAmount;
+  var instClose = INSTRUMENTS[op.instrument] || INSTRUMENTS[currentInst];
+  // PnL real en pips según cierre: TP o SL exacto
+  var pnlPips  = won ? op.tp : -op.sl;
+  // PnL en USD: pips * size / pipMul (o fallback ratio 2:1 si size no disponible)
+  var grossUSD = op.size
+    ? (pnlPips * op.size / instClose.pipMul)
+    : (won ? tradeAmount * 2 : -tradeAmount);
+  // Comisión Binance: 0.1% entrada + 0.1% salida = 0.2% del capital arriesgado
+  var commission = tradeAmount * 0.002;
+  var netUSD   = grossUSD - commission;
   // Display visual en divisa seleccionada
-  var gainAmt  = convertAmount(gainUSD, currCode);
-  var lossAmt  = convertAmount(lossUSD, currCode);
-  var fmtGain  = formatConverted(gainAmt, currCode);
-  var fmtLoss  = formatConverted(lossAmt, currCode);
+  var dispAmt  = convertAmount(Math.abs(netUSD), currCode);
+  var fmtAmt   = formatConverted(dispAmt, currCode);
 
   if(won) {
     wins++;
-    addLog('✓ Op #' + op.id + ' GANANCIA +' + fmtGain + ' ' + currCode, 'buy');
-    registerTradeResult(gainUSD); // USD real para Kill Switch
+    addLog('✓ Op #' + op.id + ' GANANCIA +' + fmtAmt + ' ' + currCode + ' (bruto:' + grossUSD.toFixed(2) + ' comis:-' + commission.toFixed(3) + ')', 'buy');
+    registerTradeResult(netUSD); // USD neto para Kill Switch
     registerProtectionResult(true);
     var dec1 = INSTRUMENTS[op.instrument] ? (INSTRUMENTS[op.instrument].decimals||2) : 2;
-    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec1), 'WIN', gainAmt, currCode);
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec1), 'WIN', dispAmt, currCode);
   } else {
     losses++;
-    addLog('✗ Op #' + op.id + ' PÉRDIDA -' + fmtLoss + ' ' + currCode, 'sell');
-    registerTradeResult(-lossUSD); // USD real para Kill Switch
+    addLog('✗ Op #' + op.id + ' PÉRDIDA ' + fmtAmt + ' ' + currCode + ' (bruto:' + grossUSD.toFixed(2) + ' comis:-' + commission.toFixed(3) + ')', 'sell');
+    registerTradeResult(netUSD); // USD neto para Kill Switch (negativo)
     registerProtectionResult(false);
     var dec2 = INSTRUMENTS[op.instrument] ? (INSTRUMENTS[op.instrument].decimals||2) : 2;
-    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec2), 'LOSS', -lossAmt, currCode);
+    addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec2), 'LOSS', -dispAmt, currCode);
   }
   trades++;
   updateAIWeights(won);
@@ -4391,6 +4404,13 @@ function updateOpsProgress(currentPrice) {
       const pips = diff * inst.pipMul;
       op.currentPnl = pips;
       op.progress = Math.max(0, Math.min(100, (pips / op.tp) * 100));
+      // Breakeven: cuando el precio llega al 50% del camino al TP, mover SL a entrada
+      if(op.progress >= 50 && !op.breakevenSet) {
+        op.slPrice = op.entryPrice;
+        op.sl = 0; // SL en entry: cierra si pips <= 0 (precio retrocede al entry)
+        op.breakevenSet = true;
+        addLog('🛡️ Breakeven — Op #' + op.id + ' SL movido a entrada @ ' + op.entryPrice, 'buy');
+      }
       // Auto-close if TP or SL hit
       if(pips >= op.tp) {
         setTimeout(function(){closeOperation(op.id,true);},100);
@@ -5012,8 +5032,12 @@ function updateSafetyOrders(op, newSLPips, currentPrice) {
  */
 function checkTrailingStop(currentPrice) {
   if(activeOps.length === 0) return;
-  var threshold = TRAILING_THRESHOLDS[activePirateProfile] || TRAILING_THRESHOLDS['contramaestre'];
   var inst = INSTRUMENTS[currentInst];
+  // Trailing basado en ATR real * multiplicador de perfil (distancia dinámica)
+  var atrNow = calcATR(14);
+  var threshold = (atrNow > 0 && currentPrice > 0)
+    ? (atrNow * activePirateMult / currentPrice)
+    : (TRAILING_THRESHOLDS[activePirateProfile] || TRAILING_THRESHOLDS['contramaestre']);
 
   // ── ESCOTILLA DE EMERGENCIA — verificar antes del trailing ────
   checkEmergencyExit(currentPrice);
@@ -5702,7 +5726,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.29</b>\n' +
+      '<b>ForexBot v24.10.30</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5772,7 +5796,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.29 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.30 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
