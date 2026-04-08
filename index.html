@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.36 — PC Edition</title>
+<title>ForexBot v24.10.37 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -362,6 +362,11 @@
   .op-progress-fill { height:100%; border-radius:4px; transition:width .5s ease; }
   .op-progress-fill.buy-fill  { background:linear-gradient(90deg,var(--accent),#00c880); }
   .op-progress-fill.sell-fill { background:linear-gradient(90deg,var(--danger),#ff6b6b); }
+
+  .op-status-badge { display:inline-block; font-size:8px; font-family:'Space Mono',monospace; font-weight:700; padding:2px 6px; border-radius:4px; margin-bottom:4px; }
+  .op-status-badge.risk    { background:rgba(255,77,106,0.12); color:var(--danger); border:1px solid rgba(255,77,106,0.3); }
+  .op-status-badge.be      { background:rgba(255,176,31,0.12); color:var(--warn);   border:1px solid rgba(255,176,31,0.3); }
+  .op-status-badge.profit  { background:rgba(0,200,128,0.12);  color:#00c880;       border:1px solid rgba(0,200,128,0.3); }
 
   .op-card-entry { font-size:9px; font-family:'Space Mono',monospace; color:var(--muted); margin-bottom:6px; }
   .op-card-close {
@@ -971,7 +976,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.36 — PC Edition</small>
+        <small>v24.10.37 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -4540,11 +4545,18 @@ function renderOps() {
     const decimals = inst ? (inst.decimals||2) : 2;
     const card = document.createElement('div');
     card.className = 'op-card ' + (isBuy ? 'op-buy' : 'op-sell');
+    const prog = op.progress || 0;
+    const statusBadge = prog >= 75
+      ? '<span class="op-status-badge profit">🟢 EN GANANCIA</span>'
+      : prog >= 50
+        ? '<span class="op-status-badge be">⚖ BE ACTIVADO</span>'
+        : '<span class="op-status-badge risk">🔴 EN RIESGO</span>';
     card.innerHTML = '<div class="op-card-header">' +
       '<span class="op-card-pair">' + op.instrument + '</span>' +
       '<span class="op-card-dir ' + (isBuy?'buy':'sell') + '">' + (isBuy?'▲ BUY':'▼ SELL') + '</span>' +
       '<span class="op-card-pnl ' + pnlColor + '">' + pnlSign + op.currentPnl.toFixed(1) + 'p</span></div>' +
-      '<div class="op-progress-bg"><div class="op-progress-fill ' + (isBuy?'buy-fill':'sell-fill') + '" style="width:' + op.progress + '%"></div></div>' +
+      statusBadge +
+      '<div class="op-progress-bg"><div class="op-progress-fill ' + (isBuy?'buy-fill':'sell-fill') + '" style="width:' + prog + '%"></div></div>' +
       '<button class="op-card-close" onclick="manualCloseOp(' + op.id + ')">✕</button>';
     container.appendChild(card);
   });
@@ -5846,7 +5858,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.36</b>\n' +
+      '<b>ForexBot v24.10.37</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5916,7 +5928,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.36 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.37 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
