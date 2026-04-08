@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.38 — PC Edition</title>
+<title>ForexBot v24.10.39 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -976,7 +976,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.38 — PC Edition</small>
+        <small>v24.10.39 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -2313,16 +2313,16 @@ function toggleAcc(cat) {
 
 // ======================== INSTRUMENTS ========================
 const INSTRUMENTS = {
-  'EUR/USD': { base:1.0845,  vol:0.0006, icon:'🇪🇺', cat:'FOREX — Major',           decimals:5, pipMul:10000 },
-  'GBP/USD': { base:1.2680,  vol:0.0008, icon:'🇬🇧', cat:'FOREX — Major',           decimals:5, pipMul:10000 },
-  'USD/JPY': { base:149.50,  vol:0.08,   icon:'🇯🇵', cat:'FOREX — Major',           decimals:3, pipMul:100 },
-  'USD/CHF': { base:0.9020,  vol:0.0005, icon:'🇨🇭', cat:'FOREX — Major',           decimals:5, pipMul:10000 },
-  'AUD/USD': { base:0.6530,  vol:0.0005, icon:'🇦🇺', cat:'FOREX — Major',           decimals:5, pipMul:10000 },
-  'USD/CAD': { base:1.3580,  vol:0.0006, icon:'🇨🇦', cat:'FOREX — Major',           decimals:5, pipMul:10000 },
-  'NZD/USD': { base:0.6120,  vol:0.0005, icon:'🇳🇿', cat:'FOREX — Major',           decimals:5, pipMul:10000 },
-  'EUR/GBP': { base:0.8550,  vol:0.0004, icon:'💶',  cat:'FOREX — Cross',           decimals:5, pipMul:10000 },
-  'EUR/JPY': { base:162.10,  vol:0.09,   icon:'💱',  cat:'FOREX — Cross',           decimals:3, pipMul:100 },
-  'GBP/JPY': { base:189.50,  vol:0.12,   icon:'💱',  cat:'FOREX — Cross',           decimals:3, pipMul:100 },
+  'EUR/USD': { base:1.0845,  vol:0.0006, icon:'🇪🇺', cat:'FOREX — Major',           decimals:5, pipMul:10000, spread:1 },
+  'GBP/USD': { base:1.2680,  vol:0.0008, icon:'🇬🇧', cat:'FOREX — Major',           decimals:5, pipMul:10000, spread:1 },
+  'USD/JPY': { base:149.50,  vol:0.08,   icon:'🇯🇵', cat:'FOREX — Major',           decimals:3, pipMul:100,   spread:1 },
+  'USD/CHF': { base:0.9020,  vol:0.0005, icon:'🇨🇭', cat:'FOREX — Major',           decimals:5, pipMul:10000, spread:1 },
+  'AUD/USD': { base:0.6530,  vol:0.0005, icon:'🇦🇺', cat:'FOREX — Major',           decimals:5, pipMul:10000, spread:1 },
+  'USD/CAD': { base:1.3580,  vol:0.0006, icon:'🇨🇦', cat:'FOREX — Major',           decimals:5, pipMul:10000, spread:1 },
+  'NZD/USD': { base:0.6120,  vol:0.0005, icon:'🇳🇿', cat:'FOREX — Major',           decimals:5, pipMul:10000, spread:1 },
+  'EUR/GBP': { base:0.8550,  vol:0.0004, icon:'💶',  cat:'FOREX — Cross',           decimals:5, pipMul:10000, spread:2 },
+  'EUR/JPY': { base:162.10,  vol:0.09,   icon:'💱',  cat:'FOREX — Cross',           decimals:3, pipMul:100,   spread:2 },
+  'GBP/JPY': { base:189.50,  vol:0.12,   icon:'💱',  cat:'FOREX — Cross',           decimals:3, pipMul:100,   spread:2 },
   'BTC/USD': { base:67500,   vol:450,    icon:'₿',   cat:'CRYPTO — Bitcoin',        decimals:2, pipMul:1,    binanceSymbol:'BTCUSDT' },
   'ETH/USD': { base:3420,    vol:28,     icon:'Ξ',   cat:'CRYPTO — Ethereum',       decimals:2, pipMul:1,    binanceSymbol:'ETHUSDT' },
   'BNB/USD': { base:580,     vol:4,      icon:'🔶',  cat:'CRYPTO — Binance',        decimals:2, pipMul:1,    binanceSymbol:'BNBUSDT' },
@@ -2331,22 +2331,22 @@ const INSTRUMENTS = {
   'DOGE/USD':{ base:0.165,   vol:0.002,  icon:'🐕',  cat:'CRYPTO — Dogecoin',       decimals:4, pipMul:1000, binanceSymbol:'DOGEUSDT'},
   'ADA/USD': { base:0.485,   vol:0.005,  icon:'🔵',  cat:'CRYPTO — Cardano',        decimals:4, pipMul:1000, binanceSymbol:'ADAUSDT' },
   'LTC/USD': { base:95,      vol:1.2,    icon:'Ł',   cat:'CRYPTO — Litecoin',       decimals:2, pipMul:1,    binanceSymbol:'LTCUSDT' },
-  'XAU/USD': { base:2320,    vol:3.5,    icon:'🥇',  cat:'METAL — Oro',             decimals:2, pipMul:100  },
-  'XAG/USD': { base:27.50,   vol:0.12,   icon:'🥈',  cat:'METAL — Plata',           decimals:3, pipMul:1000 },
-  'XPT/USD': { base:985,     vol:2.8,    icon:'💎',  cat:'METAL — Platino',         decimals:2, pipMul:100  },
-  'XPD/USD': { base:1050,    vol:5,      icon:'⚙',   cat:'METAL — Paladio',         decimals:2, pipMul:100  },
-  'WTI/USD':   { base:78.5,  vol:0.35,   icon:'🛢',  cat:'COMMODITY — WTI',         decimals:2, pipMul:100  },
-  'BRENT/USD': { base:82.8,  vol:0.38,   icon:'⛽',  cat:'COMMODITY — Brent',       decimals:2, pipMul:100  },
-  'NG/USD':    { base:2.15,  vol:0.02,   icon:'🔥',  cat:'COMMODITY — Gas Natural', decimals:3, pipMul:1000 },
-  'CORN/USD':  { base:445,   vol:2.5,    icon:'🌽',  cat:'COMMODITY — Maíz',        decimals:2, pipMul:100  },
-  'WHEAT/USD': { base:580,   vol:3.5,    icon:'🌾',  cat:'COMMODITY — Trigo',       decimals:2, pipMul:100  },
-  'COFFEE/USD':{ base:215,   vol:1.8,    icon:'☕',  cat:'COMMODITY — Café',        decimals:2, pipMul:100  },
-  'SP500':   { base:5240,    vol:12,     icon:'🇺🇸', cat:'ÍNDICE — S&P 500',        decimals:2, pipMul:10   },
-  'NASDAQ':  { base:18400,   vol:55,     icon:'💻',  cat:'ÍNDICE — NASDAQ',         decimals:2, pipMul:10   },
-  'DOW30':   { base:39200,   vol:80,     icon:'🏛',  cat:'ÍNDICE — DOW 30',         decimals:2, pipMul:10   },
-  'DAX40':   { base:17800,   vol:50,     icon:'🇩🇪', cat:'ÍNDICE — DAX 40',         decimals:2, pipMul:10   },
-  'FTSE100': { base:8050,    vol:18,     icon:'🇬🇧', cat:'ÍNDICE — FTSE 100',       decimals:2, pipMul:10   },
-  'NIKKEI':  { base:38500,   vol:120,    icon:'🇯🇵', cat:'ÍNDICE — Nikkei',         decimals:2, pipMul:10   },
+  'XAU/USD': { base:2320,    vol:3.5,    icon:'🥇',  cat:'METAL — Oro',             decimals:2, pipMul:100,  spreadUSD:0.30 },
+  'XAG/USD': { base:27.50,   vol:0.12,   icon:'🥈',  cat:'METAL — Plata',           decimals:3, pipMul:1000, spreadUSD:0.03 },
+  'XPT/USD': { base:985,     vol:2.8,    icon:'💎',  cat:'METAL — Platino',         decimals:2, pipMul:100,  spreadUSD:0.80 },
+  'XPD/USD': { base:1050,    vol:5,      icon:'⚙',   cat:'METAL — Paladio',         decimals:2, pipMul:100,  spreadUSD:1.50 },
+  'WTI/USD':   { base:78.5,  vol:0.35,   icon:'🛢',  cat:'COMMODITY — WTI',         decimals:2, pipMul:100,  spread:2 },
+  'BRENT/USD': { base:82.8,  vol:0.38,   icon:'⛽',  cat:'COMMODITY — Brent',       decimals:2, pipMul:100,  spread:2 },
+  'NG/USD':    { base:2.15,  vol:0.02,   icon:'🔥',  cat:'COMMODITY — Gas Natural', decimals:3, pipMul:1000, spread:2 },
+  'CORN/USD':  { base:445,   vol:2.5,    icon:'🌽',  cat:'COMMODITY — Maíz',        decimals:2, pipMul:100,  spread:2 },
+  'WHEAT/USD': { base:580,   vol:3.5,    icon:'🌾',  cat:'COMMODITY — Trigo',       decimals:2, pipMul:100,  spread:2 },
+  'COFFEE/USD':{ base:215,   vol:1.8,    icon:'☕',  cat:'COMMODITY — Café',        decimals:2, pipMul:100,  spread:2 },
+  'SP500':   { base:5240,    vol:12,     icon:'🇺🇸', cat:'ÍNDICE — S&P 500',        decimals:2, pipMul:10,   spread:1 },
+  'NASDAQ':  { base:18400,   vol:55,     icon:'💻',  cat:'ÍNDICE — NASDAQ',         decimals:2, pipMul:10,   spread:1 },
+  'DOW30':   { base:39200,   vol:80,     icon:'🏛',  cat:'ÍNDICE — DOW 30',         decimals:2, pipMul:10,   spread:1 },
+  'DAX40':   { base:17800,   vol:50,     icon:'🇩🇪', cat:'ÍNDICE — DAX 40',         decimals:2, pipMul:10,   spread:1 },
+  'FTSE100': { base:8050,    vol:18,     icon:'🇬🇧', cat:'ÍNDICE — FTSE 100',       decimals:2, pipMul:10,   spread:1 },
+  'NIKKEI':  { base:38500,   vol:120,    icon:'🇯🇵', cat:'ÍNDICE — Nikkei',         decimals:2, pipMul:10,   spread:1 },
 };
 
 // ======================== STATE ========================
@@ -3717,14 +3717,15 @@ function getSignal(rsi, macd, cfg) {
   // Log diferencial cada 50 ticks
   if(prices.length % 50 === 0) addLog('[Capa 3] Umbral: ' + nThresh.toFixed(1) + '% (ADX:' + regime.adx.toFixed(1) + (regime.adx < 20 ? ' LATERAL↑' : ' tendencia') + ') | Diff: ' + scoreDiff.toFixed(2) + '/' + nDiff.toFixed(1) + ' | Inactivos: ' + ticksSinOperar, 'opt');
 
-  // ── PVT y PIVOTE: previos al umbral — bloquean señales débiles Y fuertes por igual ──
+  // ── PVT y PIVOTE: previos al umbral ──
+  // PVT no bloquea totalmente — penaliza -15pts para que el umbral filtre señales débiles
   if(nBuy > nSell && (tradeMode==='buy'||tradeMode==='both')) {
     // PVT BUY
     if(volumes.length >= 4) {
       var pvtOk = regime.adx > 40 ? !pvtSmooth.bearish : pvtSmooth.bullish;
       if(!pvtOk) {
-        registerBlock('pvt', 'BUY sin combustible — PVT WMA: ' + pvtSmooth.slope.toFixed(0));
-        return 'NEUTRAL';
+        nBuy -= 15;
+        registerBlock('pvt', 'BUY PVT débil (-15pts) — WMA: ' + pvtSmooth.slope.toFixed(0) + ' | nBuy→' + nBuy.toFixed(1));
       }
     }
     // Pivote BUY
@@ -3749,8 +3750,8 @@ function getSignal(rsi, macd, cfg) {
     if(volumes.length >= 4) {
       var pvtOkS = regime.adx > 40 ? !pvtSmooth.bullish : pvtSmooth.bearish;
       if(!pvtOkS) {
-        registerBlock('pvt', 'SELL sin combustible — PVT WMA: ' + pvtSmooth.slope.toFixed(0));
-        return 'NEUTRAL';
+        nSell -= 15;
+        registerBlock('pvt', 'SELL PVT débil (-15pts) — WMA: ' + pvtSmooth.slope.toFixed(0) + ' | nSell→' + nSell.toFixed(1));
       }
     }
     // Pivote SELL
@@ -4426,7 +4427,17 @@ function closeOperation(id, won) {
   var grossUSD = (op.sl > 0)
     ? (pnlPips / op.sl) * riskBase
     : (won ? riskBase * 2 : -riskBase);
-  var commission  = instClose.binanceSymbol ? (tradeAmount * 0.002) : 0;
+  // Comisión/spread por tipo de instrumento
+  var commission;
+  if(instClose.binanceSymbol) {
+    commission = tradeAmount * 0.002;                          // crypto 0.2%
+  } else if(instClose.spreadUSD !== undefined) {
+    commission = instClose.spreadUSD;                          // metales: USD fijo
+  } else if(instClose.spread && op.sl > 0) {
+    commission = (instClose.spread / op.sl) * riskBase;        // forex/índices: spread en pips
+  } else {
+    commission = 0;
+  }
   var netUSD      = grossUSD - commission;
   var dispAmt     = convertAmount(Math.abs(netUSD), currCode);
   var fmtAmt      = formatConverted(dispAmt, currCode);
@@ -5887,7 +5898,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.38</b>\n' +
+      '<b>ForexBot v24.10.39</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5957,7 +5968,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.38 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.39 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
@@ -6040,6 +6051,7 @@ function saveSessionState() {
       consecutiveWins,
       consecutiveLoss,
       momentumBonus,
+      adxLowConfThreshold,
       currentInst,
       trendDirection,
       lastAIConfidence,
@@ -6075,6 +6087,7 @@ function restoreSessionState() {
     if (state.consecutiveWins !== undefined)               consecutiveWins = state.consecutiveWins;
     if (state.consecutiveLoss !== undefined)               consecutiveLoss = state.consecutiveLoss;
     if (state.momentumBonus !== undefined)                 momentumBonus = state.momentumBonus;
+    if (state.adxLowConfThreshold !== undefined)           { adxLowConfThreshold = state.adxLowConfThreshold; updateShadowPanelColor(); }
     if (state.trendDirection !== undefined)                trendDirection = state.trendDirection;
     if (state.lastAIConfidence !== undefined)              lastAIConfidence = state.lastAIConfidence;
     // Restaurar modos — evita que un recargo cambie Shadow a Real sin avisar
