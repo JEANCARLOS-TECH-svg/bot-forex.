@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.32 — PC Edition</title>
+<title>ForexBot v24.10.34 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.32 — PC Edition</small>
+        <small>v24.10.34 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -2029,13 +2029,19 @@ function preloadHistoricalCandles(symbol, callback) {
       if(!data || !data.length) { if(callback) callback(); return; }
       var historical = [];
       var historicalVol = [];
+      var historicalHigh = [];
+      var historicalLow  = [];
       for(var _hi=0; _hi<data.length; _hi++) {
-        historical.push(parseFloat(data[_hi][4]));    // close
-        historicalVol.push(parseFloat(data[_hi][5])); // volume
+        historical.push(parseFloat(data[_hi][4]));     // close
+        historicalVol.push(parseFloat(data[_hi][5]));  // volume
+        historicalHigh.push(parseFloat(data[_hi][2])); // high
+        historicalLow.push(parseFloat(data[_hi][3]));  // low
       }
       prices  = historical;
       volumes = historicalVol;
-      addLog('✅ ' + historical.length + ' velas históricas cargadas — contexto de ' + Math.round(historical.length/60) + 'h | PVT + ADX + tendencia listos', 'buy');
+      highs   = historicalHigh;
+      lows    = historicalLow;
+      addLog('✅ ' + historical.length + ' velas históricas cargadas — contexto de ' + Math.round(historical.length/60) + 'h | OHLCV completo — ADX Wilder activo desde tick 1', 'buy');
       if(callback) callback();
     })
     .catch(function() {
@@ -5819,7 +5825,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.32</b>\n' +
+      '<b>ForexBot v24.10.34</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5889,7 +5895,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.32 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.34 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
