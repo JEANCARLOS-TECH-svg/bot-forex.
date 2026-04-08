@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.30 — PC Edition</title>
+<title>ForexBot v24.10.31 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -968,7 +968,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.30 — PC Edition</small>
+        <small>v24.10.31 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -2088,6 +2088,35 @@ function updateAutoBadge(state) {
 }
 
 /** Conectar a precios públicos de Binance Real — sin API Key */
+/**
+ * Obtiene el precio actual de un par forex desde open.er-api.com (gratuito, sin API key).
+ * Soporta cualquier par derivable de cruces con USD.
+ * Retorna el precio o null si falla.
+ */
+async function fetchForexBasePrice(sym) {
+  try {
+    var res = await fetch('https://open.er-api.com/v6/latest/USD');
+    if(!res.ok) return null;
+    var data = await res.json();
+    var rates = data.rates; // {EUR: 0.92, GBP: 0.79, JPY: 149.5, ...}
+    if(!rates) return null;
+    var parts = sym.replace('/', '_').split('_');
+    if(parts.length < 2) return null;
+    var base = parts[0]; var quote = parts[1];
+    // Normalizar: USD no aparece en rates (es la base del endpoint)
+    var baseRate  = (base  === 'USD') ? 1 : rates[base];
+    var quoteRate = (quote === 'USD') ? 1 : rates[quote];
+    if(!baseRate || !quoteRate) return null;
+    // Precio = cuántas unidades de quote por 1 unidad de base
+    // Ej: EUR/USD = rates[USD]/rates[EUR] = 1/0.92 = 1.087
+    // Ej: USD/JPY = rates[JPY]/rates[USD] = 149.5/1 = 149.5
+    // Ej: EUR/GBP = rates[GBP]/rates[EUR] = 0.79/0.92 = 0.858
+    return quoteRate / baseRate;
+  } catch(e) {
+    return null;
+  }
+}
+
 function connectPublicPrices() {
   apiConnected = true;
   apiKeyVal = ''; apiSecretVal = '';
@@ -2288,22 +2317,22 @@ const INSTRUMENTS = {
   'DOGE/USD':{ base:0.165,   vol:0.002,  icon:'🐕',  cat:'CRYPTO — Dogecoin',       decimals:4, pipMul:1000, binanceSymbol:'DOGEUSDT'},
   'ADA/USD': { base:0.485,   vol:0.005,  icon:'🔵',  cat:'CRYPTO — Cardano',        decimals:4, pipMul:1000, binanceSymbol:'ADAUSDT' },
   'LTC/USD': { base:95,      vol:1.2,    icon:'Ł',   cat:'CRYPTO — Litecoin',       decimals:2, pipMul:1,    binanceSymbol:'LTCUSDT' },
-  'XAU/USD': { base:2320,    vol:3.5,    icon:'🥇',  cat:'METAL — Oro',             decimals:2, pipMul:1 },
-  'XAG/USD': { base:27.50,   vol:0.12,   icon:'🥈',  cat:'METAL — Plata',           decimals:3, pipMul:10 },
-  'XPT/USD': { base:985,     vol:2.8,    icon:'💎',  cat:'METAL — Platino',         decimals:2, pipMul:1 },
-  'XPD/USD': { base:1050,    vol:5,      icon:'⚙',   cat:'METAL — Paladio',         decimals:2, pipMul:1 },
-  'WTI/USD':   { base:78.5,  vol:0.35,   icon:'🛢',  cat:'COMMODITY — WTI',         decimals:2, pipMul:1 },
-  'BRENT/USD': { base:82.8,  vol:0.38,   icon:'⛽',  cat:'COMMODITY — Brent',       decimals:2, pipMul:1 },
-  'NG/USD':    { base:2.15,  vol:0.02,   icon:'🔥',  cat:'COMMODITY — Gas Natural', decimals:3, pipMul:100 },
-  'CORN/USD':  { base:445,   vol:2.5,    icon:'🌽',  cat:'COMMODITY — Maíz',        decimals:2, pipMul:1 },
-  'WHEAT/USD': { base:580,   vol:3.5,    icon:'🌾',  cat:'COMMODITY — Trigo',       decimals:2, pipMul:1 },
-  'COFFEE/USD':{ base:215,   vol:1.8,    icon:'☕',  cat:'COMMODITY — Café',        decimals:2, pipMul:1 },
-  'SP500':   { base:5240,    vol:12,     icon:'🇺🇸', cat:'ÍNDICE — S&P 500',        decimals:2, pipMul:1 },
-  'NASDAQ':  { base:18400,   vol:55,     icon:'💻',  cat:'ÍNDICE — NASDAQ',         decimals:2, pipMul:1 },
-  'DOW30':   { base:39200,   vol:80,     icon:'🏛',  cat:'ÍNDICE — DOW 30',         decimals:2, pipMul:1 },
-  'DAX40':   { base:17800,   vol:50,     icon:'🇩🇪', cat:'ÍNDICE — DAX 40',         decimals:2, pipMul:1 },
-  'FTSE100': { base:8050,    vol:18,     icon:'🇬🇧', cat:'ÍNDICE — FTSE 100',       decimals:2, pipMul:1 },
-  'NIKKEI':  { base:38500,   vol:120,    icon:'🇯🇵', cat:'ÍNDICE — Nikkei',         decimals:2, pipMul:1 },
+  'XAU/USD': { base:2320,    vol:3.5,    icon:'🥇',  cat:'METAL — Oro',             decimals:2, pipMul:100  },
+  'XAG/USD': { base:27.50,   vol:0.12,   icon:'🥈',  cat:'METAL — Plata',           decimals:3, pipMul:1000 },
+  'XPT/USD': { base:985,     vol:2.8,    icon:'💎',  cat:'METAL — Platino',         decimals:2, pipMul:100  },
+  'XPD/USD': { base:1050,    vol:5,      icon:'⚙',   cat:'METAL — Paladio',         decimals:2, pipMul:100  },
+  'WTI/USD':   { base:78.5,  vol:0.35,   icon:'🛢',  cat:'COMMODITY — WTI',         decimals:2, pipMul:100  },
+  'BRENT/USD': { base:82.8,  vol:0.38,   icon:'⛽',  cat:'COMMODITY — Brent',       decimals:2, pipMul:100  },
+  'NG/USD':    { base:2.15,  vol:0.02,   icon:'🔥',  cat:'COMMODITY — Gas Natural', decimals:3, pipMul:1000 },
+  'CORN/USD':  { base:445,   vol:2.5,    icon:'🌽',  cat:'COMMODITY — Maíz',        decimals:2, pipMul:100  },
+  'WHEAT/USD': { base:580,   vol:3.5,    icon:'🌾',  cat:'COMMODITY — Trigo',       decimals:2, pipMul:100  },
+  'COFFEE/USD':{ base:215,   vol:1.8,    icon:'☕',  cat:'COMMODITY — Café',        decimals:2, pipMul:100  },
+  'SP500':   { base:5240,    vol:12,     icon:'🇺🇸', cat:'ÍNDICE — S&P 500',        decimals:2, pipMul:10   },
+  'NASDAQ':  { base:18400,   vol:55,     icon:'💻',  cat:'ÍNDICE — NASDAQ',         decimals:2, pipMul:10   },
+  'DOW30':   { base:39200,   vol:80,     icon:'🏛',  cat:'ÍNDICE — DOW 30',         decimals:2, pipMul:10   },
+  'DAX40':   { base:17800,   vol:50,     icon:'🇩🇪', cat:'ÍNDICE — DAX 40',         decimals:2, pipMul:10   },
+  'FTSE100': { base:8050,    vol:18,     icon:'🇬🇧', cat:'ÍNDICE — FTSE 100',       decimals:2, pipMul:10   },
+  'NIKKEI':  { base:38500,   vol:120,    icon:'🇯🇵', cat:'ÍNDICE — Nikkei',         decimals:2, pipMul:10   },
 };
 
 // ======================== STATE ========================
@@ -4356,8 +4385,9 @@ function closeOperation(id, won) {
   var grossUSD = op.size
     ? (pnlPips * op.size / instClose.pipMul)
     : (won ? tradeAmount * 2 : -tradeAmount);
-  // Comisión Binance: 0.1% entrada + 0.1% salida = 0.2% del capital arriesgado
-  var commission = tradeAmount * 0.002;
+  // Comisión Binance: 0.1% entrada + 0.1% salida = 0.2% — solo aplica a crypto real
+  // FOREX/metales/índices son simulados sin comisión de exchange
+  var commission = instClose.binanceSymbol ? (tradeAmount * 0.002) : 0;
   var netUSD   = grossUSD - commission;
   // Display visual en divisa seleccionada
   var dispAmt  = convertAmount(Math.abs(netUSD), currCode);
@@ -4806,6 +4836,38 @@ async function startBot(){
   document.getElementById('statusText').textContent='EN VIVO';
   addLog('▶ Bot iniciado — '+currentInst + (restored ? ' (sesión restaurada)' : ''),'warn');
 
+  // ── PRELOAD DE VELAS / ACTUALIZACIÓN DE PRECIO BASE ────────────
+  var _instData = INSTRUMENTS[currentInst];
+  if(!restored && prices.length < 100) {
+    if(_instData && _instData.binanceSymbol) {
+      // Crypto: cargar 500 velas reales de Binance antes de arrancar
+      preloadHistoricalCandles(_instData.binanceSymbol, function() {
+        warmupComplete = prices.length >= 100;
+        _launchBotWorker();
+      });
+      return; // el Worker se lanzará desde el callback
+    } else if(currentCat === 'forex') {
+      // FOREX: actualizar inst.base con precio real antes del random walk
+      fetchForexBasePrice(currentInst).then(function(realPrice) {
+        if(realPrice && realPrice > 0) {
+          _instData.base = realPrice;
+          addLog('📡 ' + currentInst + ' base actualizado → ' + realPrice.toFixed(_instData.decimals) + ' (precio real)', 'buy');
+        } else {
+          addLog('⚠️ ' + currentInst + ' sin precio real — base simulada ' + _instData.base.toFixed(_instData.decimals) + ' (datos sintéticos)', 'warn');
+        }
+        _launchBotWorker();
+      });
+      return;
+    } else {
+      addLog('⚠️ ' + currentInst + ' — velas sintéticas. No hay feed de precio real para este instrumento.', 'warn');
+    }
+  }
+  _launchBotWorker();
+}
+
+/** Lanza el Web Worker (o setInterval de respaldo) que dispara tick() cada 700ms */
+function _launchBotWorker() {
+  if(!running) return; // bot detenido mientras esperaba el preload
   // ── GUARDIÁN DE CONEXIÓN — Web Worker para tick anti-suspensión ──
   // Chrome throttlea setInterval en pestañas inactivas a ~1/min.
   // El Web Worker corre en hilo separado — Chrome no lo suspende.
@@ -5164,9 +5226,30 @@ function calcPivotPoints() {
   return { pp, r1, r2, s1, s2 };
 }
 
+/** Umbral de proximidad a pivote y cancel de breakout según categoría de instrumento */
+function getInstPivotPct(sym) {
+  var cat = (INSTRUMENTS[sym] || {}).cat || '';
+  if(cat.includes('FOREX'))     return 0.0015; // ~15 pips para majors
+  if(cat.includes('CRYPTO'))    return 0.004;  // 0.4% — mayor volatilidad
+  if(cat.includes('METAL'))     return 0.0012; // 0.12% — metales preciosos
+  if(cat.includes('ÍNDICE'))    return 0.001;  // 0.1% — índices bursátiles
+  if(cat.includes('COMMODITY')) return 0.002;  // 0.2% — commodities
+  return 0.002;
+}
+
+function getBreakoutCancelPct(sym) {
+  var cat = (INSTRUMENTS[sym] || {}).cat || '';
+  if(cat.includes('FOREX'))     return 0.003;  // 30 pips aprox.
+  if(cat.includes('CRYPTO'))    return 0.008;  // 0.8% — cripto es volátil
+  if(cat.includes('METAL'))     return 0.004;  // 0.4% — metales
+  if(cat.includes('ÍNDICE'))    return 0.002;  // 0.2% — índices bursátiles
+  if(cat.includes('COMMODITY')) return 0.005;  // 0.5% — commodities
+  return 0.005;
+}
+
 function isTooCloseToResistance(price, pivots, thresholdPct) {
   if(!pivots || !price) return false;
-  var pct = thresholdPct || 0.002; // 0.2% por defecto
+  var pct = thresholdPct || getInstPivotPct(currentInst);
   var tooCloseR1 = Math.abs(price - pivots.r1) / price < pct;
   var tooCloseR2 = Math.abs(price - pivots.r2) / price < pct;
   var tooClosePP = Math.abs(price - pivots.pp) / price < (pct * 0.5);
@@ -5175,7 +5258,7 @@ function isTooCloseToResistance(price, pivots, thresholdPct) {
 
 function isTooCloseToSupport(price, pivots, thresholdPct) {
   if(!pivots || !price) return false;
-  var pct = thresholdPct || 0.002;
+  var pct = thresholdPct || getInstPivotPct(currentInst);
   var tooCloseS1 = Math.abs(price - pivots.s1) / price < pct;
   var tooCloseS2 = Math.abs(price - pivots.s2) / price < pct;
   return tooCloseS1 || tooCloseS2;
@@ -5426,10 +5509,11 @@ function verificarBreakoutsPendientes(currentPrice) {
 
 function limpiarOrdenesPendientes(precioActual) {
   var antes = pendingBreakouts.length;
+  var cancelPct = getBreakoutCancelPct(currentInst);
   pendingBreakouts = pendingBreakouts.filter(function(orden) {
     var distanciaCaida = (orden.triggerPrice - precioActual) / orden.triggerPrice;
-    if(distanciaCaida > BREAKOUT_CANCEL_DROP) {
-      addLog('🗑️ Breakout cancelado — precio cayó ' + (distanciaCaida*100).toFixed(2) + '% desde R1', 'warn');
+    if(distanciaCaida > cancelPct) {
+      addLog('🗑️ Breakout cancelado — precio cayó ' + (distanciaCaida*100).toFixed(2) + '% desde R1 (umbral ' + (cancelPct*100).toFixed(1) + '%)', 'warn');
       return false;
     }
     return true;
@@ -5726,7 +5810,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.30</b>\n' +
+      '<b>ForexBot v24.10.31</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5796,7 +5880,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.30 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.31 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
