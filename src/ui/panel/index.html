@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>ForexBot v25.0 — Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d0d0d;
+      color: #e0e0e0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      padding: 24px;
+    }
+    h1 { color: #ffffff; font-size: 18px; margin-bottom: 20px; letter-spacing: 2px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 14px 16px;
+    }
+    .card-label {
+      color: #666;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .card-value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .badge-danger  { background: #3d0000; color: #ff4444; }
+    .badge-warn    { background: #2e2200; color: #ffaa00; }
+    .badge-ok      { background: #003d10; color: #00cc44; }
+    .badge-neutral { background: #1e1e1e; color: #888; }
+
+    .regime-LATERAL_EXTREMO { color: #ff4444; }
+    .regime-LATERAL         { color: #ffaa00; }
+    .regime-TENDENCIAL      { color: #00cc44; }
+
+    #position-block {
+      margin-top: 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 14px 16px;
+    }
+    #position-block .card-label { margin-bottom: 10px; }
+    #position-detail { font-size: 13px; color: #aaa; line-height: 1.8; }
+
+    #ws-status {
+      position: fixed;
+      bottom: 16px;
+      right: 20px;
+      font-size: 11px;
+      color: #444;
+    }
+    #ws-status.connected { color: #00cc44; }
+    #ws-status.error     { color: #ff4444; }
+  </style>
+</head>
+<body>
+
+<h1>FOREXBOT <small style="font-size:13px;color:#666;">v25.0</small> — PANEL</h1>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Precio actual</div>
+    <div class="card-value" id="val-price">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Régimen</div>
+    <div class="card-value" id="val-regime">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">ADX</div>
+    <div class="card-value" id="val-adx">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">RSI</div>
+    <div class="card-value" id="val-rsi">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Umbral actual</div>
+    <div class="card-value" id="val-threshold">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Losses consecutivos</div>
+    <div class="card-value" id="val-closs">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Shadow Mode</div>
+    <div class="card-value" id="val-shadow">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Warmup</div>
+    <div class="card-value" id="val-warmup">—</div>
+  </div>
+</div>
+
+<div id="position-block">
+  <div class="card-label">Posición abierta</div>
+  <div id="val-badge">—</div>
+  <div id="position-detail">Sin posición abierta</div>
+</div>
+
+<div id="ws-status">● WS desconectado</div>
+
+<script>
+  const wsStatus = document.getElementById('ws-status');
+
+  function connect() {
+    const ws = new WebSocket('ws://localhost:3000');
+
+    ws.onopen = () => {
+      wsStatus.textContent = '● Conectado';
+      wsStatus.className = 'connected';
+    };
+
+    ws.onclose = () => {
+      wsStatus.textContent = '● Desconectado — reconectando...';
+      wsStatus.className = 'error';
+      setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => {
+      wsStatus.textContent = '● Error WS';
+      wsStatus.className = 'error';
+    };
+
+    ws.onmessage = (event) => {
+      let d;
+      try { d = JSON.parse(event.data); } catch { return; }
+      update(d);
+    };
+  }
+
+  function update(d) {
+    set('val-price',     d.price     != null ? d.price : '—');
+    set('val-adx',       d.adx       != null ? d.adx   : '—');
+    set('val-rsi',       d.rsi       != null ? (+d.rsi).toFixed(1) : '—');
+    set('val-threshold', d.threshold != null ? d.threshold : '—');
+    set('val-closs',     d.consecutiveLoss != null ? d.consecutiveLoss : '—');
+
+    // Régimen con color
+    const regimeEl = document.getElementById('val-regime');
+    regimeEl.textContent = d.regime || '—';
+    regimeEl.className = 'card-value regime-' + (d.regime || '');
+
+    // Shadow Mode
+    set('val-shadow', d.isShadowMode ? 'ON' : 'OFF');
+    document.getElementById('val-shadow').style.color = d.isShadowMode ? '#ffaa00' : '#888';
+
+    // Warmup
+    set('val-warmup', d.warmupComplete ? 'SI' : 'NO');
+    document.getElementById('val-warmup').style.color = d.warmupComplete ? '#00cc44' : '#ff4444';
+
+    // Badge posición
+    const badgeEl = document.getElementById('val-badge');
+    if (d.statusBadge) {
+      const badgeClass =
+        d.statusBadge.includes('RIESGO')  ? 'badge badge-danger' :
+        d.statusBadge.includes('BE')       ? 'badge badge-warn'   :
+        d.statusBadge.includes('GANANCIA') ? 'badge badge-ok'     : 'badge badge-neutral';
+      badgeEl.className = badgeClass;
+      badgeEl.textContent = d.statusBadge;
+    } else {
+      badgeEl.className = 'badge badge-neutral';
+      badgeEl.textContent = '—';
+    }
+
+    // Detalle posición
+    const posEl = document.getElementById('position-detail');
+    if (d.position) {
+      const p = d.position;
+      posEl.innerHTML =
+        `Side: <b>${p.side || '—'}</b> &nbsp;|&nbsp; ` +
+        `Entry: <b>${p.entryPrice || '—'}</b> &nbsp;|&nbsp; ` +
+        `SL: <b>${p.sl || '—'}</b> &nbsp;|&nbsp; ` +
+        `TP: <b>${p.tp || '—'}</b>`;
+    } else {
+      posEl.textContent = 'Sin posición abierta';
+    }
+  }
+
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  connect();
+</script>
+
+</body>
+</html>
