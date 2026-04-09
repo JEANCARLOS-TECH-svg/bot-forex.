@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ForexBot v24.10.39 — PC Edition</title>
+<title>ForexBot v24.10.40 — PC Edition</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -976,7 +976,7 @@
       <div class="logo-icon">⚡</div>
       <div>
         <h1>Forex<span>Bot</span></h1>
-        <small>v24.10.39 — PC Edition</small>
+        <small>v24.10.40 — PC Edition</small>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
@@ -1833,6 +1833,7 @@
           <div class="stat"><div class="stat-val c-blue" id="sh_ops">0</div><div class="stat-lbl">OPS</div></div>
           <div class="stat"><div class="stat-val c-green" id="sh_wins">0</div><div class="stat-lbl">WINS</div></div>
           <div class="stat"><div class="stat-val c-red" id="sh_losses">0</div><div class="stat-lbl">LOSS</div></div>
+          <div class="stat"><div class="stat-val" id="sh_be" style="color:var(--warn)">0</div><div class="stat-lbl">⚖ BE</div></div>
           <div class="stat"><div class="stat-val c-pur" id="sh_wr">—%</div><div class="stat-lbl">WR</div></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -4454,6 +4455,7 @@ function closeOperation(id, won) {
     registerProtectionResult(true);
     addTradeToHistory(op.instrument, op.type, op.entryPrice.toFixed(dec), 'WIN', dispAmt, currCode);
   } else if(isBreakeven) {
+    shadowBreakevens++;
     addLog('⚖ Op #' + op.id + ' BREAKEVEN — SL en entrada | comis:-' + commission.toFixed(3) + ' ' + currCode, 'warn');
     registerTradeResult(-commission, true); // isNeutral=true — breakeven no penaliza adxLowConfThreshold
     // no llamar registerProtectionResult — breakeven no rompe la racha de protección
@@ -4528,7 +4530,8 @@ function updateOpsProgress(currentPrice) {
       shadowProfit += pnl;
       if(won) shadowWins++; else shadowLosses++;
       shadowSlippageSum += Math.abs(currentPrice - trade.entryPrice) / trade.entryPrice * 100;
-      registerTradeResult(pnl); // alimenta Kill Switch con resultado shadow
+      registerOpResult(won);    // actualiza consecutiveLoss/Wins → updateAdxLowThreshold lee valor correcto
+      registerTradeResult(pnl); // alimenta Kill Switch + dispara updateAdxLowThreshold + color panel
       updateShadowStats();
       addShadowLogEntry(trade, pnl);
       addLog('👻 Shadow #' + trade.id + ' ' + (won ? 'WIN ✅ +$' + pnl.toFixed(2) : 'LOSS ❌ -$' + Math.abs(pnl).toFixed(2)), won ? 'buy' : 'sell');
@@ -5672,9 +5675,10 @@ function resetBlockCounters() {
 }
 
 let shadowTrades = [];
-let shadowWins   = 0;
-let shadowLosses = 0;
-let shadowProfit = 0;
+let shadowWins       = 0;
+let shadowLosses     = 0;
+let shadowBreakevens = 0;
+let shadowProfit     = 0;
 let shadowSlippageSum = 0;
 
 function toggleShadow() {
@@ -5709,12 +5713,13 @@ function updateShadowStats() {
   var wr = total > 0 ? ((shadowWins/total)*100).toFixed(1)+'%' : '—%';
   var avgSlip = total > 0 ? (shadowSlippageSum/total).toFixed(3)+'%' : '0.00%';
   var el = function(id) { return document.getElementById(id); };
-  if(el('sh_ops'))     el('sh_ops').textContent = total;
-  if(el('sh_wins'))    el('sh_wins').textContent = shadowWins;
-  if(el('sh_losses'))  el('sh_losses').textContent = shadowLosses;
-  if(el('sh_wr'))      el('sh_wr').textContent = wr;
-  if(el('sh_profit'))  { el('sh_profit').textContent = (shadowProfit >= 0 ? '+$' : '-$') + Math.abs(shadowProfit).toFixed(2); el('sh_profit').style.color = shadowProfit >= 0 ? 'var(--accent)' : 'var(--danger)'; }
-  if(el('sh_slippage')) el('sh_slippage').textContent = avgSlip;
+  if(el('sh_ops'))         el('sh_ops').textContent = total;
+  if(el('sh_wins'))        el('sh_wins').textContent = shadowWins;
+  if(el('sh_losses'))      el('sh_losses').textContent = shadowLosses;
+  if(el('sh_be'))          el('sh_be').textContent = shadowBreakevens;
+  if(el('sh_wr'))          el('sh_wr').textContent = wr;
+  if(el('sh_profit'))      { el('sh_profit').textContent = (shadowProfit >= 0 ? '+$' : '-$') + Math.abs(shadowProfit).toFixed(2); el('sh_profit').style.color = shadowProfit >= 0 ? 'var(--accent)' : 'var(--danger)'; }
+  if(el('sh_slippage'))    el('sh_slippage').textContent = avgSlip;
 }
 
 function addShadowLogEntry(trade, pnl) {
@@ -5730,7 +5735,7 @@ function addShadowLogEntry(trade, pnl) {
 }
 
 function clearShadowLog() {
-  shadowTrades=[]; shadowWins=0; shadowLosses=0; shadowProfit=0; shadowSlippageSum=0;
+  shadowTrades=[]; shadowWins=0; shadowLosses=0; shadowBreakevens=0; shadowProfit=0; shadowSlippageSum=0;
   var container = document.getElementById('shadowLogContainer');
   if(container) container.innerHTML = '<div style="font-size:10px;color:var(--muted);font-family:Space Mono,monospace;text-align:center;padding:20px">Sin operaciones shadow aún</div>';
   updateShadowStats();
@@ -5898,7 +5903,7 @@ function tgHandleCommand(cmd) {
     var mode = trainingMode ? 'Entrenamiento' : freedomMode ? 'Libertad Absoluta' : 'Normal';
     var estado = running ? '🟢 ACTIVO' : '🔴 INACTIVO';
     tgSend(
-      '<b>ForexBot v24.10.39</b>\n' +
+      '<b>ForexBot v24.10.40</b>\n' +
       'Estado: ' + estado + '\n' +
       'Modo: ' + mode + '\n' +
       'Instrumento: ' + currentInst + '\n' +
@@ -5968,7 +5973,7 @@ function toggleTelegram() {
     telegramInterval = setInterval(tgPollCommands, 3000);
     if(btn)   { btn.style.borderColor='rgba(0,136,204,0.6)'; btn.style.background='rgba(0,136,204,0.12)'; }
     if(state) { state.textContent='ACTIVO'; state.style.color='#0088cc'; }
-    tgSend('✅ ForexBot v24.10.39 conectado.\nEscribe /help para ver los comandos.');
+    tgSend('✅ ForexBot v24.10.40 conectado.\nEscribe /help para ver los comandos.');
     addLog('📱 Telegram ACTIVO — control remoto habilitado', 'buy');
   } else {
     clearInterval(telegramInterval);
