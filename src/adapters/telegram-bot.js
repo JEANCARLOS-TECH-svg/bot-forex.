@@ -54,6 +54,17 @@ function start() {
     bot.sendMessage(msg.chat.id, `👻 Shadow mode ${status}.`);
   });
 
+  bot.onText(/\/help/, (msg) => {
+    bot.sendMessage(msg.chat.id,
+      '<b>ForexBot v25.0 — Comandos disponibles:</b>\n' +
+      '/status — estado actual del bot\n' +
+      '/shadow — activar/desactivar shadow mode\n' +
+      '/stop — desconectar Binance\n' +
+      '/help — mostrar esta ayuda',
+      { parse_mode: 'HTML' }
+    );
+  });
+
   bot.on('polling_error', (err) => {
     console.error('[Telegram] polling error:', err.message);
   });
