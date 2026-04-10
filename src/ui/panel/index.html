@@ -158,16 +158,20 @@
 
     // Régimen con color
     const regimeEl = document.getElementById('val-regime');
-    regimeEl.textContent = d.regime || '—';
-    regimeEl.className = 'card-value regime-' + (d.regime || '');
+    if (regimeEl) {
+      regimeEl.textContent = d.regime || '—';
+      regimeEl.className = 'card-value regime-' + (d.regime || '');
+    }
 
     // Shadow Mode
     set('val-shadow', d.isShadowMode ? 'ON' : 'OFF');
-    document.getElementById('val-shadow').style.color = d.isShadowMode ? '#ffaa00' : '#888';
+    const shadowEl = document.getElementById('val-shadow');
+    if (shadowEl) shadowEl.style.color = d.isShadowMode ? '#ffaa00' : '#888';
 
     // Warmup
     set('val-warmup', d.warmupComplete ? 'SI' : 'NO');
-    document.getElementById('val-warmup').style.color = d.warmupComplete ? '#00cc44' : '#ff4444';
+    const warmupEl = document.getElementById('val-warmup');
+    if (warmupEl) warmupEl.style.color = d.warmupComplete ? '#00cc44' : '#ff4444';
 
     // Badge posición
     const badgeEl = document.getElementById('val-badge');
