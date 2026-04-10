@@ -13,7 +13,8 @@ function calcularUmbralDinamico(adxActual, regimeLabel) {
 
 function checkSignal(indicators, regime) {
   const { rsi, macd, bb, emaFast, emaSlow, stoch, adx } = indicators;
-  const currentPrice = require('../engine/state').get('price.current');
+  const state = require('../engine/state');
+  const currentPrice = state.get('price.current');
 
   if (!currentPrice) return { side: 'NONE', score: 0 };
 
@@ -50,6 +51,8 @@ function checkSignal(indicators, regime) {
 
   const buyPct  = (totalBuy  / maxScore) * 100;
   const sellPct = (totalSell / maxScore) * 100;
+
+  state.update('signal.threshold', umbral);
 
   if (buyPct >= umbral && buyPct > sellPct)  return { side: 'BUY',  score: buyPct,  umbral };
   if (sellPct >= umbral && sellPct > buyPct) return { side: 'SELL', score: sellPct, umbral };

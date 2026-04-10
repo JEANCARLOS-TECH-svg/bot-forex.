@@ -26,12 +26,15 @@ function onTick(tick) {
 
   // 4. Verificar si hay señal según umbral dinámico
   const signal = l3Threshold.checkSignal(indicators, regime);
+  console.log('[L3]', signal);
 
   // 5. Validar señal contra Pivot Points
   const signalAfterPivots = l4Pivots.validate(signal);
+  console.log('[L4]', signalAfterPivots);
 
   // 6. Validar señal contra PVT suavizado
   const finalSignal = l5PvtSmoothed.validate(signalAfterPivots, indicators);
+  console.log('[L5]', finalSignal);
 
   // 7. Gestionar posiciones abiertas (trailing, BE, TP/SL)
   l6Position.manage(state.get('openPosition'));

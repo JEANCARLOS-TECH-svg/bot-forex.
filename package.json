@@ -1,0 +1,16 @@
+{
+  "name": "forex-bot",
+  "version": "1.0.0",
+  "description": "ForexBot Node.js backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.1",
+    "express": "^4.21.2",
+    "node-telegram-bot-api": "^0.66.0",
+    "ws": "^8.18.0"
+  }
+}
