@@ -1,33 +1,32 @@
 // ── L6 POSITION ───────────────────────────────────────────────────────────────
-// Gestiona posiciones abiertas: trailing stop, breakeven, cierre por TP/SL.
+// Gestiona la posición abierta: TP/SL, cierre y registro shadow.
 
-const state = require('../engine/state');
+const state  = require('../engine/state');
+const shadow = require('../systems/shadow');
 
-function manage(openPositions) {
+function manage(pos) {
   const currentPrice = state.get('price.current');
-  if (!currentPrice || !openPositions || openPositions.length === 0) return;
+  if (!currentPrice || !pos || pos.status !== 'OPEN') return;
 
-  openPositions.forEach(function(pos) {
-    // Actualizar highSinceEntry / lowSinceEntry
-    if (pos.side === 'BUY') {
-      if (currentPrice > (pos.highSinceEntry || pos.entryPrice)) {
-        pos.highSinceEntry = currentPrice;
-      }
-    } else {
-      if (currentPrice < (pos.lowSinceEntry || pos.entryPrice)) {
-        pos.lowSinceEntry = currentPrice;
-      }
-    }
+  // Verificar SL / TP
+  if (pos.direction === 'BUY') {
+    if (currentPrice <= pos.sl) pos.status = 'CLOSE_SL';
+    else if (currentPrice >= pos.tp) pos.status = 'CLOSE_TP';
+  } else {
+    if (currentPrice >= pos.sl) pos.status = 'CLOSE_SL';
+    else if (currentPrice <= pos.tp) pos.status = 'CLOSE_TP';
+  }
 
-    // Marcar para cierre si toca SL o TP
-    if (pos.side === 'BUY') {
-      if (currentPrice <= pos.sl) pos.status = 'CLOSE_SL';
-      if (currentPrice >= pos.tp) pos.status = 'CLOSE_TP';
-    } else {
-      if (currentPrice >= pos.sl) pos.status = 'CLOSE_SL';
-      if (currentPrice <= pos.tp) pos.status = 'CLOSE_TP';
-    }
-  });
+  if (pos.status === 'CLOSE_TP' || pos.status === 'CLOSE_SL') {
+    const result   = pos.status === 'CLOSE_TP' ? 'WIN' : 'LOSS';
+    const pnlPips  = pos.direction === 'BUY'
+      ? +(currentPrice - pos.entryPrice).toFixed(2)
+      : +(pos.entryPrice - currentPrice).toFixed(2);
+
+    console.log('[CLOSE]', result, 'exit:', currentPrice, 'pnl:', pnlPips);
+    shadow.recordClose(pos.timestamp, currentPrice, result, pnlPips);
+    state.update('openPosition', null);
+  }
 }
 
 module.exports = { manage };

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.1 — Panel</title>
+  <title>ForexBot v25.2 — Panel</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -75,7 +75,7 @@
 </head>
 <body>
 
-<h1>FOREXBOT <small style="font-size:13px;color:#666;">v25.1</small> — PANEL</h1>
+<h1>FOREXBOT <small style="font-size:13px;color:#666;">v25.2</small> — PANEL</h1>
 
 <div class="grid">
   <div class="card">
@@ -109,6 +109,21 @@
   <div class="card">
     <div class="card-label">Warmup</div>
     <div class="card-value" id="val-warmup">—</div>
+  </div>
+</div>
+
+<div class="grid" id="shadow-block">
+  <div class="card">
+    <div class="card-label">Shadow — Operaciones</div>
+    <div class="card-value" id="val-shadow-total">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Shadow — Win Rate</div>
+    <div class="card-value" id="val-shadow-winrate">—</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Shadow — PnL (pips)</div>
+    <div class="card-value" id="val-shadow-pnl">—</div>
   </div>
 </div>
 
@@ -185,6 +200,18 @@
     } else {
       badgeEl.className = 'badge badge-neutral';
       badgeEl.textContent = '—';
+    }
+
+    // Shadow stats
+    if (d.shadowStats) {
+      const s = d.shadowStats;
+      set('val-shadow-total',   s.total);
+      set('val-shadow-winrate', s.total > 0 ? s.winRate + '%' : '—');
+      const pnlEl = document.getElementById('val-shadow-pnl');
+      if (pnlEl) {
+        pnlEl.textContent = s.total > 0 ? (s.pnlPips >= 0 ? '+' : '') + s.pnlPips : '—';
+        pnlEl.style.color = s.pnlPips >= 0 ? '#00cc44' : '#ff4444';
+      }
     }
 
     // Detalle posición

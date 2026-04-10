@@ -9,6 +9,7 @@ const l4Pivots     = require('../layers/l4-pivots');
 const l5PvtSmoothed = require('../layers/l5-pvt-smoothed');
 const l6Position   = require('../layers/l6-position');
 const killSwitch   = require('../systems/kill-switch');
+const shadow       = require('../systems/shadow');
 
 function onTick(tick) {
   // 1. Actualizar precio en state
@@ -41,6 +42,7 @@ function onTick(tick) {
     const price = state.get('price.current');
     const sl = finalSignal.side === 'BUY' ? price * 0.99 : price * 1.01;
     const tp = finalSignal.side === 'BUY' ? price * 1.02 : price * 0.98;
+    const timestamp = Date.now();
     state.update('openPosition', {
       direction: finalSignal.side,
       entryPrice: price,
@@ -48,7 +50,16 @@ function onTick(tick) {
       pipMul: 1,
       beApplied: false,
       status: 'OPEN',
-      timestamp: Date.now()
+      timestamp
+    });
+    shadow.recordOpen({
+      side:       finalSignal.side,
+      entryPrice: price,
+      sl, tp,
+      timestamp,
+      regime:     regime.label,
+      adx:        indicators.adx,
+      rsi:        indicators.rsi
     });
     console.log('[OPEN]', finalSignal.side, 'entry:', price, 'sl:', sl.toFixed(2), 'tp:', tp.toFixed(2));
   }

@@ -3,6 +3,7 @@ const http    = require('http');
 const path    = require('path');
 const WebSocket = require('ws');
 const state   = require('../engine/state');
+const shadow  = require('../systems/shadow');
 
 const PORT = 3000;
 
@@ -38,6 +39,7 @@ function getStateSnapshot() {
     warmupComplete:  state.get('warmupComplete'),
     position:        state.get('openPosition'),
     statusBadge:     state.get('position.statusBadge'),
+    shadowStats:     shadow.getStats(),
   };
 }
 
