@@ -5,158 +5,502 @@
   <title>ForexBot v25.2 — Panel</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       background: #0d0d0d;
       color: #e0e0e0;
       font-family: 'Courier New', monospace;
-      font-size: 14px;
-      padding: 24px;
+      font-size: 13px;
+      min-height: 100vh;
     }
-    h1 { color: #ffffff; font-size: 18px; margin-bottom: 20px; letter-spacing: 2px; }
+
+    /* ── HEADER ── */
+    .header {
+      background: #111;
+      border-bottom: 1px solid #222;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title {
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      color: #fff;
+    }
+    .header-title span { color: #555; font-size: 12px; letter-spacing: 1px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .price-header {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00cc44;
+      letter-spacing: 1px;
+    }
+    #ws-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #444;
+      display: inline-block;
+    }
+    #ws-dot.connected { background: #00cc44; box-shadow: 0 0 6px #00cc44; }
+    #ws-dot.error     { background: #ff4444; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: #111;
+      border-bottom: 1px solid #222;
+      padding: 0 24px;
+    }
+    .tab {
+      padding: 11px 20px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      color: #555;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      text-transform: uppercase;
+      user-select: none;
+    }
+    .tab:hover  { color: #aaa; }
+    .tab.active { color: #fff; border-bottom-color: #00cc44; }
+
+    /* ── CONTENT ── */
+    .content { padding: 24px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── GRID ── */
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 12px;
+      margin-bottom: 16px;
     }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+    /* ── CARD ── */
     .card {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
+      background: #141414;
+      border: 1px solid #222;
       border-radius: 6px;
       padding: 14px 16px;
     }
     .card-label {
-      color: #666;
-      font-size: 11px;
+      color: #555;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 6px;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
     }
     .card-value {
-      font-size: 20px;
+      font-size: 22px;
       font-weight: bold;
-      color: #ffffff;
+      color: #fff;
     }
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: bold;
-    }
-    .badge-danger  { background: #3d0000; color: #ff4444; }
-    .badge-warn    { background: #2e2200; color: #ffaa00; }
-    .badge-ok      { background: #003d10; color: #00cc44; }
-    .badge-neutral { background: #1e1e1e; color: #888; }
+    .card-value.sm { font-size: 15px; }
+    .card.highlight { border-color: #1e3a1e; background: #0f1f0f; }
+    .card.warn      { border-color: #3a2e00; background: #1a1500; }
+    .card.danger    { border-color: #3a0000; background: #1a0000; }
 
+    /* Régimen */
     .regime-LATERAL_EXTREMO { color: #ff4444; }
     .regime-LATERAL         { color: #ffaa00; }
     .regime-TENDENCIAL      { color: #00cc44; }
 
-    #position-block {
-      margin-top: 16px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      padding: 14px 16px;
+    /* ── BADGE ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
     }
-    #position-block .card-label { margin-bottom: 10px; }
-    #position-detail { font-size: 13px; color: #aaa; line-height: 1.8; }
+    .badge-danger  { background: #3d0000; color: #ff4444; }
+    .badge-warn    { background: #2e2200; color: #ffaa00; }
+    .badge-ok      { background: #003d10; color: #00cc44; }
+    .badge-neutral { background: #1e1e1e; color: #666; }
 
-    #ws-status {
-      position: fixed;
-      bottom: 16px;
-      right: 20px;
-      font-size: 11px;
-      color: #444;
+    /* ── POSICIÓN CARD ── */
+    .pos-card {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 16px;
     }
-    #ws-status.connected { color: #00cc44; }
-    #ws-status.error     { color: #ff4444; }
+    .pos-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .pos-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .pos-field { }
+    .pos-field-label { font-size: 10px; color: #555; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+    .pos-field-value { font-size: 14px; font-weight: bold; color: #ccc; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #444;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1c1c1c;
+    }
+
+    /* ── INDICADORES ── */
+    .ind-bar-wrap {
+      margin-top: 6px;
+      background: #1a1a1a;
+      border-radius: 3px;
+      height: 4px;
+      overflow: hidden;
+    }
+    .ind-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: #00cc44;
+      transition: width .4s;
+    }
+
+    /* ── HISTORIAL TABLE ── */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .history-table th {
+      text-align: left;
+      color: #555;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 12px;
+      border-bottom: 1px solid #1e1e1e;
+    }
+    .history-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #181818;
+      color: #aaa;
+    }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table .win  { color: #00cc44; font-weight: bold; }
+    .history-table .loss { color: #ff4444; font-weight: bold; }
+    .history-table .buy  { color: #00cc44; }
+    .history-table .sell { color: #ff4444; }
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: #333;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    /* ── SHADOW STATS ── */
+    .winrate-bar-wrap {
+      background: #1a1a1a;
+      border-radius: 4px;
+      height: 6px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .winrate-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: #00cc44;
+      transition: width .6s;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 12px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row-label { color: #555; letter-spacing: 1px; }
+    .stat-row-value { font-weight: bold; color: #ccc; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
   </style>
 </head>
 <body>
 
-<h1>FOREXBOT <small style="font-size:13px;color:#666;">v25.2</small> — PANEL</h1>
-
-<div class="grid">
-  <div class="card">
-    <div class="card-label">Precio actual</div>
-    <div class="card-value" id="val-price">—</div>
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">
+    FOREXBOT <span>v25.2 — BTCUSDT</span>
   </div>
-  <div class="card">
-    <div class="card-label">Régimen</div>
-    <div class="card-value" id="val-regime">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">ADX</div>
-    <div class="card-value" id="val-adx">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">RSI</div>
-    <div class="card-value" id="val-rsi">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Umbral actual</div>
-    <div class="card-value" id="val-threshold">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Losses consecutivos</div>
-    <div class="card-value" id="val-closs">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Shadow Mode</div>
-    <div class="card-value" id="val-shadow">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Warmup</div>
-    <div class="card-value" id="val-warmup">—</div>
+  <div class="header-right">
+    <div class="price-header" id="hdr-price">—</div>
+    <div>
+      <span id="ws-dot"></span>
+      <span id="ws-label" style="font-size:11px;color:#444;margin-left:6px;">desconectado</span>
+    </div>
   </div>
 </div>
 
-<div class="grid" id="shadow-block">
-  <div class="card">
-    <div class="card-label">Shadow — Operaciones</div>
-    <div class="card-value" id="val-shadow-total">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Shadow — Win Rate</div>
-    <div class="card-value" id="val-shadow-winrate">—</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Shadow — PnL (pips)</div>
-    <div class="card-value" id="val-shadow-pnl">—</div>
-  </div>
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="bot">Bot</div>
+  <div class="tab" data-tab="indicadores">Indicadores</div>
+  <div class="tab" data-tab="historial">Historial</div>
+  <div class="tab" data-tab="shadow">Shadow</div>
 </div>
 
-<div id="position-block">
-  <div class="card-label">Posición abierta</div>
-  <div id="val-badge">—</div>
-  <div id="position-detail">Sin posición abierta</div>
-</div>
+<!-- CONTENT -->
+<div class="content">
 
-<div id="ws-status">● WS desconectado</div>
+  <!-- ── TAB BOT ── -->
+  <div class="tab-panel active" id="tab-bot">
+
+    <div class="grid grid-4">
+      <div class="card">
+        <div class="card-label">Precio</div>
+        <div class="card-value" id="val-price">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Régimen</div>
+        <div class="card-value" id="val-regime">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Shadow Mode</div>
+        <div class="card-value" id="val-shadow">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Warmup</div>
+        <div class="card-value" id="val-warmup">—</div>
+      </div>
+    </div>
+
+    <div class="grid grid-4">
+      <div class="card">
+        <div class="card-label">Losses consecutivos</div>
+        <div class="card-value" id="val-closs">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Umbral activo</div>
+        <div class="card-value" id="val-threshold-bot">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">ADX</div>
+        <div class="card-value" id="val-adx-bot">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">RSI</div>
+        <div class="card-value" id="val-rsi-bot">—</div>
+      </div>
+    </div>
+
+    <!-- Posición abierta -->
+    <div class="section-title">Posición abierta</div>
+    <div class="pos-card" id="pos-card">
+      <div class="pos-card-header">
+        <span id="val-badge" class="badge badge-neutral">—</span>
+        <span id="pos-status-text" style="color:#555;font-size:12px;">Sin posición abierta</span>
+      </div>
+      <div class="pos-grid" id="pos-detail-grid" style="display:none">
+        <div class="pos-field">
+          <div class="pos-field-label">Dirección</div>
+          <div class="pos-field-value" id="pos-dir">—</div>
+        </div>
+        <div class="pos-field">
+          <div class="pos-field-label">Entry</div>
+          <div class="pos-field-value" id="pos-entry">—</div>
+        </div>
+        <div class="pos-field">
+          <div class="pos-field-label">Stop Loss</div>
+          <div class="pos-field-value" style="color:#ff4444" id="pos-sl">—</div>
+        </div>
+        <div class="pos-field">
+          <div class="pos-field-label">Take Profit</div>
+          <div class="pos-field-value" style="color:#00cc44" id="pos-tp">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-bot -->
+
+  <!-- ── TAB INDICADORES ── -->
+  <div class="tab-panel" id="tab-indicadores">
+
+    <div class="section-title">Técnicos</div>
+    <div class="grid grid-4">
+      <div class="card">
+        <div class="card-label">ADX</div>
+        <div class="card-value" id="val-adx">—</div>
+        <div class="ind-bar-wrap"><div class="ind-bar" id="bar-adx" style="width:0%"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">RSI</div>
+        <div class="card-value" id="val-rsi">—</div>
+        <div class="ind-bar-wrap"><div class="ind-bar" id="bar-rsi" style="width:0%;background:#ffaa00"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Umbral dinámico</div>
+        <div class="card-value" id="val-threshold">—</div>
+        <div class="ind-bar-wrap"><div class="ind-bar" id="bar-threshold" style="width:0%;background:#888"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Régimen</div>
+        <div class="card-value" id="val-regime-ind">—</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:8px">Próximos indicadores</div>
+    <div class="grid grid-4">
+      <div class="card">
+        <div class="card-label">MACD hist</div>
+        <div class="card-value sm" style="color:#333">pendiente</div>
+      </div>
+      <div class="card">
+        <div class="card-label">EMA cross</div>
+        <div class="card-value sm" style="color:#333">pendiente</div>
+      </div>
+      <div class="card">
+        <div class="card-label">BB position</div>
+        <div class="card-value sm" style="color:#333">pendiente</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Stoch RSI</div>
+        <div class="card-value sm" style="color:#333">pendiente</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-indicadores -->
+
+  <!-- ── TAB HISTORIAL ── -->
+  <div class="tab-panel" id="tab-historial">
+
+    <div class="section-title">Operaciones shadow cerradas</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Side</th>
+            <th>Entry</th>
+            <th>Exit</th>
+            <th>SL</th>
+            <th>TP</th>
+            <th>PnL</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="8"><div class="empty-state">SIN OPERACIONES REGISTRADAS</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab-historial -->
+
+  <!-- ── TAB SHADOW ── -->
+  <div class="tab-panel" id="tab-shadow">
+
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="card-label">Total operaciones</div>
+        <div class="card-value" id="val-shadow-total">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Win Rate</div>
+        <div class="card-value" id="val-shadow-winrate">—</div>
+        <div class="winrate-bar-wrap">
+          <div class="winrate-bar" id="bar-winrate" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">PnL acumulado (pips)</div>
+        <div class="card-value" id="val-shadow-pnl">—</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:8px">Desglose</div>
+    <div class="card" style="max-width:400px">
+      <div class="stat-row">
+        <span class="stat-row-label">WINS</span>
+        <span class="stat-row-value" id="val-shadow-wins" style="color:#00cc44">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">LOSSES</span>
+        <span class="stat-row-value" id="val-shadow-losses" style="color:#ff4444">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">WIN RATE</span>
+        <span class="stat-row-value" id="val-shadow-winrate2">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">PNL TOTAL</span>
+        <span class="stat-row-value" id="val-shadow-pnl2">—</span>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:16px">Estado</div>
+    <div class="grid grid-2" style="max-width:420px">
+      <div class="card">
+        <div class="card-label">Modo activo</div>
+        <div class="card-value" id="val-shadow-mode">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Posición abierta</div>
+        <div class="card-value" id="val-shadow-pos">—</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-shadow -->
+
+</div><!-- /content -->
 
 <script>
-  const wsStatus = document.getElementById('ws-status');
+  // ── TABS ────────────────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── WEBSOCKET ───────────────────────────────────────────────────────────────
+  const wsDot   = document.getElementById('ws-dot');
+  const wsLabel = document.getElementById('ws-label');
 
   function connect() {
     const ws = new WebSocket('ws://localhost:3000');
 
     ws.onopen = () => {
-      wsStatus.textContent = '● Conectado';
-      wsStatus.className = 'connected';
+      wsDot.className = 'connected';
+      wsLabel.textContent = 'conectado';
+      wsLabel.style.color = '#00cc44';
     };
-
     ws.onclose = () => {
-      wsStatus.textContent = '● Desconectado — reconectando...';
-      wsStatus.className = 'error';
+      wsDot.className = 'error';
+      wsLabel.textContent = 'reconectando...';
+      wsLabel.style.color = '#ff4444';
       setTimeout(connect, 3000);
     };
-
     ws.onerror = () => {
-      wsStatus.textContent = '● Error WS';
-      wsStatus.className = 'error';
+      wsDot.className = 'error';
+      wsLabel.textContent = 'error WS';
     };
-
     ws.onmessage = (event) => {
       let d;
       try { d = JSON.parse(event.data); } catch { return; }
@@ -164,14 +508,19 @@
     };
   }
 
+  // ── UPDATE ──────────────────────────────────────────────────────────────────
   function update(d) {
-    set('val-price',     d.price     != null ? d.price : '—');
-    set('val-adx',       d.adx       != null ? d.adx   : '—');
-    set('val-rsi',       d.rsi       != null ? (+d.rsi).toFixed(1) : '—');
-    set('val-threshold', d.threshold != null ? d.threshold : '—');
-    set('val-closs',     d.consecutiveLoss != null ? d.consecutiveLoss : '—');
+    // Header precio
+    set('hdr-price', d.price != null ? d.price : '—');
 
-    // Régimen con color
+    // Tab Bot
+    set('val-price',         d.price     != null ? d.price : '—');
+    set('val-adx-bot',       d.adx       != null ? (+d.adx).toFixed(1) : '—');
+    set('val-rsi-bot',       d.rsi       != null ? (+d.rsi).toFixed(1) : '—');
+    set('val-threshold-bot', d.threshold != null ? d.threshold : '—');
+    set('val-closs',         d.consecutiveLoss != null ? d.consecutiveLoss : '—');
+
+    // Régimen (Bot)
     const regimeEl = document.getElementById('val-regime');
     if (regimeEl) {
       regimeEl.textContent = d.regime || '—';
@@ -179,14 +528,18 @@
     }
 
     // Shadow Mode
-    set('val-shadow', d.isShadowMode ? 'ON' : 'OFF');
     const shadowEl = document.getElementById('val-shadow');
-    if (shadowEl) shadowEl.style.color = d.isShadowMode ? '#ffaa00' : '#888';
+    if (shadowEl) {
+      shadowEl.textContent = d.isShadowMode ? 'ON' : 'OFF';
+      shadowEl.style.color = d.isShadowMode ? '#ffaa00' : '#888';
+    }
 
     // Warmup
-    set('val-warmup', d.warmupComplete ? 'SI' : 'NO');
     const warmupEl = document.getElementById('val-warmup');
-    if (warmupEl) warmupEl.style.color = d.warmupComplete ? '#00cc44' : '#ff4444';
+    if (warmupEl) {
+      warmupEl.textContent = d.warmupComplete ? 'SI' : 'NO';
+      warmupEl.style.color = d.warmupComplete ? '#00cc44' : '#ff4444';
+    }
 
     // Badge posición
     const badgeEl = document.getElementById('val-badge');
@@ -202,35 +555,86 @@
       badgeEl.textContent = '—';
     }
 
+    // Detalle posición
+    const posStatusText = document.getElementById('pos-status-text');
+    const posGrid       = document.getElementById('pos-detail-grid');
+    if (d.position) {
+      const p = d.position;
+      posStatusText.style.color = '#aaa';
+      posStatusText.textContent = p.direction === 'BUY' ? 'Largo abierto' : 'Corto abierto';
+      posGrid.style.display = 'grid';
+      set('pos-dir',   p.direction  || '—');
+      set('pos-entry', p.entryPrice != null ? p.entryPrice.toFixed ? p.entryPrice.toFixed(2) : p.entryPrice : '—');
+      set('pos-sl',    p.sl         != null ? (+p.sl).toFixed(2) : '—');
+      set('pos-tp',    p.tp         != null ? (+p.tp).toFixed(2) : '—');
+      document.getElementById('pos-dir').style.color = p.direction === 'BUY' ? '#00cc44' : '#ff4444';
+    } else {
+      posStatusText.style.color = '#555';
+      posStatusText.textContent = 'Sin posición abierta';
+      posGrid.style.display = 'none';
+    }
+
+    // Tab Indicadores
+    set('val-adx',       d.adx       != null ? (+d.adx).toFixed(1) : '—');
+    set('val-rsi',       d.rsi       != null ? (+d.rsi).toFixed(1) : '—');
+    set('val-threshold', d.threshold != null ? d.threshold : '—');
+
+    const regimeIndEl = document.getElementById('val-regime-ind');
+    if (regimeIndEl) {
+      regimeIndEl.textContent = d.regime || '—';
+      regimeIndEl.className = 'card-value regime-' + (d.regime || '');
+    }
+
+    // Barras indicadores
+    if (d.adx != null) setBar('bar-adx', Math.min(d.adx, 100));
+    if (d.rsi != null) setBar('bar-rsi', d.rsi);
+    if (d.threshold != null) setBar('bar-threshold', d.threshold);
+
     // Shadow stats
     if (d.shadowStats) {
       const s = d.shadowStats;
-      set('val-shadow-total',   s.total);
-      set('val-shadow-winrate', s.total > 0 ? s.winRate + '%' : '—');
-      const pnlEl = document.getElementById('val-shadow-pnl');
-      if (pnlEl) {
-        pnlEl.textContent = s.total > 0 ? (s.pnlPips >= 0 ? '+' : '') + s.pnlPips : '—';
-        pnlEl.style.color = s.pnlPips >= 0 ? '#00cc44' : '#ff4444';
-      }
-    }
+      const losses = s.total - s.wins;
+      const pnlColor = s.pnlPips >= 0 ? '#00cc44' : '#ff4444';
+      const pnlStr   = s.total > 0 ? (s.pnlPips >= 0 ? '+' : '') + s.pnlPips : '—';
+      const wrStr    = s.total > 0 ? s.winRate + '%' : '—';
 
-    // Detalle posición
-    const posEl = document.getElementById('position-detail');
-    if (d.position) {
-      const p = d.position;
-      posEl.innerHTML =
-        `Side: <b>${p.side || '—'}</b> &nbsp;|&nbsp; ` +
-        `Entry: <b>${p.entryPrice || '—'}</b> &nbsp;|&nbsp; ` +
-        `SL: <b>${p.sl || '—'}</b> &nbsp;|&nbsp; ` +
-        `TP: <b>${p.tp || '—'}</b>`;
-    } else {
-      posEl.textContent = 'Sin posición abierta';
+      set('val-shadow-total',   s.total);
+      set('val-shadow-winrate', wrStr);
+      set('val-shadow-winrate2', wrStr);
+      set('val-shadow-wins',    s.total > 0 ? s.wins : '—');
+      set('val-shadow-losses',  s.total > 0 ? losses : '—');
+
+      const pnlEl  = document.getElementById('val-shadow-pnl');
+      const pnlEl2 = document.getElementById('val-shadow-pnl2');
+      if (pnlEl)  { pnlEl.textContent  = pnlStr; pnlEl.style.color  = pnlColor; }
+      if (pnlEl2) { pnlEl2.textContent = pnlStr; pnlEl2.style.color = pnlColor; }
+
+      setBar('bar-winrate', s.winRate);
+
+      // Shadow tab — estado
+      const shadowModeEl = document.getElementById('val-shadow-mode');
+      if (shadowModeEl) {
+        shadowModeEl.textContent = d.isShadowMode ? 'ON' : 'OFF';
+        shadowModeEl.style.color = d.isShadowMode ? '#ffaa00' : '#888';
+      }
+      const shadowPosEl = document.getElementById('val-shadow-pos');
+      if (shadowPosEl) {
+        shadowPosEl.textContent = d.position ? d.position.direction : 'NONE';
+        shadowPosEl.style.color = d.position
+          ? (d.position.direction === 'BUY' ? '#00cc44' : '#ff4444')
+          : '#555';
+      }
     }
   }
 
   function set(id, val) {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
+  }
+
+  function setBar(id, pct) {
+    const el = document.getElementById(id);
+    if (el) el.style.width = Math.min(Math.max(pct, 0), 100) + '%';
   }
 
   connect();
