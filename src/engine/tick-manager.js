@@ -36,12 +36,30 @@ function onTick(tick) {
   const finalSignal = l5PvtSmoothed.validate(signalAfterPivots, indicators);
   console.log('[L5]', finalSignal);
 
+  // 6.5. Abrir posición si hay señal y no hay posición abierta
+  if ((finalSignal.side === 'BUY' || finalSignal.side === 'SELL') && state.get('openPosition') === null) {
+    const price = state.get('price.current');
+    const sl = finalSignal.side === 'BUY' ? price * 0.99 : price * 1.01;
+    const tp = finalSignal.side === 'BUY' ? price * 1.02 : price * 0.98;
+    state.update('openPosition', {
+      direction: finalSignal.side,
+      entryPrice: price,
+      sl, tp,
+      pipMul: 1,
+      beApplied: false,
+      status: 'OPEN',
+      timestamp: Date.now()
+    });
+    console.log('[OPEN]', finalSignal.side, 'entry:', price, 'sl:', sl.toFixed(2), 'tp:', tp.toFixed(2));
+  }
+
   // 7. Gestionar posiciones abiertas (trailing, BE, TP/SL)
   l6Position.manage(state.get('openPosition'));
 
   // 8. Verificar kill switch
   killSwitch.check();
 
+  console.log('[threshold]', state.get('signal.threshold'));
   return { indicators, regime, signal: finalSignal };
 }
 

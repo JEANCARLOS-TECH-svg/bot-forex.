@@ -2,14 +2,14 @@
 
 ## 1. Versión — 4 lugares obligatorios
 
-Cada vez que se cambie la versión hay que actualizarla en **exactamente estos 4 lugares** de `index.html`:
+Cada vez que se cambie la versión hay que actualizarla en **exactamente estos 4 lugares** (arquitectura Node.js `src/`):
 
-| # | Ubicación | Línea aprox. | Ejemplo actual |
-|---|---|---|---|
-| 1 | `<title>` del HTML | ~6 | `<title>ForexBot v24.10.7 — PC Edition</title>` |
-| 2 | Header del panel principal | ~1015 | `<small>v24.10.7 — PC Edition</small>` |
-| 3 | Mensaje Telegram `/connect` | ~5675 | `'<b>ForexBot v24.10.7</b>\n'` |
-| 4 | Mensaje Telegram al conectar | ~5745 | `tgSend('✅ ForexBot v24.10.7 conectado...` |
+| # | Archivo | Ubicación |
+|---|---|---|
+| 1 | `src/ui/panel/index.html` | `<title>ForexBot vX.X — Panel</title>` |
+| 2 | `src/ui/panel/index.html` | `<h1>FOREXBOT <small>vX.X</small>` |
+| 3 | `src/adapters/telegram-bot.js` | `notify('✅ <b>ForexBot vX.X</b> conectado...')` |
+| 4 | `src/adapters/telegram-bot.js` | `/status` y `/help` headers |
 
 **Nunca actualizar solo algunos — los 4 siempre en el mismo commit.**
 
@@ -17,19 +17,18 @@ Cada vez que se cambie la versión hay que actualizarla en **exactamente estos 4
 
 | Tipo de cambio | Qué incrementar | Ejemplo |
 |---|---|---|
-| Bugfix, ajuste pequeño, tweak | Último número | `v24.10.7` → `v24.10.8` |
-| Feature nueva, cambio moderado | Último número | `v24.10.7` → `v24.10.8` |
-| Cambio grande / refactor mayor | Versión mayor | `v24.10.x` → `v25.0.0` |
+| Bugfix, ajuste pequeño, tweak, feature | Número minor | `v25.0` → `v25.1` |
+| Cambio grande / refactor mayor | Versión mayor | `v25.x` → `v26.0` |
 
-Regla práctica: si el cambio afecta el comportamiento core del bot (motor de señales, gestión de riesgo, arquitectura) → versión mayor. Si es UI, fix, o feature adicional → último número.
+Regla práctica: si el cambio afecta el comportamiento core del bot (motor de señales, gestión de riesgo, arquitectura) → versión mayor. Si es fix, ajuste o feature adicional → v25.X.
 
 ## 3. Commit y push obligatorio al terminar
 
 Después de cada tarea completada:
 
 ```bash
-git add index.html
-git commit -m "Update version vX.Y.Z — <descripción breve>"
+git add src/ui/panel/index.html src/adapters/telegram-bot.js <otros archivos modificados>
+git commit -m "vX.X — <descripción breve>"
 git push origin main
 ```
 
@@ -39,14 +38,15 @@ git push origin main
 
 ## 4. Estructura del proyecto
 
-- `index.html` — toda la aplicación (HTML + CSS + JS en un solo archivo)
-- `sw.js` — Service Worker para PWA / caché offline
-- `manifest.json` — metadatos PWA (versión independiente, no actualizar aquí)
+- `server.js` — entry point Node.js
+- `src/engine/` — state, tick-manager, kill-switch, storage
+- `src/layers/` — l1-regime → l6-position (pipeline de señales)
+- `src/adapters/` — binance-connector, telegram-bot
+- `src/ui/` — servidor Express + panel web (`panel/index.html`)
 - `memory/` — memoria persistente de Claude para este proyecto
 
 ## 5. Notas de desarrollo
 
-- La app es una PWA de archivo único — no hay build system ni bundler.
-- Todos los datos persisten en `localStorage` del navegador.
-- El auto-backup (cerebro IA + shadow stats) usa File System Access API — requiere Chrome/Edge.
-- Las credenciales de Telegram están hardcodeadas en el JS — no extraer a archivos separados.
+- Backend Node.js — `npm start` / `npm run dev` (con --watch).
+- Panel web en `http://localhost:3000`, datos via WebSocket.
+- Las credenciales de Telegram y Binance están en `.env` — no commitear.

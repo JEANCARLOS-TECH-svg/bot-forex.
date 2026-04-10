@@ -6,9 +6,9 @@ function calcularUmbralDinamico(adxActual, regimeLabel) {
   if (regimeLabel === 'LATERAL_EXTREMO') return 70;
   if (regimeLabel === 'LATERAL')         return 65;
   // TENDENCIAL
-  if (adxActual > 40)  return 55;
-  if (adxActual >= 25) return 60;
-  return 60;
+  if (adxActual > 40)  return 50;
+  if (adxActual >= 25) return 55;
+  return 55;
 }
 
 function checkSignal(indicators, regime) {
@@ -53,6 +53,16 @@ function checkSignal(indicators, regime) {
   const sellPct = (totalSell / maxScore) * 100;
 
   state.update('signal.threshold', umbral);
+
+  // ── DEBUG DETALLADO ──
+  const votes = {
+    RSI:   rsi < 35 ? 'BUY' : rsi > 65 ? 'SELL' : '—',
+    MACD:  macd.hist > 0 && macd.macd > macd.signal ? 'BUY' : macd.hist < 0 && macd.macd < macd.signal ? 'SELL' : '—',
+    EMA:   emaFast > emaSlow ? 'BUY' : emaFast < emaSlow ? 'SELL' : '—',
+    BB:    currentPrice <= bb.lower ? 'BUY' : currentPrice >= bb.upper ? 'SELL' : '—',
+    STOCH: adx <= 30 ? (stoch.k < 20 ? 'BUY' : stoch.k > 80 ? 'SELL' : '—') : 'skip(ADX>30)',
+  };
+  console.log(`[L3-DETAIL] buy=${buyPct.toFixed(1)}% sell=${sellPct.toFixed(1)}% umbral=${umbral} maxScore=${maxScore}`, votes);
 
   if (buyPct >= umbral && buyPct > sellPct)  return { side: 'BUY',  score: buyPct,  umbral };
   if (sellPct >= umbral && sellPct > buyPct) return { side: 'SELL', score: sellPct, umbral };

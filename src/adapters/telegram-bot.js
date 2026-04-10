@@ -24,7 +24,7 @@ function start() {
     polling: { interval: 1000, params: { timeout: 10 } }
   });
   console.log('[Telegram] Bot iniciado');
-  notify('✅ <b>ForexBot v25.0</b> conectado. Escribe /help para ver los comandos.');
+  notify('✅ <b>ForexBot v25.1</b> conectado. Escribe /help para ver los comandos.');
 
   bot.onText(/\/status/, (msg) => {
     const regime       = state.get('market.regime');
@@ -33,7 +33,7 @@ function start() {
     const warmup       = state.get('warmupComplete');
 
     const text =
-      `<b>ForexBot v25.0 — Status</b>\n` +
+      `<b>ForexBot v25.1 — Status</b>\n` +
       `Régimen: <code>${regime}</code>\n` +
       `Losses consecutivos: <code>${consLoss}</code>\n` +
       `Shadow mode: <code>${shadowMode}</code>\n` +
@@ -56,7 +56,7 @@ function start() {
 
   bot.onText(/\/help/, (msg) => {
     bot.sendMessage(msg.chat.id,
-      '<b>ForexBot v25.0 — Comandos disponibles:</b>\n' +
+      '<b>ForexBot v25.1 — Comandos disponibles:</b>\n' +
       '/status — estado actual del bot\n' +
       '/shadow — activar/desactivar shadow mode\n' +
       '/stop — desconectar Binance\n' +
