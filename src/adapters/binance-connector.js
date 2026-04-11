@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
-const state      = require('../engine/state');
-const tickManager = require('../engine/tick-manager');
+const state        = require('../engine/state');
+const tickManager  = require('../engine/tick-manager');
+const l2Indicators = require('../layers/l2-indicators');
 
 const WS_BASE = 'wss://stream.binance.com:9443/ws';
 const CANDLE_WARMUP  = 100;
@@ -28,6 +29,11 @@ async function preloadCandles(symbol) {
   if (!state.get('warmupComplete') && buffer.length >= CANDLE_WARMUP) {
     state.update('warmupComplete', true);
   }
+
+  // Poblar indicadores en state inmediatamente tras la precarga
+  const lastCandle = candles[candles.length - 1];
+  state.update('price.current', lastCandle.close);
+  l2Indicators.calculateAll();
 
   console.log(`[Binance] Precarga: ${candles.length} velas — warmup ${state.get('warmupComplete') ? 'completo' : 'pendiente'}`);
 }
