@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.2 — Panel</title>
+  <title>ForexBot v25.3 — Panel</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -245,7 +245,7 @@
 <!-- HEADER -->
 <div class="header">
   <div class="header-title">
-    FOREXBOT <span>v25.2 — BTCUSDT</span>
+    FOREXBOT <span>v25.3 — BTCUSDT</span>
   </div>
   <div class="header-right">
     <div class="price-header" id="hdr-price">—</div>
@@ -508,6 +508,7 @@
     ws.onmessage = (event) => {
       let d;
       try { d = JSON.parse(event.data); } catch { return; }
+      console.log('snapshot:', JSON.stringify(d));
       update(d);
     };
   }
