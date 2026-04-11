@@ -591,55 +591,73 @@
     if (d.rsi != null) setBar('bar-rsi', d.rsi);
     if (d.threshold != null) setBar('bar-threshold', d.threshold);
 
-    // MACD
-    if (d.macd != null) {
-      const hist = d.macd.hist;
+    // MACD hist
+    {
+      const hist  = d.macd?.hist;
       const histEl = document.getElementById('val-macd-hist');
       if (histEl) {
-        histEl.textContent = hist >= 0 ? '+' + hist.toFixed(2) : hist.toFixed(2);
-        histEl.style.color = hist > 0 ? '#00cc44' : hist < 0 ? '#ff4444' : '#888';
+        if (hist != null) {
+          histEl.textContent = hist >= 0 ? '+' + hist.toFixed(2) : hist.toFixed(2);
+          histEl.style.color = hist > 0 ? '#00cc44' : hist < 0 ? '#ff4444' : '#888';
+        } else {
+          histEl.textContent = '—'; histEl.style.color = '#555';
+        }
       }
-      set('val-macd-signal',
-        'macd ' + d.macd.macd.toFixed(1) + ' · sig ' + d.macd.signal.toFixed(1));
+      if (d.macd?.macd != null && d.macd?.signal != null)
+        set('val-macd-signal', 'macd ' + d.macd.macd.toFixed(1) + ' · sig ' + d.macd.signal.toFixed(1));
     }
 
     // EMA cross
-    if (d.ema && d.ema.fast != null && d.ema.slow != null && d.ema.fast !== 0) {
-      const isBull  = d.ema.fast > d.ema.slow;
+    {
+      const fast  = d.ema?.fast;
+      const slow  = d.ema?.slow;
       const crossEl = document.getElementById('val-ema-cross');
       if (crossEl) {
-        crossEl.textContent = isBull ? 'BULL' : 'BEAR';
-        crossEl.style.color = isBull ? '#00cc44' : '#ff4444';
+        if (fast != null && slow != null) {
+          const isBull = fast > slow;
+          crossEl.textContent = isBull ? 'BULL' : 'BEAR';
+          crossEl.style.color = isBull ? '#00cc44' : '#ff4444';
+          set('val-ema-vals', 'fast ' + fast.toFixed(1) + ' · slow ' + slow.toFixed(1));
+        } else {
+          crossEl.textContent = '—'; crossEl.style.color = '#555';
+        }
       }
-      set('val-ema-vals',
-        'fast ' + d.ema.fast.toFixed(1) + ' · slow ' + d.ema.slow.toFixed(1));
     }
 
     // BB posición
-    if (d.bb != null && d.price != null) {
-      const { upper, mid, lower } = d.bb;
-      const range = upper - lower || 1;
-      const pct   = ((d.price - lower) / range) * 100;
+    {
+      const upper = d.bb?.upper;
+      const lower = d.bb?.lower;
       const bbEl  = document.getElementById('val-bb-pos');
       if (bbEl) {
-        if (d.price >= upper)      { bbEl.textContent = 'SOBRECOMPRA'; bbEl.style.color = '#ff4444'; }
-        else if (d.price <= lower) { bbEl.textContent = 'SOBREVENTA';  bbEl.style.color = '#00cc44'; }
-        else                       { bbEl.textContent = pct.toFixed(0) + '%'; bbEl.style.color = '#aaa'; }
+        if (upper != null && lower != null && d.price != null) {
+          const range = upper - lower || 1;
+          const pct   = ((d.price - lower) / range) * 100;
+          if (d.price >= upper)      { bbEl.textContent = 'SOBRECOMPRA'; bbEl.style.color = '#ff4444'; }
+          else if (d.price <= lower) { bbEl.textContent = 'SOBREVENTA';  bbEl.style.color = '#00cc44'; }
+          else                       { bbEl.textContent = pct.toFixed(0) + '%'; bbEl.style.color = '#aaa'; }
+          set('val-bb-vals', '↑ ' + upper.toFixed(0) + ' · ↓ ' + lower.toFixed(0));
+        } else {
+          bbEl.textContent = '—'; bbEl.style.color = '#555';
+        }
       }
-      set('val-bb-vals', '↑ ' + upper.toFixed(0) + ' · ↓ ' + lower.toFixed(0));
     }
 
-    // Stoch RSI
-    if (d.stoch != null && d.stoch.k != null) {
-      const k    = d.stoch.k;
-      const sEl  = document.getElementById('val-stoch-k');
+    // Stoch RSI · K
+    {
+      const k   = d.stoch?.k;
+      const sEl = document.getElementById('val-stoch-k');
       if (sEl) {
-        sEl.textContent = k.toFixed(1);
-        sEl.style.color = k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#aaa';
+        if (k != null) {
+          sEl.textContent = k.toFixed(1);
+          sEl.style.color = k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#aaa';
+          setBar('bar-stoch', k);
+          document.getElementById('bar-stoch').style.background =
+            k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#888';
+        } else {
+          sEl.textContent = '—'; sEl.style.color = '#555';
+        }
       }
-      setBar('bar-stoch', k);
-      document.getElementById('bar-stoch').style.background =
-        k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#888';
     }
 
     // Shadow stats
