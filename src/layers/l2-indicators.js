@@ -161,11 +161,13 @@ function calculateAll() {
     pvt:      calcPVTSmoothed(prices, volumes),
   };
 
-  state.update('indicators.rsi', result.rsi);
-  state.update('indicators.macd', result.macd);
-  state.update('indicators.bb', result.bb);
+  state.update('indicators.rsi',     result.rsi);
+  state.update('indicators.macd',    result.macd);
+  state.update('indicators.bb',      result.bb);
+  state.update('indicators.emaFast', result.emaFast);
+  state.update('indicators.emaSlow', result.emaSlow);
   state.update('indicators.stochRSI', result.stoch);
-  state.update('indicators.adx', result.adx);
+  state.update('indicators.adx',     result.adx);
   state.update('indicators.pvtSmoothed', result.pvt.pvt);
   state.update('indicators.pvtCurrent', result.pvt.pvt);
   state.update('indicators.pvtScore', result.pvt.bullish ? 1 : result.pvt.bearish ? -1 : 0);

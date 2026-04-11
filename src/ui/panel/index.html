@@ -363,23 +363,27 @@
       </div>
     </div>
 
-    <div class="section-title" style="margin-top:8px">Próximos indicadores</div>
+    <div class="section-title" style="margin-top:8px">Señales</div>
     <div class="grid grid-4">
       <div class="card">
         <div class="card-label">MACD hist</div>
-        <div class="card-value sm" style="color:#333">pendiente</div>
+        <div class="card-value sm" id="val-macd-hist">—</div>
+        <div style="font-size:11px;color:#555;margin-top:4px" id="val-macd-signal">macd — · sig —</div>
       </div>
       <div class="card">
         <div class="card-label">EMA cross</div>
-        <div class="card-value sm" style="color:#333">pendiente</div>
+        <div class="card-value sm" id="val-ema-cross">—</div>
+        <div style="font-size:11px;color:#555;margin-top:4px" id="val-ema-vals">fast — · slow —</div>
       </div>
       <div class="card">
-        <div class="card-label">BB position</div>
-        <div class="card-value sm" style="color:#333">pendiente</div>
+        <div class="card-label">BB posición</div>
+        <div class="card-value sm" id="val-bb-pos">—</div>
+        <div style="font-size:11px;color:#555;margin-top:4px" id="val-bb-vals">↑ — · ↓ —</div>
       </div>
       <div class="card">
-        <div class="card-label">Stoch RSI</div>
-        <div class="card-value sm" style="color:#333">pendiente</div>
+        <div class="card-label">Stoch RSI · K</div>
+        <div class="card-value sm" id="val-stoch-k">—</div>
+        <div class="ind-bar-wrap" style="margin-top:6px"><div class="ind-bar" id="bar-stoch" style="width:0%;background:#888"></div></div>
       </div>
     </div>
 
@@ -589,6 +593,57 @@
     if (d.adx != null) setBar('bar-adx', Math.min(d.adx, 100));
     if (d.rsi != null) setBar('bar-rsi', d.rsi);
     if (d.threshold != null) setBar('bar-threshold', d.threshold);
+
+    // MACD
+    if (d.macd) {
+      const hist = d.macd.hist;
+      const histEl = document.getElementById('val-macd-hist');
+      if (histEl) {
+        histEl.textContent = hist >= 0 ? '+' + hist.toFixed(2) : hist.toFixed(2);
+        histEl.style.color = hist > 0 ? '#00cc44' : hist < 0 ? '#ff4444' : '#888';
+      }
+      set('val-macd-signal',
+        'macd ' + d.macd.macd.toFixed(1) + ' · sig ' + d.macd.signal.toFixed(1));
+    }
+
+    // EMA cross
+    if (d.ema && d.ema.fast != null && d.ema.slow != null) {
+      const isBull  = d.ema.fast > d.ema.slow;
+      const crossEl = document.getElementById('val-ema-cross');
+      if (crossEl) {
+        crossEl.textContent = isBull ? 'BULL' : 'BEAR';
+        crossEl.style.color = isBull ? '#00cc44' : '#ff4444';
+      }
+      set('val-ema-vals',
+        'fast ' + d.ema.fast.toFixed(1) + ' · slow ' + d.ema.slow.toFixed(1));
+    }
+
+    // BB posición
+    if (d.bb && d.price != null) {
+      const { upper, mid, lower } = d.bb;
+      const range = upper - lower || 1;
+      const pct   = ((d.price - lower) / range) * 100;
+      const bbEl  = document.getElementById('val-bb-pos');
+      if (bbEl) {
+        if (d.price >= upper)      { bbEl.textContent = 'SOBRECOMPRA'; bbEl.style.color = '#ff4444'; }
+        else if (d.price <= lower) { bbEl.textContent = 'SOBREVENTA';  bbEl.style.color = '#00cc44'; }
+        else                       { bbEl.textContent = pct.toFixed(0) + '%'; bbEl.style.color = '#aaa'; }
+      }
+      set('val-bb-vals', '↑ ' + upper.toFixed(0) + ' · ↓ ' + lower.toFixed(0));
+    }
+
+    // Stoch RSI
+    if (d.stoch && d.stoch.k != null) {
+      const k    = d.stoch.k;
+      const sEl  = document.getElementById('val-stoch-k');
+      if (sEl) {
+        sEl.textContent = k.toFixed(1);
+        sEl.style.color = k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#aaa';
+      }
+      setBar('bar-stoch', k);
+      document.getElementById('bar-stoch').style.background =
+        k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#888';
+    }
 
     // Shadow stats
     if (d.shadowStats) {
