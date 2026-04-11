@@ -3,21 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <title>ForexBot v25.6 — Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg:      #0d1117;
+      --panel:   #161d2a;
+      --panel2:  #111827;
+      --border:  #1e2a3a;
+      --border2: #253044;
+      --accent:  #00e5a0;
+      --accent2: #3b9eff;
+      --danger:  #ff4d6a;
+      --warn:    #f5a623;
+      --muted:   #475569;
+      --text:    #e2e8f0;
+      --text2:   #94a3b8;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: #0d0d0d;
-      color: #e0e0e0;
-      font-family: 'Courier New', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
       font-size: 13px;
       min-height: 100vh;
     }
 
     /* ── HEADER ── */
     .header {
-      background: #111;
-      border-bottom: 1px solid #222;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
       padding: 14px 24px;
       display: flex;
       align-items: center;
@@ -25,47 +41,59 @@
     }
     .header-title {
       font-size: 15px;
-      font-weight: bold;
+      font-weight: 800;
       letter-spacing: 3px;
-      color: #fff;
+      color: var(--text);
     }
-    .header-title span { color: #555; font-size: 12px; letter-spacing: 1px; }
+    .header-title span { color: var(--muted); font-size: 12px; letter-spacing: 1px; font-weight: 400; }
     .header-right { display: flex; align-items: center; gap: 16px; }
     .price-header {
+      font-family: 'Space Mono', monospace;
       font-size: 18px;
-      font-weight: bold;
-      color: #00cc44;
+      font-weight: 700;
+      color: var(--accent);
       letter-spacing: 1px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent); }
+      50%       { opacity: 0.45; box-shadow: 0 0 14px var(--accent); }
     }
     #ws-dot {
       width: 8px; height: 8px;
       border-radius: 50%;
-      background: #444;
+      background: var(--muted);
       display: inline-block;
     }
-    #ws-dot.connected { background: #00cc44; box-shadow: 0 0 6px #00cc44; }
-    #ws-dot.error     { background: #ff4444; }
+    #ws-dot.connected {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    #ws-dot.error { background: var(--danger); }
 
     /* ── TABS ── */
     .tabs {
       display: flex;
-      background: #111;
-      border-bottom: 1px solid #222;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
       padding: 0 24px;
     }
     .tab {
       padding: 11px 20px;
       font-size: 12px;
       letter-spacing: 2px;
-      color: #555;
+      color: var(--muted);
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: color .15s, border-color .15s;
       text-transform: uppercase;
       user-select: none;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
     }
-    .tab:hover  { color: #aaa; }
-    .tab.active { color: #fff; border-bottom-color: #00cc44; }
+    .tab:hover  { color: var(--text2); }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
 
     /* ── CONTENT ── */
     .content { padding: 24px; }
@@ -85,32 +113,35 @@
 
     /* ── CARD ── */
     .card {
-      background: #141414;
-      border: 1px solid #222;
+      background: var(--panel);
+      border: 1px solid var(--border);
       border-radius: 6px;
       padding: 14px 16px;
     }
     .card-label {
-      color: #555;
+      color: var(--muted);
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
       margin-bottom: 8px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
     }
     .card-value {
+      font-family: 'Space Mono', monospace;
       font-size: 22px;
-      font-weight: bold;
-      color: #fff;
+      font-weight: 700;
+      color: var(--text);
     }
     .card-value.sm { font-size: 15px; }
-    .card.highlight { border-color: #1e3a1e; background: #0f1f0f; }
-    .card.warn      { border-color: #3a2e00; background: #1a1500; }
-    .card.danger    { border-color: #3a0000; background: #1a0000; }
+    .card.highlight { border-color: #1a3a2a; background: #0f1f18; }
+    .card.warn      { border-color: #3a2e00; background: #1c1800; }
+    .card.danger    { border-color: #3a1020; background: #1a0a10; }
 
     /* Régimen */
-    .regime-LATERAL_EXTREMO { color: #ff4444; }
-    .regime-LATERAL         { color: #ffaa00; }
-    .regime-TENDENCIAL      { color: #00cc44; }
+    .regime-LATERAL_EXTREMO { color: var(--danger); }
+    .regime-LATERAL         { color: var(--warn); }
+    .regime-TENDENCIAL      { color: var(--accent); }
 
     /* ── BADGE ── */
     .badge {
@@ -118,18 +149,19 @@
       padding: 3px 10px;
       border-radius: 4px;
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 700;
       letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
     }
-    .badge-danger  { background: #3d0000; color: #ff4444; }
-    .badge-warn    { background: #2e2200; color: #ffaa00; }
-    .badge-ok      { background: #003d10; color: #00cc44; }
-    .badge-neutral { background: #1e1e1e; color: #666; }
+    .badge-danger  { background: #2d0e16; color: var(--danger); }
+    .badge-warn    { background: #2e2200; color: var(--warn); }
+    .badge-ok      { background: #00291e; color: var(--accent); }
+    .badge-neutral { background: var(--panel2); color: var(--muted); }
 
     /* ── POSICIÓN CARD ── */
     .pos-card {
-      background: #141414;
-      border: 1px solid #222;
+      background: var(--panel);
+      border: 1px solid var(--border);
       border-radius: 6px;
       padding: 16px;
       margin-bottom: 16px;
@@ -146,24 +178,26 @@
       gap: 8px;
     }
     .pos-field { }
-    .pos-field-label { font-size: 10px; color: #555; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
-    .pos-field-value { font-size: 14px; font-weight: bold; color: #ccc; }
+    .pos-field-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; font-family: 'Syne', sans-serif; font-weight: 600; }
+    .pos-field-value { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: var(--text2); }
 
     /* ── SECTION TITLE ── */
     .section-title {
       font-size: 10px;
       letter-spacing: 2px;
-      color: #444;
+      color: var(--muted);
       text-transform: uppercase;
       margin-bottom: 12px;
       padding-bottom: 6px;
-      border-bottom: 1px solid #1c1c1c;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
     }
 
     /* ── INDICADORES ── */
     .ind-bar-wrap {
       margin-top: 6px;
-      background: #1a1a1a;
+      background: var(--panel2);
       border-radius: 3px;
       height: 4px;
       overflow: hidden;
@@ -171,7 +205,7 @@
     .ind-bar {
       height: 100%;
       border-radius: 3px;
-      background: #00cc44;
+      background: var(--accent);
       transition: width .4s;
     }
 
@@ -183,34 +217,37 @@
     }
     .history-table th {
       text-align: left;
-      color: #555;
+      color: var(--muted);
       font-size: 10px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
       padding: 8px 12px;
-      border-bottom: 1px solid #1e1e1e;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
     }
     .history-table td {
+      font-family: 'Space Mono', monospace;
       padding: 9px 12px;
-      border-bottom: 1px solid #181818;
-      color: #aaa;
+      border-bottom: 1px solid var(--border);
+      color: var(--text2);
     }
     .history-table tr:last-child td { border-bottom: none; }
-    .history-table .win  { color: #00cc44; font-weight: bold; }
-    .history-table .loss { color: #ff4444; font-weight: bold; }
-    .history-table .buy  { color: #00cc44; }
-    .history-table .sell { color: #ff4444; }
+    .history-table .win  { color: var(--accent); font-weight: 700; }
+    .history-table .loss { color: var(--danger); font-weight: 700; }
+    .history-table .buy  { color: var(--accent); }
+    .history-table .sell { color: var(--danger); }
     .empty-state {
       padding: 40px;
       text-align: center;
-      color: #333;
+      color: var(--muted);
       font-size: 12px;
       letter-spacing: 1px;
     }
 
     /* ── SHADOW STATS ── */
     .winrate-bar-wrap {
-      background: #1a1a1a;
+      background: var(--panel2);
       border-radius: 4px;
       height: 6px;
       margin-top: 10px;
@@ -219,7 +256,7 @@
     .winrate-bar {
       height: 100%;
       border-radius: 4px;
-      background: #00cc44;
+      background: var(--accent);
       transition: width .6s;
     }
     .stat-row {
@@ -227,17 +264,17 @@
       justify-content: space-between;
       align-items: center;
       padding: 9px 0;
-      border-bottom: 1px solid #1a1a1a;
+      border-bottom: 1px solid var(--border);
       font-size: 12px;
     }
     .stat-row:last-child { border-bottom: none; }
-    .stat-row-label { color: #555; letter-spacing: 1px; }
-    .stat-row-value { font-weight: bold; color: #ccc; }
+    .stat-row-label { color: var(--muted); letter-spacing: 1px; font-family: 'Syne', sans-serif; font-weight: 600; }
+    .stat-row-value { font-family: 'Space Mono', monospace; font-weight: 700; color: var(--text2); }
 
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #111; }
-    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+    ::-webkit-scrollbar-track { background: var(--panel2); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
   </style>
 </head>
 <body>
@@ -251,7 +288,7 @@
     <div class="price-header" id="hdr-price">—</div>
     <div>
       <span id="ws-dot"></span>
-      <span id="ws-label" style="font-size:11px;color:#444;margin-left:6px;">desconectado</span>
+      <span id="ws-label" style="font-size:11px;color:var(--muted);margin-left:6px;font-family:'Syne',sans-serif;">desconectado</span>
     </div>
   </div>
 </div>
@@ -323,12 +360,12 @@
       <div class="card">
         <div class="card-label">RSI</div>
         <div class="card-value" id="val-rsi">—</div>
-        <div class="ind-bar-wrap"><div class="ind-bar" id="bar-rsi" style="width:0%;background:#ffaa00"></div></div>
+        <div class="ind-bar-wrap"><div class="ind-bar" id="bar-rsi" style="width:0%;background:var(--warn)"></div></div>
       </div>
       <div class="card">
         <div class="card-label">Umbral dinámico</div>
         <div class="card-value" id="val-threshold">—</div>
-        <div class="ind-bar-wrap"><div class="ind-bar" id="bar-threshold" style="width:0%;background:#888"></div></div>
+        <div class="ind-bar-wrap"><div class="ind-bar" id="bar-threshold" style="width:0%;background:var(--accent2)"></div></div>
       </div>
       <div class="card">
         <div class="card-label">Régimen</div>
@@ -341,22 +378,22 @@
       <div class="card">
         <div class="card-label">MACD hist</div>
         <div class="card-value sm" id="val-macd-hist">—</div>
-        <div style="font-size:11px;color:#555;margin-top:4px" id="val-macd-signal">macd — · sig —</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:'Space Mono',monospace" id="val-macd-signal">macd — · sig —</div>
       </div>
       <div class="card">
         <div class="card-label">EMA cross</div>
         <div class="card-value sm" id="val-ema-cross">—</div>
-        <div style="font-size:11px;color:#555;margin-top:4px" id="val-ema-vals">fast — · slow —</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:'Space Mono',monospace" id="val-ema-vals">fast — · slow —</div>
       </div>
       <div class="card">
         <div class="card-label">BB posición</div>
         <div class="card-value sm" id="val-bb-pos">—</div>
-        <div style="font-size:11px;color:#555;margin-top:4px" id="val-bb-vals">↑ — · ↓ —</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;font-family:'Space Mono',monospace" id="val-bb-vals">↑ — · ↓ —</div>
       </div>
       <div class="card">
         <div class="card-label">Stoch RSI · K</div>
         <div class="card-value sm" id="val-stoch-k">—</div>
-        <div class="ind-bar-wrap" style="margin-top:6px"><div class="ind-bar" id="bar-stoch" style="width:0%;background:#888"></div></div>
+        <div class="ind-bar-wrap" style="margin-top:6px"><div class="ind-bar" id="bar-stoch" style="width:0%;background:var(--muted)"></div></div>
       </div>
     </div>
 
@@ -413,11 +450,11 @@
     <div class="card" style="max-width:400px">
       <div class="stat-row">
         <span class="stat-row-label">WINS</span>
-        <span class="stat-row-value" id="val-shadow-wins" style="color:#00cc44">—</span>
+        <span class="stat-row-value" id="val-shadow-wins" style="color:var(--accent)">—</span>
       </div>
       <div class="stat-row">
         <span class="stat-row-label">LOSSES</span>
-        <span class="stat-row-value" id="val-shadow-losses" style="color:#ff4444">—</span>
+        <span class="stat-row-value" id="val-shadow-losses" style="color:var(--danger)">—</span>
       </div>
       <div class="stat-row">
         <span class="stat-row-label">WIN RATE</span>
@@ -455,11 +492,11 @@
         </div>
         <div class="pos-field">
           <div class="pos-field-label">Stop Loss</div>
-          <div class="pos-field-value" style="color:#ff4444" id="pos-sl">—</div>
+          <div class="pos-field-value" style="color:var(--danger)" id="pos-sl">—</div>
         </div>
         <div class="pos-field">
           <div class="pos-field-label">Take Profit</div>
-          <div class="pos-field-value" style="color:#00cc44" id="pos-tp">—</div>
+          <div class="pos-field-value" style="color:var(--accent)" id="pos-tp">—</div>
         </div>
       </div>
     </div>
@@ -489,12 +526,12 @@
     ws.onopen = () => {
       wsDot.className = 'connected';
       wsLabel.textContent = 'conectado';
-      wsLabel.style.color = '#00cc44';
+      wsLabel.style.color = '#00e5a0';
     };
     ws.onclose = () => {
       wsDot.className = 'error';
       wsLabel.textContent = 'reconectando...';
-      wsLabel.style.color = '#ff4444';
+      wsLabel.style.color = '#ff4d6a';
       setTimeout(connect, 3000);
     };
     ws.onerror = () => {
@@ -532,14 +569,14 @@
     const shadowEl = document.getElementById('val-shadow');
     if (shadowEl) {
       shadowEl.textContent = d.isShadowMode ? 'ON' : 'OFF';
-      shadowEl.style.color = d.isShadowMode ? '#ffaa00' : '#888';
+      shadowEl.style.color = d.isShadowMode ? '#f5a623' : '#475569';
     }
 
     // Warmup
     const warmupEl = document.getElementById('val-warmup');
     if (warmupEl) {
       warmupEl.textContent = d.warmupComplete ? 'SI' : 'NO';
-      warmupEl.style.color = d.warmupComplete ? '#00cc44' : '#ff4444';
+      warmupEl.style.color = d.warmupComplete ? '#00e5a0' : '#ff4d6a';
     }
 
     // Badge posición
@@ -561,16 +598,16 @@
     const posGrid       = document.getElementById('pos-detail-grid');
     if (d.position) {
       const p = d.position;
-      posStatusText.style.color = '#aaa';
+      posStatusText.style.color = '#94a3b8';
       posStatusText.textContent = p.direction === 'BUY' ? 'Largo abierto' : 'Corto abierto';
       posGrid.style.display = 'grid';
       set('pos-dir',   p.direction  || '—');
       set('pos-entry', p.entryPrice != null ? p.entryPrice.toFixed ? p.entryPrice.toFixed(2) : p.entryPrice : '—');
       set('pos-sl',    p.sl         != null ? (+p.sl).toFixed(2) : '—');
       set('pos-tp',    p.tp         != null ? (+p.tp).toFixed(2) : '—');
-      document.getElementById('pos-dir').style.color = p.direction === 'BUY' ? '#00cc44' : '#ff4444';
+      document.getElementById('pos-dir').style.color = p.direction === 'BUY' ? '#00e5a0' : '#ff4d6a';
     } else {
-      posStatusText.style.color = '#555';
+      posStatusText.style.color = '#475569';
       posStatusText.textContent = 'Sin posición abierta';
       posGrid.style.display = 'none';
     }
@@ -598,9 +635,9 @@
       if (histEl) {
         if (hist != null) {
           histEl.textContent = hist >= 0 ? '+' + hist.toFixed(2) : hist.toFixed(2);
-          histEl.style.color = hist > 0 ? '#00cc44' : hist < 0 ? '#ff4444' : '#888';
+          histEl.style.color = hist > 0 ? '#00e5a0' : hist < 0 ? '#ff4d6a' : '#475569';
         } else {
-          histEl.textContent = '—'; histEl.style.color = '#555';
+          histEl.textContent = '—'; histEl.style.color = '#475569';
         }
       }
       if (d.macd?.macd != null && d.macd?.signal != null)
@@ -616,10 +653,10 @@
         if (fast != null && slow != null) {
           const isBull = fast > slow;
           crossEl.textContent = isBull ? 'BULL' : 'BEAR';
-          crossEl.style.color = isBull ? '#00cc44' : '#ff4444';
+          crossEl.style.color = isBull ? '#00e5a0' : '#ff4d6a';
           set('val-ema-vals', 'fast ' + fast.toFixed(1) + ' · slow ' + slow.toFixed(1));
         } else {
-          crossEl.textContent = '—'; crossEl.style.color = '#555';
+          crossEl.textContent = '—'; crossEl.style.color = '#475569';
         }
       }
     }
@@ -633,12 +670,12 @@
         if (upper != null && lower != null && d.price != null) {
           const range = upper - lower || 1;
           const pct   = ((d.price - lower) / range) * 100;
-          if (d.price >= upper)      { bbEl.textContent = 'SOBRECOMPRA'; bbEl.style.color = '#ff4444'; }
-          else if (d.price <= lower) { bbEl.textContent = 'SOBREVENTA';  bbEl.style.color = '#00cc44'; }
-          else                       { bbEl.textContent = pct.toFixed(0) + '%'; bbEl.style.color = '#aaa'; }
+          if (d.price >= upper)      { bbEl.textContent = 'SOBRECOMPRA'; bbEl.style.color = '#ff4d6a'; }
+          else if (d.price <= lower) { bbEl.textContent = 'SOBREVENTA';  bbEl.style.color = '#00e5a0'; }
+          else                       { bbEl.textContent = pct.toFixed(0) + '%'; bbEl.style.color = '#94a3b8'; }
           set('val-bb-vals', '↑ ' + upper.toFixed(0) + ' · ↓ ' + lower.toFixed(0));
         } else {
-          bbEl.textContent = '—'; bbEl.style.color = '#555';
+          bbEl.textContent = '—'; bbEl.style.color = '#475569';
         }
       }
     }
@@ -650,12 +687,12 @@
       if (sEl) {
         if (k != null) {
           sEl.textContent = k.toFixed(1);
-          sEl.style.color = k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#aaa';
+          sEl.style.color = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#94a3b8';
           setBar('bar-stoch', k);
           document.getElementById('bar-stoch').style.background =
-            k < 20 ? '#00cc44' : k > 80 ? '#ff4444' : '#888';
+            k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#475569';
         } else {
-          sEl.textContent = '—'; sEl.style.color = '#555';
+          sEl.textContent = '—'; sEl.style.color = '#475569';
         }
       }
     }
@@ -685,7 +722,7 @@
       const shadowModeEl = document.getElementById('val-shadow-mode');
       if (shadowModeEl) {
         shadowModeEl.textContent = d.isShadowMode ? 'ON' : 'OFF';
-        shadowModeEl.style.color = d.isShadowMode ? '#ffaa00' : '#888';
+        shadowModeEl.style.color = d.isShadowMode ? '#f5a623' : '#475569';
       }
     }
   }
