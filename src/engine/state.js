@@ -6,7 +6,7 @@ class State extends EventEmitter {
     super();
     this.data = {
       price: { current: 0, high: 0, low: 0, spread: 0 },
-      indicators: { adx: 0, rsi: 0, macd: null, bb: null, ema: null, stochRSI: null, pvtSmoothed: 0, pvtHistory: [], pvtCurrent: 0, pvtScore: 0 },
+      indicators: { adx: 0, rsi: 0, macd: null, bb: null, ema: null, emaFast: 0, emaSlow: 0, stochRSI: null, pvtSmoothed: 0, pvtHistory: [], pvtCurrent: 0, pvtScore: 0 },
       market: { regime: 'LATERAL_EXTREMO', thresholdModifier: 5, pivot: null, symmetricConflict: false, lastCandle: null },
       signal: { score: 0, direction: null, threshold: 45, approved: false, finalScore: 0 },
       session: { consecutiveLoss: 0, pnlPips: 0, trades: 0, isShadowMode: true },

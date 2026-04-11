@@ -596,7 +596,7 @@
     if (d.threshold != null) setBar('bar-threshold', d.threshold);
 
     // MACD
-    if (d.macd) {
+    if (d.macd != null) {
       const hist = d.macd.hist;
       const histEl = document.getElementById('val-macd-hist');
       if (histEl) {
@@ -608,7 +608,7 @@
     }
 
     // EMA cross
-    if (d.ema && d.ema.fast != null && d.ema.slow != null) {
+    if (d.ema && d.ema.fast != null && d.ema.slow != null && d.ema.fast !== 0) {
       const isBull  = d.ema.fast > d.ema.slow;
       const crossEl = document.getElementById('val-ema-cross');
       if (crossEl) {
@@ -620,7 +620,7 @@
     }
 
     // BB posición
-    if (d.bb && d.price != null) {
+    if (d.bb != null && d.price != null) {
       const { upper, mid, lower } = d.bb;
       const range = upper - lower || 1;
       const pct   = ((d.price - lower) / range) * 100;
@@ -634,7 +634,7 @@
     }
 
     // Stoch RSI
-    if (d.stoch && d.stoch.k != null) {
+    if (d.stoch != null && d.stoch.k != null) {
       const k    = d.stoch.k;
       const sEl  = document.getElementById('val-stoch-k');
       if (sEl) {
