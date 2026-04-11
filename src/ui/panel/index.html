@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.3 — Panel</title>
+  <title>ForexBot v25.4 — Panel</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -245,7 +245,7 @@
 <!-- HEADER -->
 <div class="header">
   <div class="header-title">
-    FOREXBOT <span>v25.3 — BTCUSDT</span>
+    FOREXBOT <span>v25.4 — BTCUSDT</span>
   </div>
   <div class="header-right">
     <div class="price-header" id="hdr-price">—</div>
@@ -434,10 +434,6 @@
       <div class="card">
         <div class="card-label">Modo activo</div>
         <div class="card-value" id="val-shadow-mode">—</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Posición abierta</div>
-        <div class="card-value" id="val-shadow-pos">—</div>
       </div>
     </div>
 
@@ -672,13 +668,6 @@
       if (shadowModeEl) {
         shadowModeEl.textContent = d.isShadowMode ? 'ON' : 'OFF';
         shadowModeEl.style.color = d.isShadowMode ? '#ffaa00' : '#888';
-      }
-      const shadowPosEl = document.getElementById('val-shadow-pos');
-      if (shadowPosEl) {
-        shadowPosEl.textContent = d.position ? d.position.direction : 'NONE';
-        shadowPosEl.style.color = d.position
-          ? (d.position.direction === 'BUY' ? '#00cc44' : '#ff4444')
-          : '#555';
       }
     }
   }
