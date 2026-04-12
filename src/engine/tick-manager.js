@@ -50,8 +50,10 @@ function onTick(tick) {
   // 6.5. Abrir posición si hay señal y no hay posición abierta
   if ((finalSignal.side === 'BUY' || finalSignal.side === 'SELL') && state.get('openPosition') === null) {
     const price = state.get('price.current');
-    const sl = finalSignal.side === 'BUY' ? price * 0.99 : price * 1.01;
-    const tp = finalSignal.side === 'BUY' ? price * 1.02 : price * 0.98;
+    const atr = state.get('indicators.atr') || 0.01;  // fracción del precio; fallback 1%
+    const slDist = price * atr;
+    const sl = finalSignal.side === 'BUY' ? price - slDist : price + slDist;
+    const tp = finalSignal.side === 'BUY' ? price + slDist * 2 : price - slDist * 2;
     const timestamp = Date.now();
     state.update('openPosition', {
       direction: finalSignal.side,

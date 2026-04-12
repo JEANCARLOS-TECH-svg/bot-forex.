@@ -115,6 +115,22 @@ function calcADX(prices, highs, lows, period) {
   return Math.min(100, Math.round(dx));
 }
 
+// ── calcATR ───────────────────────────────────────────────────────────────────
+function calcATR(highs, lows, closes, period) {
+  if (!period) period = 14;
+  if (closes.length < period + 1) return null;
+  const trueRanges = [];
+  for (let i = closes.length - period - 1; i < closes.length - 1; i++) {
+    const tr = Math.max(
+      highs[i + 1] - lows[i + 1],
+      Math.abs(highs[i + 1] - closes[i]),
+      Math.abs(lows[i + 1] - closes[i])
+    );
+    trueRanges.push(tr);
+  }
+  return trueRanges.reduce((a, b) => a + b, 0) / period;
+}
+
 // ── calcPVTSmoothed ───────────────────────────────────────────────────────────
 function calcPVTSmoothed(prices, volumes) {
   if(prices.length < 6 || volumes.length < 6) return { pvt: 0, slope: 0, bullish: false, bearish: false };
@@ -150,6 +166,11 @@ function calculateAll() {
   const lows    = state.get('candleBuffer').map(c => c.low);
   const volumes = state.get('candleBuffer').map(c => c.volume);
 
+  const rawAtr = calcATR(highs, lows, prices, 14);
+  const lastPrice = prices[prices.length - 1] || 1;
+  // Normalizar ATR como fracción del precio (ej. 0.001 = 0.1%) para usar en SL/TP
+  const atr = rawAtr !== null ? rawAtr / lastPrice : null;
+
   const result = {
     rsi:      calcRSI(prices, 14),
     macd:     calcMACD(prices, 12, 26, 9),
@@ -159,6 +180,7 @@ function calculateAll() {
     stoch:    calcStochRSI(prices, 14, 3, 3),
     adx:      calcADX(prices, highs, lows, 14),
     pvt:      calcPVTSmoothed(prices, volumes),
+    atr,
   };
 
   state.update('indicators.rsi',     result.rsi);
@@ -171,6 +193,7 @@ function calculateAll() {
   state.update('indicators.pvtSmoothed', result.pvt.pvt);
   state.update('indicators.pvtCurrent', result.pvt.pvt);
   state.update('indicators.pvtScore', result.pvt.bullish ? 1 : result.pvt.bearish ? -1 : 0);
+  if (atr !== null) state.update('indicators.atr', atr);
 
   return result;
 }
@@ -184,5 +207,6 @@ module.exports = {
   calcBollinger,
   calcStochRSI,
   calcADX,
+  calcATR,
   calcPVTSmoothed,
 };
