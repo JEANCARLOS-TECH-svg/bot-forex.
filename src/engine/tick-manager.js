@@ -1,6 +1,8 @@
 // ── TICK MANAGER — ORDEN SAGRADO DEL TICK ────────────────────────────────────
 // El orden NO se cambia. Cada capa depende del resultado de la anterior.
 
+const fs           = require('fs');
+const path         = require('path');
 const state        = require('./state');
 const l2Indicators = require('../layers/l2-indicators');
 const l1Regime     = require('../layers/l1-regime');
@@ -11,7 +13,15 @@ const l6Position   = require('../layers/l6-position');
 const killSwitch   = require('../systems/kill-switch');
 const shadow       = require('../systems/shadow');
 
+const ERROR_LOG = path.join(__dirname, '../../data/errors.log');
+
+function logError(err) {
+  const line = `[${new Date().toISOString()}] ${err.stack || err.message}\n`;
+  fs.appendFile(ERROR_LOG, line, () => {});
+}
+
 function onTick(tick) {
+  try {
   // 1. Actualizar precio en state
   state.update('price.current', tick.close);
   state.update('price.high', tick.high);
@@ -72,6 +82,14 @@ function onTick(tick) {
 
   console.log('[threshold]', state.get('signal.threshold'));
   return { indicators, regime, signal: finalSignal };
+  } catch (err) {
+    console.error('[onTick] ERROR:', err);
+    logError(err);
+    try {
+      const { notify } = require('../adapters/telegram-bot');
+      notify(`⚠️ <b>Error en onTick</b>\n<code>${err.message}</code>`);
+    } catch (_) {}
+  }
 }
 
 module.exports = { onTick };
