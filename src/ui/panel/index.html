@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.18 — Panel</title>
+  <title>ForexBot v25.19 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -304,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.18 — BTCUSDT</small>
+      <small>v25.19 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -657,26 +657,14 @@
     <!-- 13. SENTIMIENTO DEL MERCADO -->
     <div class="panel">
       <div class="panel-title">Sentimiento del mercado</div>
-      <div class="sentiment-row">
-        <span class="sentiment-label">Tendencia</span>
-        <div class="sentiment-bar-wrap"><div class="sentiment-bar-fill" style="width:50%;background:var(--muted)"></div></div>
-        <span class="sentiment-val c-muted">—</span>
+      <div class="ai-conf-label">
+        <span>TENDENCIA · MOMENTUM · VOLATILIDAD · VOLUMEN</span>
+        <span id="sent-label-val" class="c-pur">— / 100</span>
       </div>
-      <div class="sentiment-row">
-        <span class="sentiment-label">Momentum</span>
-        <div class="sentiment-bar-wrap"><div class="sentiment-bar-fill" style="width:50%;background:var(--muted)"></div></div>
-        <span class="sentiment-val c-muted">—</span>
+      <div class="ai-conf-track">
+        <div class="ai-conf-fill" id="sent-fill" style="width:0%"></div>
       </div>
-      <div class="sentiment-row">
-        <span class="sentiment-label">Volatilidad</span>
-        <div class="sentiment-bar-wrap"><div class="sentiment-bar-fill" style="width:30%;background:var(--accent2)"></div></div>
-        <span class="sentiment-val c-blue">BAJA</span>
-      </div>
-      <div class="sentiment-row">
-        <span class="sentiment-label">Volumen</span>
-        <div class="sentiment-bar-wrap"><div class="sentiment-bar-fill" style="width:40%;background:var(--warn)"></div></div>
-        <span class="sentiment-val c-warn">MED</span>
-      </div>
+      <div class="ai-conf-val c-pur" id="sent-val">—%</div>
     </div>
 
     <!-- 14. DIAGNÓSTICO -->
@@ -1031,6 +1019,18 @@
       if (sEl) { if (k != null) { sEl.textContent = k.toFixed(1); sEl.style.color = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#94a3b8'; setBar('bar-stoch', k); document.getElementById('bar-stoch').style.background = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#475569'; } else { sEl.textContent = '—'; sEl.style.color = '#475569'; } } }
 
     if (d.shadowHistory !== undefined) updateEquity(d.shadowHistory);
+
+    // Sentimiento compuesto: ADX + momentum RSI + volatilidad BB + volumen (neutral 50)
+    if (d.adx != null) {
+      const tendencia = Math.min(d.adx, 100);
+      const momentum  = d.rsi != null ? Math.abs(d.rsi - 50) * 2 : 50;
+      const volat     = (d.bb && d.price) ? Math.min(((d.bb.upper - d.bb.lower) / d.price) * 1000, 100) : 50;
+      const composite = +((tendencia + momentum + volat + 50) / 4).toFixed(1);
+      const sentFill  = document.getElementById('sent-fill');
+      if (sentFill) sentFill.style.width = Math.min(composite, 100) + '%';
+      set('sent-label-val', composite + ' / 100');
+      set('sent-val', composite + '%');
+    }
 
     if (d.shadowStats) {
       const s = d.shadowStats; const losses = s.total - s.wins;
