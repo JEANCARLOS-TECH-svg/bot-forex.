@@ -75,6 +75,7 @@ function onTick(tick) {
       side:       finalSignal.side,
       entryPrice: price,
       sl, tp,
+      size,
       timestamp,
       regime:     regime.label,
       adx:        indicators.adx,
