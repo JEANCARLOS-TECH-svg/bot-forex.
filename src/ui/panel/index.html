@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.23 — Panel</title>
+  <title>ForexBot v25.24 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -304,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.23 — BTCUSDT</small>
+      <small>v25.24 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -724,12 +724,11 @@
       </table>
     </div>
 
-    <!-- 17. EQUITY CURVE -->
+    <!-- 17. PRECIO EN TIEMPO REAL -->
     <div class="panel">
-      <div class="panel-title">Equity Curve — PnL acumulado</div>
-      <div id="equity-empty" style="display:none;padding:24px;text-align:center;color:var(--muted);font-size:11px;font-family:'Space Mono',monospace">Sin datos aún</div>
-      <div style="height:180px;overflow:hidden">
-        <canvas id="equity-chart" style="display:block;max-height:180px"></canvas>
+      <div class="panel-title">Precio BTC — Tiempo real</div>
+      <div style="height:200px;overflow:hidden">
+        <canvas id="price-chart" style="display:block;max-height:200px"></canvas>
       </div>
     </div>
 
@@ -903,6 +902,15 @@
     </div>
   </div>
 
+  <!-- Equity Curve -->
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">Equity Curve — PnL acumulado</div>
+    <div id="equity-empty" style="display:none;padding:24px;text-align:center;color:var(--muted);font-size:11px;font-family:'Space Mono',monospace">Sin datos aún</div>
+    <div style="height:180px;overflow:hidden">
+      <canvas id="equity-chart" style="display:block;max-height:180px"></canvas>
+    </div>
+  </div>
+
 </div><!-- /tab-shadow -->
 
 </div><!-- /wrapper -->
@@ -1052,6 +1060,7 @@
     }
 
     if (d.shadowHistory !== undefined) updateEquity(d.shadowHistory);
+    if (d.price != null) updatePriceChart(d.price);
 
     // Sentimiento compuesto: ADX + momentum RSI + volatilidad BB + volumen (neutral 50)
     if (d.adx != null) {
@@ -1083,6 +1092,65 @@
 
   function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
   function setBar(id, pct) { const el = document.getElementById(id); if (el) el.style.width = Math.min(Math.max(pct, 0), 100) + '%'; }
+
+  // ── PRICE CHART (tiempo real)
+  let priceChart = null;
+  const priceBuffer = [];
+  const PRICE_MAX = 60;
+
+  function updatePriceChart(price) {
+    if (price == null) return;
+    priceBuffer.push(price);
+    if (priceBuffer.length > PRICE_MAX) priceBuffer.shift();
+
+    const canvas = document.getElementById('price-chart');
+    if (!canvas) return;
+
+    const first = priceBuffer[0];
+    const last  = priceBuffer[priceBuffer.length - 1];
+    const color = last >= first ? '#00e5a0' : '#ff4d6a';
+    const bgColor = last >= first ? 'rgba(0,229,160,0.07)' : 'rgba(255,77,106,0.07)';
+    const labels = priceBuffer.map((_, i) => i === 0 || i === priceBuffer.length - 1 ? String(i + 1) : '');
+
+    if (priceChart) {
+      priceChart.data.labels = labels;
+      priceChart.data.datasets[0].data = [...priceBuffer];
+      priceChart.data.datasets[0].borderColor = color;
+      priceChart.data.datasets[0].backgroundColor = bgColor;
+      priceChart.update('none');
+      return;
+    }
+
+    priceChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: [...priceBuffer],
+          borderColor: color,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          backgroundColor: bgColor,
+          tension: 0.2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2 }) }
+        }},
+        scales: {
+          x: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 }, maxTicksLimit: 6 }, grid: { color: '#1e2a3a' } },
+          y: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 }, maxTicksLimit: 5,
+                        callback: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0 }) },
+               grid: { color: '#1e2a3a' }, border: { dash: [3,3] } }
+        }
+      }
+    });
+  }
 
   // ── EQUITY CURVE
   let equityChart = null;
