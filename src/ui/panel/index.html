@@ -728,7 +728,9 @@
     <div class="panel">
       <div class="panel-title">Equity Curve — PnL acumulado</div>
       <div id="equity-empty" style="display:none;padding:24px;text-align:center;color:var(--muted);font-size:11px;font-family:'Space Mono',monospace">Sin datos aún</div>
-      <canvas id="equity-chart" height="140" style="display:block"></canvas>
+      <div style="height:180px;overflow:hidden">
+        <canvas id="equity-chart" style="display:block;max-height:180px"></canvas>
+      </div>
     </div>
 
     <!-- 16. LOG -->
