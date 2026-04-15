@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.15 — Panel</title>
+  <title>ForexBot v25.16 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -303,7 +303,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.15 — BTCUSDT</small>
+      <small>v25.16 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -622,10 +622,10 @@
   <!-- ════ COLUMNA DERECHA ════ -->
   <div class="right-col">
 
-    <!-- Estado del mercado (existing) -->
+    <!-- Métricas -->
     <div class="panel">
-      <div class="panel-title">Estado del mercado</div>
-      <div class="stats-row">
+      <div class="panel-title">Métricas</div>
+      <div class="stats-row" style="grid-template-columns:repeat(5,1fr)">
         <div class="stat">
           <div class="stat-val lg" id="val-price">—</div>
           <div class="stat-lbl">Precio</div>
@@ -635,29 +635,6 @@
           <div class="stat-lbl">Régimen</div>
         </div>
         <div class="stat">
-          <div class="stat-val" id="val-shadow">—</div>
-          <div class="stat-lbl">Shadow Mode</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val" id="val-warmup">—</div>
-          <div class="stat-lbl">Warmup</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Señales activas (existing) -->
-    <div class="panel">
-      <div class="panel-title">Señales activas</div>
-      <div class="stats-row">
-        <div class="stat">
-          <div class="stat-val" id="val-closs">—</div>
-          <div class="stat-lbl">Losses consec.</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val" id="val-threshold-bot">—</div>
-          <div class="stat-lbl">Umbral</div>
-        </div>
-        <div class="stat">
           <div class="stat-val" id="val-adx-bot">—</div>
           <div class="stat-lbl">ADX</div>
         </div>
@@ -665,12 +642,20 @@
           <div class="stat-val" id="val-rsi-bot">—</div>
           <div class="stat-lbl">RSI</div>
         </div>
+        <div class="stat">
+          <div class="stat-val" id="val-threshold-bot">—</div>
+          <div class="stat-lbl">Umbral</div>
+        </div>
       </div>
+      <!-- IDs ocultos — necesarios para WebSocket update() -->
+      <span id="val-shadow" style="display:none"></span>
+      <span id="val-warmup" style="display:none"></span>
+      <span id="val-closs"  style="display:none"></span>
     </div>
 
     <!-- 11. SEÑAL -->
     <div class="panel">
-      <div class="panel-title">Señal</div>
+      <div class="panel-title">Señal activa</div>
       <div class="signal-box signal-neutral">
         <span class="signal-icon">⏸</span>
         <div class="signal-main">
