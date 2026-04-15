@@ -54,11 +54,18 @@ function onTick(tick) {
     const slDist = price * atr;
     const sl = finalSignal.side === 'BUY' ? price - slDist : price + slDist;
     const tp = finalSignal.side === 'BUY' ? price + slDist * 2 : price - slDist * 2;
+
+    // Position sizing dinámico: arriesgar 1% del capital por operación
+    const capital = state.get('settings.capital') || 100;
+    const riskAmount = capital * 0.01;
+    const size = +(riskAmount / slDist).toFixed(6);
+
     const timestamp = Date.now();
     state.update('openPosition', {
       direction: finalSignal.side,
       entryPrice: price,
       sl, tp,
+      size,
       pipMul: 1,
       beApplied: false,
       status: 'OPEN',
@@ -73,7 +80,7 @@ function onTick(tick) {
       adx:        indicators.adx,
       rsi:        indicators.rsi
     });
-    console.log('[OPEN]', finalSignal.side, 'entry:', price, 'sl:', sl.toFixed(2), 'tp:', tp.toFixed(2));
+    console.log('[OPEN]', finalSignal.side, 'entry:', price, 'sl:', sl.toFixed(2), 'tp:', tp.toFixed(2), 'size:', size);
   }
 
   // 7. Gestionar posiciones abiertas (trailing, BE, TP/SL)
