@@ -1020,8 +1020,9 @@
 
     // Señal activa
     if (d.signal) {
-      const side  = d.signal.side  || 'NONE';
-      const score = d.signal.score || 0;
+      const side     = d.signal.side || 'NONE';
+      const rawScore = d.signal.score || 0;
+      const score    = rawScore < 1 ? rawScore * 100 : rawScore;
       const boxEl  = document.getElementById('signal-box');
       if (boxEl) {
         boxEl.className = side === 'BUY'  ? 'signal-box signal-buy'  :
