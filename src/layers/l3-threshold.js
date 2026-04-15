@@ -6,7 +6,7 @@ function calcularUmbralDinamico(adxActual, regimeLabel) {
   if (regimeLabel === 'LATERAL_EXTREMO') return 70;
   if (regimeLabel === 'LATERAL')         return 65;
   // TENDENCIAL
-  if (adxActual > 40)  return 50;
+  if (adxActual > 40)  return 55;
   if (adxActual >= 25) return 55;
   return 55;
 }
