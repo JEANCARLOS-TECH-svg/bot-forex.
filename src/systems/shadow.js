@@ -61,4 +61,10 @@ function getStats() {
 // Carga inicial al requerir el módulo
 _load();
 
-module.exports = { recordOpen, recordClose, getStats };
+function getHistory() {
+  return history
+    .filter(e => e.status === 'CLOSED')
+    .map(e => ({ timestamp: e.timestamp, pnl: e.pnlNet ?? e.pnlPips ?? 0 }));
+}
+
+module.exports = { recordOpen, recordClose, getStats, getHistory };

@@ -2,8 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.17 — Panel</title>
+  <title>ForexBot v25.18 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg:      #0d1117;
@@ -303,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.17 — BTCUSDT</small>
+      <small>v25.18 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -735,6 +736,13 @@
       </table>
     </div>
 
+    <!-- 17. EQUITY CURVE -->
+    <div class="panel">
+      <div class="panel-title">Equity Curve — PnL acumulado</div>
+      <div id="equity-empty" style="display:none;padding:24px;text-align:center;color:var(--muted);font-size:11px;font-family:'Space Mono',monospace">Sin datos aún</div>
+      <canvas id="equity-chart" height="140" style="display:block"></canvas>
+    </div>
+
     <!-- 16. LOG -->
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="log-head">
@@ -1022,6 +1030,8 @@
     { const k = d.stoch?.k; const sEl = document.getElementById('val-stoch-k');
       if (sEl) { if (k != null) { sEl.textContent = k.toFixed(1); sEl.style.color = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#94a3b8'; setBar('bar-stoch', k); document.getElementById('bar-stoch').style.background = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#475569'; } else { sEl.textContent = '—'; sEl.style.color = '#475569'; } } }
 
+    if (d.shadowHistory !== undefined) updateEquity(d.shadowHistory);
+
     if (d.shadowStats) {
       const s = d.shadowStats; const losses = s.total - s.wins;
       const pnlColor = s.pnlPips >= 0 ? '#00e5a0' : '#ff4d6a';
@@ -1040,6 +1050,71 @@
 
   function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
   function setBar(id, pct) { const el = document.getElementById(id); if (el) el.style.width = Math.min(Math.max(pct, 0), 100) + '%'; }
+
+  // ── EQUITY CURVE
+  let equityChart = null;
+
+  function updateEquity(history) {
+    const canvas  = document.getElementById('equity-chart');
+    const empty   = document.getElementById('equity-empty');
+    if (!canvas) return;
+
+    if (!history || history.length === 0) {
+      canvas.style.display = 'none';
+      empty.style.display  = 'block';
+      if (equityChart) { equityChart.destroy(); equityChart = null; }
+      return;
+    }
+
+    canvas.style.display = 'block';
+    empty.style.display  = 'none';
+
+    // Construir equity curve acumulada
+    let cumulative = 0;
+    const labels = history.map((_, i) => '#' + (i + 1));
+    const data   = history.map(t => { cumulative += t.pnl; return +cumulative.toFixed(4); });
+    const isPos  = data[data.length - 1] >= 0;
+    const color  = isPos ? '#00e5a0' : '#ff4d6a';
+
+    if (equityChart) {
+      equityChart.data.labels        = labels;
+      equityChart.data.datasets[0].data  = data;
+      equityChart.data.datasets[0].borderColor = color;
+      equityChart.data.datasets[0].pointBackgroundColor = color;
+      equityChart.update('none');
+      return;
+    }
+
+    equityChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          borderColor: color,
+          borderWidth: 2,
+          pointRadius: data.length < 30 ? 3 : 0,
+          pointBackgroundColor: color,
+          fill: true,
+          backgroundColor: isPos ? 'rgba(0,229,160,0.06)' : 'rgba(255,77,106,0.06)',
+          tension: 0.3,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => ' PnL acum: ' + ctx.parsed.y }
+        }},
+        scales: {
+          x: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#1e2a3a' } },
+          y: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#1e2a3a' },
+               border: { dash: [3,3] } }
+        }
+      }
+    });
+  }
 
   connect();
 </script>

@@ -40,6 +40,7 @@ function getStateSnapshot() {
     position:        state.get('openPosition'),
     statusBadge:     state.get('position.statusBadge'),
     shadowStats:     shadow.getStats(),
+    shadowHistory:   shadow.getHistory(),
     macd:            state.get('indicators.macd'),
     ema:             { fast: state.get('indicators.emaFast'), slow: state.get('indicators.emaSlow') },
     bb:              state.get('indicators.bb'),
