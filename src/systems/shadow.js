@@ -34,9 +34,13 @@ function recordClose(timestamp, exitPrice, result, pnlPips) {
     console.warn('[Shadow] recordClose: no se encontró entrada con timestamp', timestamp);
     return;
   }
-  history[idx] = { ...history[idx], exitPrice, result, pnlPips, status: 'CLOSED' };
+  const entryPrice     = history[idx].entryPrice;
+  const commissionPips = +((entryPrice * 0.001) + (exitPrice * 0.001)).toFixed(4);
+  const slippagePips   = +(entryPrice * 0.0005).toFixed(4);
+  const pnlNet         = +(pnlPips - commissionPips - slippagePips).toFixed(4);
+  history[idx] = { ...history[idx], exitPrice, result, pnlPips, commissionPips, slippagePips, pnlNet, status: 'CLOSED' };
   _save();
-  console.log('[Shadow] CLOSE registrado —', result, 'pnl:', pnlPips);
+  console.log('[Shadow] CLOSE registrado —', result, 'pnl:', pnlPips, 'net:', pnlNet);
 }
 
 function getStats() {
