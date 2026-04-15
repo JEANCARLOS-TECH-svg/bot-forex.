@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.20 — Panel</title>
+  <title>ForexBot v25.21 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -304,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.20 — BTCUSDT</small>
+      <small>v25.21 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -1038,9 +1038,11 @@
     }
 
     // Confianza IA
-    if (d.signal?.score != null && d.threshold != null) {
-      const conf = +Math.min(d.threshold > 0 ? (d.signal.score / d.threshold) * 100 : 0, 100).toFixed(1);
-      const fill = document.getElementById('ai-conf-fill-el');
+    if (d.threshold != null) {
+      const rawScore = d.signal?.score || 0;
+      const score    = rawScore < 1 ? rawScore * 100 : rawScore;
+      const conf     = +Math.min(d.threshold > 0 ? (score / d.threshold) * 100 : 0, 100).toFixed(1);
+      const fill     = document.getElementById('ai-conf-fill-el');
       if (fill) fill.style.width = conf + '%';
       set('ai-conf-label-val', conf + ' / 100');
       set('ai-conf-val-el',    conf + '%');
