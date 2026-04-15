@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.19 — Panel</title>
+  <title>ForexBot v25.20 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -304,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.19 — BTCUSDT</small>
+      <small>v25.20 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -631,13 +631,13 @@
     <!-- 11. SEÑAL -->
     <div class="panel">
       <div class="panel-title">Señal activa</div>
-      <div class="signal-box signal-neutral">
-        <span class="signal-icon">⏸</span>
+      <div class="signal-box signal-neutral" id="signal-box">
+        <span class="signal-icon" id="signal-icon-el">⏸</span>
         <div class="signal-main">
-          <div>SIN SEÑAL ACTIVA</div>
-          <div class="signal-detail">Esperando condiciones · Régimen: —</div>
+          <div id="signal-text">SIN SEÑAL ACTIVA</div>
+          <div class="signal-detail" id="signal-detail-el">Esperando condiciones · Régimen: —</div>
         </div>
-        <div class="signal-conf c-muted">—</div>
+        <div class="signal-conf c-muted" id="signal-conf-el">—</div>
       </div>
     </div>
 
@@ -646,12 +646,12 @@
       <div class="panel-title">Confianza IA</div>
       <div class="ai-conf-label">
         <span>SCORE COMPUESTO</span>
-        <span class="c-pur">0 / 100</span>
+        <span class="c-pur" id="ai-conf-label-val">0 / 100</span>
       </div>
       <div class="ai-conf-track">
-        <div class="ai-conf-fill" style="width:0%"></div>
+        <div class="ai-conf-fill" id="ai-conf-fill-el" style="width:0%"></div>
       </div>
-      <div class="ai-conf-val c-pur">0%</div>
+      <div class="ai-conf-val c-pur" id="ai-conf-val-el">0%</div>
     </div>
 
     <!-- 13. SENTIMIENTO DEL MERCADO -->
@@ -1017,6 +1017,34 @@
 
     { const k = d.stoch?.k; const sEl = document.getElementById('val-stoch-k');
       if (sEl) { if (k != null) { sEl.textContent = k.toFixed(1); sEl.style.color = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#94a3b8'; setBar('bar-stoch', k); document.getElementById('bar-stoch').style.background = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#475569'; } else { sEl.textContent = '—'; sEl.style.color = '#475569'; } } }
+
+    // Señal activa
+    if (d.signal) {
+      const side  = d.signal.side  || 'NONE';
+      const score = d.signal.score || 0;
+      const boxEl  = document.getElementById('signal-box');
+      if (boxEl) {
+        boxEl.className = side === 'BUY'  ? 'signal-box signal-buy'  :
+                          side === 'SELL' ? 'signal-box signal-sell' : 'signal-box signal-neutral';
+        set('signal-icon-el',  side === 'BUY' ? '▲' : side === 'SELL' ? '▼' : '⏸');
+        set('signal-text',     side === 'BUY' ? 'SEÑAL BUY' : side === 'SELL' ? 'SEÑAL SELL' : 'SIN SEÑAL ACTIVA');
+        set('signal-detail-el', 'Score: ' + score.toFixed(1) + '% · Régimen: ' + (d.regime || '—'));
+        const confEl = document.getElementById('signal-conf-el');
+        if (confEl) {
+          confEl.textContent = score.toFixed(1) + '%';
+          confEl.className = side === 'BUY' ? 'signal-conf c-green' : side === 'SELL' ? 'signal-conf c-red' : 'signal-conf c-muted';
+        }
+      }
+    }
+
+    // Confianza IA
+    if (d.signal?.score != null && d.threshold != null) {
+      const conf = +Math.min(d.threshold > 0 ? (d.signal.score / d.threshold) * 100 : 0, 100).toFixed(1);
+      const fill = document.getElementById('ai-conf-fill-el');
+      if (fill) fill.style.width = conf + '%';
+      set('ai-conf-label-val', conf + ' / 100');
+      set('ai-conf-val-el',    conf + '%');
+    }
 
     if (d.shadowHistory !== undefined) updateEquity(d.shadowHistory);
 

@@ -39,6 +39,7 @@ function getStateSnapshot() {
     warmupComplete:  state.get('warmupComplete'),
     position:        state.get('openPosition'),
     statusBadge:     state.get('position.statusBadge'),
+    signal:          { side: state.get('signal.side'), score: state.get('signal.score') },
     shadowStats:     shadow.getStats(),
     shadowHistory:   shadow.getHistory(),
     macd:            state.get('indicators.macd'),

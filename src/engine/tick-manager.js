@@ -47,6 +47,10 @@ function onTick(tick) {
   const finalSignal = l5PvtSmoothed.validate(signalAfterPivots, indicators);
   console.log('[L5]', finalSignal);
 
+  // Guardar señal final en state para WebSocket
+  state.update('signal.side',  finalSignal.side);
+  state.update('signal.score', +(finalSignal.score || 0).toFixed(1));
+
   // 6.5. Abrir posición si hay señal y no hay posición abierta
   if ((finalSignal.side === 'BUY' || finalSignal.side === 'SELL') && state.get('openPosition') === null) {
     const price = state.get('price.current');
