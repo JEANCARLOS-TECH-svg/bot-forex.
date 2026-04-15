@@ -18,6 +18,14 @@ function checkSignal(indicators, regime) {
 
   if (!currentPrice) return { side: 'NONE', score: 0 };
 
+  // Filtro apertura NY: 13:15–13:45 UTC — alta volatilidad, no operar
+  const now     = new Date();
+  const utcMins = now.getUTCHours() * 60 + now.getUTCMinutes();
+  if (utcMins >= 795 && utcMins < 825) {  // 13:15 = 795 min, 13:45 = 825 min
+    console.log('[NY-FILTER] Bloqueado — apertura NY');
+    return { side: 'NONE', score: 0, umbral: 0 };
+  }
+
   // Votos simples — cada indicador vota BUY(+1), SELL(-1) o NEUTRAL(0)
   let buyVotes = 0, sellVotes = 0;
   let buyScore = 0, sellScore = 0;
