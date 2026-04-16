@@ -52,7 +52,14 @@ function checkSignal(indicators, regime) {
     if (stoch.k > 80) { sellVotes++; sellScore += 12; }
   }
 
-  const umbral = calcularUmbralDinamico(adx, regime.label);
+  let umbral = calcularUmbralDinamico(adx, regime.label);
+
+  // ── CASTIGO por pérdidas consecutivas ─────────────────────────────────────
+  const losses = state.get('session.consecutiveLoss');
+  if (losses >= 5)      umbral = Math.min(umbral + 15, 85);
+  else if (losses >= 3) umbral = Math.min(umbral + 10, 80);
+  else if (losses >= 1) umbral = Math.min(umbral +  5, 75);
+
   const totalBuy  = buyScore;
   const totalSell = sellScore;
   const maxScore  = adx > 30 ? 86 : 98;
