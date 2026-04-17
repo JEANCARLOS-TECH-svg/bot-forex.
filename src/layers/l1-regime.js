@@ -10,12 +10,12 @@ function evaluate(indicators) {
 
   // Zona de histéresis ±0.5 — evita cambios de régimen por ruido
   let trending;
-  if (adx >= 25.5)      trending = true;
-  else if (adx <= 24.5) trending = false;
+  if (adx >= 30.5)      trending = true;
+  else if (adx <= 29.5) trending = false;
   else                  trending = lastRegimeTrending; // zona gris — mantiene régimen anterior
   lastRegimeTrending = trending;
 
-  // ADX < 20 → LATERAL_EXTREMO, 20-25 → LATERAL, ≥25.5 → TENDENCIAL
+  // ADX < 20 → LATERAL_EXTREMO, 20-30 → LATERAL, ≥30.5 → TENDENCIAL
   const label = trending ? 'TENDENCIAL' : (adx < 20 ? 'LATERAL_EXTREMO' : 'LATERAL');
 
   return { adx, trending, label };
