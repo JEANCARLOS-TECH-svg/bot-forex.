@@ -1124,7 +1124,7 @@
   // ── PRICE CHART (tiempo real)
   let priceChart = null;
   const priceBuffer = [];
-  const PRICE_MAX = 60;
+  const PRICE_MAX = 120;
 
   function updatePriceChart(price) {
     if (price == null) return;
@@ -1134,15 +1134,18 @@
     const canvas = document.getElementById('price-chart');
     if (!canvas) return;
 
+    const pad   = PRICE_MAX - priceBuffer.length;
+    const data  = pad > 0 ? [...Array(pad).fill(null), ...priceBuffer] : [...priceBuffer];
+    const labels = Array(PRICE_MAX).fill('');
+
     const first = priceBuffer[0];
     const last  = priceBuffer[priceBuffer.length - 1];
-    const color = last >= first ? '#00e5a0' : '#ff4d6a';
+    const color   = last >= first ? '#00e5a0' : '#ff4d6a';
     const bgColor = last >= first ? 'rgba(0,229,160,0.07)' : 'rgba(255,77,106,0.07)';
-    const labels = priceBuffer.map((_, i) => i === 0 || i === priceBuffer.length - 1 ? String(i + 1) : '');
 
     if (priceChart) {
       priceChart.data.labels = labels;
-      priceChart.data.datasets[0].data = [...priceBuffer];
+      priceChart.data.datasets[0].data = data;
       priceChart.data.datasets[0].borderColor = color;
       priceChart.data.datasets[0].backgroundColor = bgColor;
       priceChart.update('none');
@@ -1154,7 +1157,7 @@
       data: {
         labels,
         datasets: [{
-          data: [...priceBuffer],
+          data: data,
           borderColor: color,
           borderWidth: 2,
           pointRadius: 0,
