@@ -15,6 +15,7 @@ app.use(express.static(path.join(__dirname, 'panel')));
 
 wss.on('connection', (ws) => {
   console.log('[UI] Cliente conectado');
+  ws.send(JSON.stringify(getStateSnapshot()));
   ws.on('close', () => console.log('[UI] Cliente desconectado'));
 });
 
@@ -46,6 +47,7 @@ function getStateSnapshot() {
     ema:             { fast: state.get('indicators.emaFast'), slow: state.get('indicators.emaSlow') },
     bb:              state.get('indicators.bb'),
     stoch:           state.get('indicators.stochRSI'),
+    priceHistory:    (state.get('candleBuffer') || []).slice(-120).map(c => c.close),
   };
 }
 

@@ -962,6 +962,9 @@
 
   // ── UPDATE
   function update(d) {
+    if (d.priceHistory && Array.isArray(d.priceHistory) && priceBuffer.length === 0) {
+      priceBuffer.push(...d.priceHistory);
+    }
     set('hdr-price',       d.price     != null ? d.price : '—');
     set('inst-price-val',  d.price     != null ? d.price : '—');
     set('val-price',       d.price     != null ? d.price : '—');
