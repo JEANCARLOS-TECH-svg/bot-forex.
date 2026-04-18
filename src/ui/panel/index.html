@@ -1004,8 +1004,8 @@
       posGrid.style.display = 'none';
     }
 
-    set('val-adx',       d.adx       != null ? (+d.adx).toFixed(1) : '—');
-    set('val-rsi',       d.rsi       != null ? (+d.rsi).toFixed(1) : '—');
+    if (d.adx != null) animateValue('val-adx', +d.adx); else set('val-adx', '—');
+    if (d.rsi != null) animateValue('val-rsi', +d.rsi); else set('val-rsi', '—');
     set('val-threshold', d.threshold != null ? d.threshold : '—');
 
     const regimeIndEl = document.getElementById('val-regime-ind');
@@ -1026,7 +1026,7 @@
       if (bbEl) { if (upper != null && lower != null && d.price != null) { const pct = ((d.price - lower) / (upper - lower || 1)) * 100; if (d.price >= upper) { bbEl.textContent = 'SOBRECOMPRA'; bbEl.style.color = '#ff4d6a'; } else if (d.price <= lower) { bbEl.textContent = 'SOBREVENTA'; bbEl.style.color = '#00e5a0'; } else { bbEl.textContent = pct.toFixed(0) + '%'; bbEl.style.color = '#94a3b8'; } set('val-bb-vals', '↑ ' + upper.toFixed(0) + ' · ↓ ' + lower.toFixed(0)); } else { bbEl.textContent = '—'; bbEl.style.color = '#475569'; } } }
 
     { const k = d.stoch?.k; const sEl = document.getElementById('val-stoch-k');
-      if (sEl) { if (k != null) { sEl.textContent = k.toFixed(1); sEl.style.color = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#94a3b8'; setBar('bar-stoch', k); document.getElementById('bar-stoch').style.background = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#475569'; } else { sEl.textContent = '—'; sEl.style.color = '#475569'; } } }
+      if (sEl) { if (k != null) { animateValue('val-stoch-k', k); sEl.style.color = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#94a3b8'; setBar('bar-stoch', k); document.getElementById('bar-stoch').style.background = k < 20 ? '#00e5a0' : k > 80 ? '#ff4d6a' : '#475569'; } else { sEl.textContent = '—'; sEl.style.color = '#475569'; } } }
 
     // Señal activa
     if (d.signal) {
@@ -1042,7 +1042,18 @@
         set('signal-detail-el', 'Score: ' + score.toFixed(1) + '% · Régimen: ' + (d.regime || '—'));
         const confEl = document.getElementById('signal-conf-el');
         if (confEl) {
-          confEl.textContent = score.toFixed(1) + '%';
+          const fromScore = parseFloat(confEl.textContent);
+          if (!isNaN(fromScore) && !isNaN(score)) {
+            if (_animRafs['signal-conf-el']) cancelAnimationFrame(_animRafs['signal-conf-el']);
+            const s0 = performance.now();
+            (function step(now) {
+              const t = Math.min((now - s0) / 400, 1);
+              const e = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+              confEl.textContent = (fromScore + (score - fromScore) * e).toFixed(1) + '%';
+              if (t < 1) _animRafs['signal-conf-el'] = requestAnimationFrame(step);
+              else _animRafs['signal-conf-el'] = null;
+            })(s0);
+          } else { confEl.textContent = score.toFixed(1) + '%'; }
           confEl.className = side === 'BUY' ? 'signal-conf c-green' : side === 'SELL' ? 'signal-conf c-red' : 'signal-conf c-muted';
         }
       }
@@ -1092,6 +1103,23 @@
 
   function set(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
   function setBar(id, pct) { const el = document.getElementById(id); if (el) el.style.width = Math.min(Math.max(pct, 0), 100) + '%'; }
+  const _animRafs = {};
+  function animateValue(id, to, duration = 400) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const from = parseFloat(el.textContent);
+    if (isNaN(from) || isNaN(to)) { el.textContent = isNaN(to) ? '—' : to.toFixed(1); return; }
+    if (_animRafs[id]) cancelAnimationFrame(_animRafs[id]);
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+      el.textContent = (from + (to - from) * ease).toFixed(1);
+      if (t < 1) _animRafs[id] = requestAnimationFrame(step);
+      else _animRafs[id] = null;
+    }
+    _animRafs[id] = requestAnimationFrame(step);
+  }
 
   // ── PRICE CHART (tiempo real)
   let priceChart = null;
