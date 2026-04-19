@@ -8,6 +8,7 @@ const CANDLE_WARMUP  = 100;
 const CANDLE_MAX     = 500;
 
 let ws = null;
+let lastTickTime = 0;
 
 async function preloadCandles(symbol) {
   const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1m&limit=500`;
@@ -57,6 +58,7 @@ async function connect(symbol) {
 
     // Precio en tiempo real en cada tick (kline abierta o cerrada)
     state.update('price.current', parseFloat(k.c));
+    lastTickTime = Date.now();
 
     if (!k.x) return; // solo procesar lógica completa en klines cerradas
 
@@ -86,12 +88,23 @@ async function connect(symbol) {
     });
   });
 
+  const watchdog = setInterval(() => {
+    if (lastTickTime > 0 && Date.now() - lastTickTime > 30000) {
+      console.warn('[Binance] Watchdog: sin datos por 30s — forzando reconexión');
+      clearInterval(watchdog);
+      if (ws) { ws.removeAllListeners('close'); ws.terminate(); }
+      ws = null;
+      connect(symbol);
+    }
+  }, 10000);
+
   ws.on('error', (err) => {
     console.error('[Binance] Error WS:', err.message);
   });
 
   ws.on('close', (code, reason) => {
     console.warn(`[Binance] Desconectado — code ${code}. Reconectando en 5s...`);
+    clearInterval(watchdog);
     ws = null;
     setTimeout(() => connect(symbol), 5000);
   });
