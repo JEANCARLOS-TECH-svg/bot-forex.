@@ -16,8 +16,10 @@ app.use(express.static(path.join(__dirname, 'panel')));
 
 app.post('/settings', (req, res) => {
   const { capital, allowedDirection } = req.body;
-  if (capital != null) state.update('settings.capital', Number(capital));
-  if (allowedDirection) state.update('settings.allowedDirection', allowedDirection);
+  if (capital        != null) state.update('settings.capital',         Number(capital));
+  if (allowedDirection)       state.update('settings.allowedDirection', allowedDirection);
+  if (req.body.killSwitchLimit != null) state.update('settings.killSwitchLimit', Number(req.body.killSwitchLimit));
+  if (req.body.riskProfile     != null) state.update('settings.riskProfile',     Number(req.body.riskProfile));
   res.json({ ok: true });
 });
 
@@ -54,6 +56,8 @@ function getStateSnapshot() {
     settings: {
       capital:          state.get('settings.capital'),
       allowedDirection: state.get('settings.allowedDirection'),
+      killSwitchLimit:  state.get('settings.killSwitchLimit'),
+      riskProfile:      state.get('settings.riskProfile'),
     },
     macd:            state.get('indicators.macd'),
     ema:             { fast: state.get('indicators.emaFast'), slow: state.get('indicators.emaSlow') },

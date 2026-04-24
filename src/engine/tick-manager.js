@@ -63,10 +63,12 @@ function onTick(tick) {
     const sl = finalSignal.side === 'BUY' ? price - slDist : price + slDist;
     const tp = finalSignal.side === 'BUY' ? price + slDist * 2 : price - slDist * 2;
 
-    // Position sizing dinámico: arriesgar 1% del capital por operación
-    const capital = state.get('settings.capital') || 100;
-    const riskAmount = capital * 0.01;
-    const size = +(riskAmount / slDist).toFixed(6);
+    // Position sizing dinámico según perfil de riesgo
+    const capital     = state.get('settings.capital')    || 100;
+    const riskProfile = state.get('settings.riskProfile') || 2;
+    const riskPct     = [0, 0.005, 0.01, 0.02, 0.03, 0.05][riskProfile]; // 1=0.5% 2=1% 3=2% 4=3% 5=5%
+    const riskAmount  = capital * riskPct;
+    const size        = +(riskAmount / slDist).toFixed(6);
 
     const timestamp = Date.now();
     state.update('openPosition', {

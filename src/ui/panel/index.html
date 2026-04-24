@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.32 — Panel</title>
+  <title>ForexBot v25.34 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -304,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.32 — BTCUSDT</small>
+      <small>v25.34 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -456,13 +456,14 @@
             <span class="ks-title">Pérdida máxima</span>
             <span class="ks-badge">ARMADO</span>
           </div>
-          <div class="ks-val">-5%</div>
+          <div class="ks-val" id="ks-limit-val">-5%</div>
           <div class="ks-labels">
             <span class="c-green">Conservador</span>
             <span class="c-warn">Moderado</span>
             <span class="c-red">Agresivo</span>
           </div>
-          <input type="range" class="ks-slider" min="1" max="20" value="5" disabled>
+          <input type="range" class="ks-slider" min="1" max="20" value="5" id="ks-slider"
+            oninput="document.getElementById('ks-limit-val').textContent='-'+this.value+'%'; postSetting({killSwitchLimit:+this.value})">
           <div class="ks-loss-wrap">
             <div class="ks-loss-head">
               <span>PÉRDIDA ACTUAL</span>
@@ -601,9 +602,10 @@
       <div class="coll-sep"></div>
       <div class="coll-body expanded" id="col-risk">
         <div style="padding-top:12px">
-          <div class="risk-profile-val">Marinero</div>
-          <div class="risk-profile-desc">Riesgo bajo · 1% por op</div>
-          <input type="range" class="risk-slider" min="1" max="5" value="2" disabled>
+          <div class="risk-profile-val" id="risk-profile-name">Marinero</div>
+          <div class="risk-profile-desc" id="risk-profile-desc">Riesgo bajo · 1% por op</div>
+          <input type="range" class="risk-slider" min="1" max="5" value="2" id="risk-slider"
+            oninput="updateRiskProfile(+this.value); postSetting({riskProfile:+this.value})">
           <div class="risk-levels">
             <span>Grumete</span>
             <span>Marinero</span>
@@ -935,6 +937,16 @@
     if (arrow) arrow.classList.toggle('open', !isOpen);
   }
 
+  // ── PERFIL DE RIESGO
+  const RISK_NAMES = ['', 'Grumete', 'Marinero', 'Lobo de Mar', 'Corsario', 'Capitán Pirata'];
+  const RISK_DESCS = ['', 'Riesgo mínimo · 0.5% por op', 'Riesgo bajo · 1% por op', 'Riesgo medio · 2% por op', 'Riesgo alto · 3% por op', 'Riesgo máximo · 5% por op'];
+  function updateRiskProfile(val) {
+    const nameEl = document.getElementById('risk-profile-name');
+    const descEl = document.getElementById('risk-profile-desc');
+    if (nameEl) nameEl.textContent = RISK_NAMES[val] || RISK_NAMES[2];
+    if (descEl) descEl.textContent = RISK_DESCS[val] || RISK_DESCS[2];
+  }
+
   // ── CONTROL DE OPERACIÓN
   function postSetting(body) {
     fetch('/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -1136,6 +1148,17 @@
               (dir === 'SHORT' && b.textContent.includes('SHORT')))
             b.className = 'dir-btn ' + (dirMap[dir] || 'both-active');
         });
+      }
+      if (d.settings.killSwitchLimit != null) {
+        const ksSlider = document.getElementById('ks-slider');
+        if (ksSlider) ksSlider.value = d.settings.killSwitchLimit;
+        const ksVal = document.getElementById('ks-limit-val');
+        if (ksVal) ksVal.textContent = '-' + d.settings.killSwitchLimit + '%';
+      }
+      if (d.settings.riskProfile != null) {
+        const rSlider = document.getElementById('risk-slider');
+        if (rSlider) rSlider.value = d.settings.riskProfile;
+        updateRiskProfile(d.settings.riskProfile);
       }
     }
   }
