@@ -53,6 +53,10 @@ function onTick(tick) {
 
   // 6.5. Abrir posición si hay señal y no hay posición abierta
   if ((finalSignal.side === 'BUY' || finalSignal.side === 'SELL') && state.get('openPosition') === null) {
+    const allowedDir = state.get('settings.allowedDirection') || 'BOTH';
+    if (allowedDir === 'LONG' && finalSignal.side === 'SELL') { /* dirección bloqueada */ }
+    else if (allowedDir === 'SHORT' && finalSignal.side === 'BUY') { /* dirección bloqueada */ }
+    else {
     const price = state.get('price.current');
     const atr = state.get('indicators.atr') || 0.01;  // fracción del precio; fallback 1%
     const slDist = price * atr;
@@ -86,6 +90,7 @@ function onTick(tick) {
       rsi:        indicators.rsi
     });
     console.log('[OPEN]', finalSignal.side, 'entry:', price, 'sl:', sl.toFixed(2), 'tp:', tp.toFixed(2), 'size:', size);
+    } // end else dirección permitida
   }
 
   // 7. Gestionar posiciones abiertas (trailing, BE, TP/SL)

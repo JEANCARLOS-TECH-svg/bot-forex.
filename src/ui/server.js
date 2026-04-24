@@ -11,7 +11,15 @@ const app    = express();
 const server = http.createServer(app);
 const wss    = new WebSocket.Server({ server });
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'panel')));
+
+app.post('/settings', (req, res) => {
+  const { capital, allowedDirection } = req.body;
+  if (capital != null) state.update('settings.capital', Number(capital));
+  if (allowedDirection) state.update('settings.allowedDirection', allowedDirection);
+  res.json({ ok: true });
+});
 
 wss.on('connection', (ws) => {
   console.log('[UI] Cliente conectado');
@@ -43,6 +51,10 @@ function getStateSnapshot() {
     signal:          { side: state.get('signal.side'), score: state.get('signal.score') },
     shadowStats:     shadow.getStats(),
     shadowHistory:   shadow.getHistory(),
+    settings: {
+      capital:          state.get('settings.capital'),
+      allowedDirection: state.get('settings.allowedDirection'),
+    },
     macd:            state.get('indicators.macd'),
     ema:             { fast: state.get('indicators.emaFast'), slow: state.get('indicators.emaSlow') },
     bb:              state.get('indicators.bb'),

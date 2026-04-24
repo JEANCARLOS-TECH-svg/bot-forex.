@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.31 — Panel</title>
+  <title>ForexBot v25.32 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -304,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.31 — BTCUSDT</small>
+      <small>v25.32 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -386,15 +386,15 @@
             <span style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-left:auto">USDT</span>
           </div>
           <div class="amount-btns">
-            <div class="amount-btn">25</div>
-            <div class="amount-btn active">100</div>
-            <div class="amount-btn">250</div>
-            <div class="amount-btn">500</div>
+            <div class="amount-btn" onclick="setCapital(25, this)">25</div>
+            <div class="amount-btn active" onclick="setCapital(100, this)">100</div>
+            <div class="amount-btn" onclick="setCapital(250, this)">250</div>
+            <div class="amount-btn" onclick="setCapital(500, this)">500</div>
           </div>
           <div class="dir-row">
-            <div class="dir-btn buy-active">▲ LONG</div>
-            <div class="dir-btn both-active">↕ AMBOS</div>
-            <div class="dir-btn">▼ SHORT</div>
+            <div class="dir-btn buy-active" onclick="setDir('LONG', this)">▲ LONG</div>
+            <div class="dir-btn both-active" onclick="setDir('BOTH', this)">↕ AMBOS</div>
+            <div class="dir-btn" onclick="setDir('SHORT', this)">▼ SHORT</div>
           </div>
         </div>
       </div>
@@ -935,6 +935,23 @@
     if (arrow) arrow.classList.toggle('open', !isOpen);
   }
 
+  // ── CONTROL DE OPERACIÓN
+  function postSetting(body) {
+    fetch('/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  }
+  function setCapital(val, el) {
+    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelector('.amount-val').textContent = val;
+    postSetting({ capital: val });
+  }
+  function setDir(dir, el) {
+    document.querySelectorAll('.dir-btn').forEach(b => b.className = 'dir-btn');
+    const cls = dir === 'LONG' ? 'buy-active' : dir === 'SHORT' ? 'sell-active' : 'both-active';
+    el.className = 'dir-btn ' + cls;
+    postSetting({ allowedDirection: dir });
+  }
+
   // ── WEBSOCKET
   const wsDot    = document.getElementById('ws-dot');
   const wsLabel  = document.getElementById('ws-label');
@@ -1101,6 +1118,25 @@
       if (pnlEl2) { pnlEl2.textContent = pnlStr; pnlEl2.style.color = pnlColor; }
       const smEl = document.getElementById('val-shadow-mode');
       if (smEl) { smEl.textContent = d.isShadowMode ? 'ON' : 'OFF'; smEl.style.color = d.isShadowMode ? '#f5a623' : '#475569'; }
+    }
+
+    if (d.settings) {
+      const cap = d.settings.capital;
+      if (cap != null) {
+        document.querySelector('.amount-val').textContent = cap;
+        document.querySelectorAll('.amount-btn').forEach(b => b.classList.toggle('active', +b.textContent === +cap));
+      }
+      const dir = d.settings.allowedDirection;
+      if (dir) {
+        const dirMap = { LONG: 'buy-active', BOTH: 'both-active', SHORT: 'sell-active' };
+        document.querySelectorAll('.dir-btn').forEach(b => {
+          b.className = 'dir-btn';
+          if ((dir === 'LONG' && b.textContent.includes('LONG')) ||
+              (dir === 'BOTH' && b.textContent.includes('AMBOS')) ||
+              (dir === 'SHORT' && b.textContent.includes('SHORT')))
+            b.className = 'dir-btn ' + (dirMap[dir] || 'both-active');
+        });
+      }
     }
   }
 

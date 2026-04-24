@@ -10,7 +10,7 @@ class State extends EventEmitter {
       market: { regime: 'LATERAL_EXTREMO', thresholdModifier: 5, pivot: null, symmetricConflict: false, lastCandle: null },
       signal: { score: 0, direction: null, threshold: 45, approved: false, finalScore: 0, side: 'NONE' },
       session: { consecutiveLoss: 0, pnlPips: 0, trades: 0, isShadowMode: true },
-      settings: {},
+      settings: { capital: 100, allowedDirection: 'BOTH' },
       openPosition: null,
       position: { progress: 0, statusBadge: null, lastClose: null },
       candleBuffer: [],
