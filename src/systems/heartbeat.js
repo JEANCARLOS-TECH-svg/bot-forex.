@@ -3,6 +3,7 @@
 // El silencio es la alerta: si deja de llegar, el proceso se congeló.
 
 const state = require('../engine/state');
+const { version } = require('../../package.json');
 
 const INTERVAL_MS = 5 * 60 * 1000;
 
@@ -28,7 +29,7 @@ function _buildMessage() {
 
 function start(notifyFn) {
   _notify = notifyFn;
-  _notify('✅ <b>ForexBot v25.14 iniciado</b>');
+  _notify(`✅ <b>ForexBot v${version} iniciado</b>`);
 
   _timer = setInterval(() => {
     try {

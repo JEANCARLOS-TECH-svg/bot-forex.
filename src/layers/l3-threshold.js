@@ -2,6 +2,9 @@
 // Evalúa votos de indicadores y decide si hay señal BUY / SELL / NONE.
 // Umbral dinámico según ADX y BB width (calcularUmbralDinamico de index.html).
 
+let _lastBlockedNotify = 0;
+const BLOCKED_NOTIFY_INTERVAL = 5 * 60 * 1000; // max 1 notify cada 5 min
+
 function calcularUmbralDinamico(adxActual, regimeLabel) {
   if (regimeLabel === 'LATERAL_EXTREMO') return 70;
   if (regimeLabel === 'LATERAL')         return 65;
@@ -81,6 +84,16 @@ function checkSignal(indicators, regime) {
 
   if (buyPct >= umbral && buyPct > sellPct)  return { side: 'BUY',  score: buyPct,  umbral };
   if (sellPct >= umbral && sellPct > buyPct) return { side: 'SELL', score: sellPct, umbral };
+
+  if (Math.max(buyPct, sellPct) > 0) {
+    const now = Date.now();
+    if (now - _lastBlockedNotify >= BLOCKED_NOTIFY_INTERVAL) {
+      _lastBlockedNotify = now;
+      const { notify } = require('../adapters/telegram-bot');
+      notify(`🔕 <b>Señal bloqueada</b>\nScore: ${Math.max(buyPct, sellPct).toFixed(1)} / Umbral: ${umbral}\nBUY: ${buyPct.toFixed(1)}% · SELL: ${sellPct.toFixed(1)}%`);
+    }
+  }
+
   return { side: 'NONE', score: Math.max(buyPct, sellPct), umbral };
 }
 
