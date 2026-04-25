@@ -812,9 +812,8 @@
 <!-- ══ TAB HISTORIAL ══ -->
 <div class="tab-panel" id="tab-historial">
   <div class="panel" style="padding:0;overflow:hidden">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
       <div class="panel-title" style="margin-bottom:0">Operaciones shadow cerradas</div>
-      <button class="log-clear" onclick="clearShadowHistory()">✕ LIMPIAR</button>
     </div>
     <table class="history-table">
       <thead>
@@ -828,6 +827,7 @@
       </tbody>
     </table>
   </div>
+  <button onclick="clearShadowHistory()" style="width:100%;margin-top:12px;padding:12px;border-radius:8px;border:1px solid rgba(255,77,106,0.35);background:rgba(255,77,106,0.1);color:#ff4d6a;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px">🗑️ Limpiar</button>
 </div><!-- /tab-historial -->
 
 <!-- ══ TAB SHADOW ══ -->
@@ -861,10 +861,7 @@
   </div>
 
   <div class="panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div class="panel-title" style="margin-bottom:0">Resumen</div>
-      <button class="log-clear" onclick="clearShadowHistory()">✕ LIMPIAR</button>
-    </div>
+    <div class="panel-title">Resumen</div>
     <div class="stats-row col-3">
       <div class="stat">
         <div class="stat-val" id="val-shadow-total">—</div>
@@ -922,7 +919,7 @@
     <div class="panel-title">💾 DATOS DEL BOT</div>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;gap:8px">
-        <button onclick="exportHistory()" style="flex:1;padding:8px;border-radius:7px;border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.1);color:#60a5fa;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:pointer">📤 Exportar historial</button>
+        <button id="btn-export-history" onclick="exportHistory()" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:not-allowed;pointer-events:none;opacity:0.35">📤 Exportar historial</button>
         <button disabled style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:not-allowed;pointer-events:none;opacity:0.35">📥 Importar historial</button>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:10px">
@@ -946,6 +943,8 @@
       </div>
     </div>
   </div>
+
+  <button onclick="clearShadowHistory()" style="width:100%;margin-top:12px;padding:12px;border-radius:8px;border:1px solid rgba(255,77,106,0.35);background:rgba(255,77,106,0.1);color:#ff4d6a;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px">🗑️ Limpiar</button>
 
 </div><!-- /tab-shadow -->
 
@@ -1149,7 +1148,20 @@
       set('ai-conf-val-el',    conf + '%');
     }
 
-    if (d.shadowHistory !== undefined) { _shadowHistory = d.shadowHistory; updateEquity(d.shadowHistory); }
+    if (d.shadowHistory !== undefined) {
+      _shadowHistory = d.shadowHistory;
+      updateEquity(d.shadowHistory);
+      const exportBtn = document.getElementById('btn-export-history');
+      if (exportBtn) {
+        const hasData = d.shadowHistory.length > 0;
+        exportBtn.style.border          = hasData ? '1px solid rgba(59,130,246,0.4)' : '1px solid var(--border)';
+        exportBtn.style.background      = hasData ? 'rgba(59,130,246,0.1)'           : 'var(--bg)';
+        exportBtn.style.color           = hasData ? '#60a5fa'                         : 'var(--muted)';
+        exportBtn.style.cursor          = hasData ? 'pointer'                         : 'not-allowed';
+        exportBtn.style.pointerEvents   = hasData ? 'auto'                            : 'none';
+        exportBtn.style.opacity         = hasData ? '1'                               : '0.35';
+      }
+    }
     if (d.price != null) updatePriceChart(d.price);
 
     // Sentimiento compuesto: ADX + momentum RSI + volatilidad BB + volumen (neutral 50)
