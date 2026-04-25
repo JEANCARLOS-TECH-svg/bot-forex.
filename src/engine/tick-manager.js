@@ -57,6 +57,8 @@ function onTick(tick) {
     if (allowedDir === 'LONG' && finalSignal.side === 'SELL') { /* dirección bloqueada */ }
     else if (allowedDir === 'SHORT' && finalSignal.side === 'BUY') { /* dirección bloqueada */ }
     else {
+    if (killSwitch.isTriggered()) { /* kill switch activo — no abrir */ }
+    else {
     const price = state.get('price.current');
     const atr = state.get('indicators.atr') || 0.01;  // fracción del precio; fallback 1%
     const slDist = price * atr;
@@ -92,6 +94,7 @@ function onTick(tick) {
       rsi:        indicators.rsi
     });
     console.log('[OPEN]', finalSignal.side, 'entry:', price, 'sl:', sl.toFixed(2), 'tp:', tp.toFixed(2), 'size:', size);
+    } // end else kill switch
     } // end else dirección permitida
   }
 

@@ -1,8 +1,9 @@
 // ── L6 POSITION ───────────────────────────────────────────────────────────────
 // Gestiona la posición abierta: TP/SL, cierre y registro shadow.
 
-const state  = require('../engine/state');
-const shadow = require('../systems/shadow');
+const state      = require('../engine/state');
+const shadow     = require('../systems/shadow');
+const killSwitch = require('../systems/kill-switch');
 
 function manage(pos) {
   const currentPrice = state.get('price.current');
@@ -25,6 +26,7 @@ function manage(pos) {
 
     console.log('[CLOSE]', result, 'exit:', currentPrice, 'pnl:', pnlPips);
     shadow.recordClose(pos.timestamp, currentPrice, result, pnlPips);
+    killSwitch.registerPnL(pnlPips);
     state.update('openPosition', null);
   }
 }
