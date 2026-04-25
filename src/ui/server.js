@@ -14,6 +14,11 @@ const wss    = new WebSocket.Server({ server });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'panel')));
 
+app.post('/clear-history', (req, res) => {
+  shadow.clearHistory();
+  res.json({ ok: true });
+});
+
 app.post('/settings', (req, res) => {
   const { capital, allowedDirection } = req.body;
   if (capital        != null) state.update('settings.capital',         Number(capital));

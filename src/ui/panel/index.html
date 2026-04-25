@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v25.37 — Panel</title>
+  <title>ForexBot v25.38 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -304,7 +304,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v25.37 — BTCUSDT</small>
+      <small>v25.38 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -812,8 +812,9 @@
 <!-- ══ TAB HISTORIAL ══ -->
 <div class="tab-panel" id="tab-historial">
   <div class="panel" style="padding:0;overflow:hidden">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
       <div class="panel-title" style="margin-bottom:0">Operaciones shadow cerradas</div>
+      <button class="log-clear" onclick="clearShadowHistory()">✕ LIMPIAR</button>
     </div>
     <table class="history-table">
       <thead>
@@ -860,7 +861,10 @@
   </div>
 
   <div class="panel">
-    <div class="panel-title">Resumen</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="panel-title" style="margin-bottom:0">Resumen</div>
+      <button class="log-clear" onclick="clearShadowHistory()">✕ LIMPIAR</button>
+    </div>
     <div class="stats-row col-3">
       <div class="stat">
         <div class="stat-val" id="val-shadow-total">—</div>
@@ -913,6 +917,31 @@
     </div>
   </div>
 
+  <!-- Datos del Bot -->
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-title">💾 DATOS DEL BOT</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px">
+        <button onclick="exportHistory()" style="flex:1;padding:8px;border-radius:7px;border:1px solid rgba(59,130,246,0.4);background:rgba(59,130,246,0.1);color:#60a5fa;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:pointer">📤 Exportar historial</button>
+        <button disabled style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:not-allowed;opacity:0.5">📥 Importar historial</button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);margin-bottom:8px;letter-spacing:1px">🧠 CEREBRO IA</div>
+        <div style="display:flex;gap:8px">
+          <button disabled style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:not-allowed;opacity:0.5">Exportar Cerebro</button>
+          <button disabled style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:not-allowed;opacity:0.5">Importar Cerebro</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);letter-spacing:1px">⏱ AUTO-BACKUP CADA 2H</div>
+        <label class="toggle">
+          <input type="checkbox" id="backup-toggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /tab-shadow -->
 
 </div><!-- /wrapper -->
@@ -935,6 +964,19 @@
     const isOpen = body.classList.contains('expanded');
     body.classList.toggle('expanded', !isOpen);
     if (arrow) arrow.classList.toggle('open', !isOpen);
+  }
+
+  // ── DATOS DEL BOT
+  let _shadowHistory = [];
+  function clearShadowHistory() {
+    fetch('/clear-history', { method: 'POST' });
+  }
+  function exportHistory() {
+    const blob = new Blob([JSON.stringify(_shadowHistory, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'shadow-history.json'; a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── PERFIL DE RIESGO
@@ -1102,7 +1144,7 @@
       set('ai-conf-val-el',    conf + '%');
     }
 
-    if (d.shadowHistory !== undefined) updateEquity(d.shadowHistory);
+    if (d.shadowHistory !== undefined) { _shadowHistory = d.shadowHistory; updateEquity(d.shadowHistory); }
     if (d.price != null) updatePriceChart(d.price);
 
     // Sentimiento compuesto: ADX + momentum RSI + volatilidad BB + volumen (neutral 50)
@@ -1129,7 +1171,11 @@
       if (pnlEl)  { pnlEl.textContent  = pnlStr; pnlEl.style.color  = pnlColor; }
       if (pnlEl2) { pnlEl2.textContent = pnlStr; pnlEl2.style.color = pnlColor; }
       const smEl = document.getElementById('val-shadow-mode');
-      if (smEl) { smEl.textContent = d.isShadowMode ? 'ON' : 'OFF'; smEl.style.color = d.isShadowMode ? '#f5a623' : '#475569'; }
+      if (smEl) {
+        smEl.textContent = d.isShadowMode ? 'ON' : 'OFF';
+        const cl = d.consecutiveLoss || 0;
+        smEl.style.color = cl >= 5 ? '#ff4d6a' : cl >= 3 ? '#f97316' : cl >= 1 ? '#f59e0b' : '#00e5a0';
+      }
     }
 
     if (d.settings) {

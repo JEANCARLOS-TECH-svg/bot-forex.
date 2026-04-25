@@ -1,6 +1,6 @@
 {
   "name": "forex-bot",
-  "version": "25.37",
+  "version": "25.38",
   "description": "ForexBot Node.js backend",
   "main": "server.js",
   "scripts": {

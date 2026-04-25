@@ -66,4 +66,10 @@ function getHistory() {
     .map(e => ({ timestamp: e.timestamp, pnl: e.pnlNet ?? e.pnlPips ?? 0 }));
 }
 
-module.exports = { recordOpen, recordClose, getStats, getHistory };
+function clearHistory() {
+  history = [];
+  _save();
+  console.log('[Shadow] Historial limpiado');
+}
+
+module.exports = { recordOpen, recordClose, getStats, getHistory, clearHistory };
