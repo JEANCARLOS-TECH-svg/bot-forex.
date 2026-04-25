@@ -63,6 +63,16 @@ function checkSignal(indicators, regime) {
   else if (losses >= 3) umbral = Math.min(umbral + 10, 80);
   else if (losses >= 1) umbral = Math.min(umbral +  5, 75);
 
+  // ── AJUSTE por perfil de riesgo ────────────────────────────────────────────
+  const riskProfile = state.get('settings.riskProfile') || 2;
+  if (riskProfile === 1) {
+    // Grumete: reduce el castigo acumulado en 5, nunca por debajo del umbral base
+    const base = calcularUmbralDinamico(adx, regime.label);
+    umbral = Math.max(base, umbral - 5);
+  } else if (riskProfile === 3) umbral = Math.min(umbral + 3, 85);
+  else if   (riskProfile === 4) umbral = Math.min(umbral + 6, 85);
+  else if   (riskProfile === 5) umbral = Math.min(umbral + 9, 85);
+
   const totalBuy  = buyScore;
   const totalSell = sellScore;
   const maxScore  = adx > 30 ? 86 : 98;
