@@ -66,9 +66,9 @@ function checkSignal(indicators, regime) {
   // ── AJUSTE por perfil de riesgo ────────────────────────────────────────────
   const riskProfile = state.get('settings.riskProfile') || 2;
   if (riskProfile === 1) {
-    // Grumete: reduce el castigo acumulado en 5, nunca por debajo del umbral base
+    // Grumete: base -5 y castigo -5 (floor = base - 5)
     const base = calcularUmbralDinamico(adx, regime.label);
-    umbral = Math.max(base, umbral - 5);
+    umbral = Math.max(base - 5, umbral - 10);
   } else if (riskProfile === 3) umbral = Math.min(umbral + 3, 85);
   else if   (riskProfile === 4) umbral = Math.min(umbral + 6, 85);
   else if   (riskProfile === 5) umbral = Math.min(umbral + 9, 85);
