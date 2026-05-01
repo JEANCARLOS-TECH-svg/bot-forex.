@@ -2,10 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v26.3 — Panel</title>
+  <title>ForexBot v26.4 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
   <style>
     :root {
       --bg:      #0d1117;
@@ -309,7 +308,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v26.3 — BTCUSDT</small>
+      <small>v26.4 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -1027,7 +1026,6 @@
   const wsDot    = document.getElementById('ws-dot');
   const wsLabel  = document.getElementById('ws-label');
   const pillWrap = document.getElementById('status-pill-wrap');
-  let priceBuffer = [];
 
   function connect() {
     const ws = new WebSocket('ws://localhost:3000');
@@ -1051,9 +1049,6 @@
 
   // ── UPDATE
   function update(d) {
-    if (d.priceHistory && Array.isArray(d.priceHistory) && priceBuffer.length === 0) {
-      priceBuffer.push(...d.priceHistory);
-    }
     set('hdr-price',       d.price     != null ? d.price : '—');
     set('inst-price-val',  d.price     != null ? d.price : '—');
     set('val-price',       d.price     != null ? d.price : '—');
@@ -1176,7 +1171,7 @@
         exportBtn.style.opacity         = hasData ? '1'                               : '0.35';
       }
     }
-    if (d.priceHistory != null && d.priceHistory.length > 0) updatePriceChart(d.priceHistory);
+    if (d.price != null) updatePriceChart(d.price);
 
     // Sentimiento compuesto: ADX + momentum RSI + volatilidad BB + volumen (neutral 50)
     if (d.adx != null) {
@@ -1260,87 +1255,68 @@
     _animRafs[id] = requestAnimationFrame(step);
   }
 
-  // ── PRICE CHART (candlestick)
+  // ── PRICE CHART (tiempo real)
   let priceChart = null;
+  const priceBuffer = [];
+  const PRICE_MAX = 120;
 
   function setTF(btn) {
     document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
 
-  function updatePriceChart(ohlcArray) {
-    if (!ohlcArray || ohlcArray.length === 0) return;
+  function updatePriceChart(price) {
+    if (price == null) return;
+    priceBuffer.push(price);
+    if (priceBuffer.length > PRICE_MAX) priceBuffer.shift();
+
     const canvas = document.getElementById('price-chart');
     if (!canvas) return;
 
-    const data = ohlcArray.map((c, i) => ({
-      x: c.t || (Date.now() - (ohlcArray.length - i) * 60000),
-      o: c.o, h: c.h, l: c.l, c: c.c,
-    }));
+    const pad    = PRICE_MAX - priceBuffer.length;
+    const data   = pad > 0 ? [...Array(pad).fill(null), ...priceBuffer] : [...priceBuffer];
+    const labels = Array(PRICE_MAX).fill('');
+
+    const first   = priceBuffer[0];
+    const last    = priceBuffer[priceBuffer.length - 1];
+    const color   = last >= first ? '#00e5a0' : '#ff4d6a';
+    const bgColor = last >= first ? 'rgba(0,229,160,0.07)' : 'rgba(255,77,106,0.07)';
 
     if (priceChart) {
+      priceChart.data.labels = labels;
       priceChart.data.datasets[0].data = data;
+      priceChart.data.datasets[0].borderColor = color;
+      priceChart.data.datasets[0].backgroundColor = bgColor;
       priceChart.update('none');
       return;
     }
 
     priceChart = new Chart(canvas, {
-      type: 'candlestick',
+      type: 'line',
       data: {
+        labels,
         datasets: [{
-          label: 'BTCUSDT',
           data,
-          color: {
-            up:        '#00e5a0',
-            down:      '#ff4d6a',
-            unchanged: '#94a3b8',
-          },
-          borderColor: {
-            up:        '#00e5a0',
-            down:      '#ff4d6a',
-            unchanged: '#94a3b8',
-          },
+          borderColor: color,
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          backgroundColor: bgColor,
+          tension: 0.2,
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const d = ctx.raw;
-                return `O:$${d.o?.toFixed(0)} H:$${d.h?.toFixed(0)} L:$${d.l?.toFixed(0)} C:$${d.c?.toFixed(0)}`;
-              }
-            }
-          }
-        },
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2 }) }
+        }},
         scales: {
-          x: {
-            type: 'linear',
-            ticks: {
-              color: '#475569',
-              font: { family: 'Space Mono', size: 9 },
-              maxTicksLimit: 6,
-              callback: v => {
-                const d = new Date(v);
-                return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
-              }
-            },
-            grid: { color: '#1e2a3a' }
-          },
-          y: {
-            ticks: {
-              color: '#475569',
-              font: { family: 'Space Mono', size: 9 },
-              maxTicksLimit: 5,
-              callback: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0 })
-            },
-            grid:   { color: '#1e2a3a' },
-            border: { dash: [3,3] }
-          }
+          x: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 }, maxTicksLimit: 6 }, grid: { color: '#1e2a3a' } },
+          y: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 }, maxTicksLimit: 5,
+                        callback: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0 }) },
+               grid: { color: '#1e2a3a' }, border: { dash: [3,3] } }
         }
       }
     });
