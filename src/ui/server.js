@@ -1,12 +1,14 @@
 const express = require('express');
 const http    = require('http');
 const path    = require('path');
+const fs      = require('fs');
 const WebSocket = require('ws');
 const state   = require('../engine/state');
 const shadow  = require('../systems/shadow');
 const binance = require('../adapters/binance-connector');
 
 const PORT = 3000;
+let backupInterval = null;
 
 const app    = express();
 const server = http.createServer(app);
@@ -29,6 +31,28 @@ app.post('/settings', (req, res) => {
   if (req.body.timeframe) {
     state.update('settings.timeframe', req.body.timeframe);
     binance.reconnect(req.body.timeframe);
+  }
+  if (req.body.autoBackup != null) {
+    const enable = req.body.autoBackup;
+    state.update('settings.autoBackup', enable);
+    if (enable) {
+      if (backupInterval) clearInterval(backupInterval);
+      backupInterval = setInterval(() => {
+        const wins = shadow.getHistory().filter(e => e.result === 'WIN');
+        if (!wins.length) { console.log('[Backup] Sin wins que guardar'); return; }
+        const file = path.join(__dirname, '../../data/ml-wins.json');
+        let existing = [];
+        try { existing = JSON.parse(fs.readFileSync(file, 'utf8')); } catch {}
+        const existingTs = new Set(existing.map(e => e.timestamp));
+        const merged = [...existing, ...wins.filter(e => !existingTs.has(e.timestamp))];
+        fs.writeFile(file, JSON.stringify(merged, null, 2), err => {
+          if (err) console.error('[Backup] Error:', err.message);
+          else console.log(`[Backup] ${merged.length - existing.length} wins nuevos — total acumulado: ${merged.length}`);
+        });
+      }, 2 * 60 * 60 * 1000);
+    } else {
+      if (backupInterval) { clearInterval(backupInterval); backupInterval = null; }
+    }
   }
   res.json({ ok: true });
 });
@@ -69,6 +93,7 @@ function getStateSnapshot() {
       killSwitchLimit:  state.get('settings.killSwitchLimit'),
       riskProfile:      state.get('settings.riskProfile'),
       timeframe:        state.get('settings.timeframe'),
+      autoBackup:       state.get('settings.autoBackup'),
     },
     macd:            state.get('indicators.macd'),
     ema:             { fast: state.get('indicators.emaFast'), slow: state.get('indicators.emaSlow') },

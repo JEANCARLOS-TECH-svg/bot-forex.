@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v26.6 — Panel</title>
+  <title>ForexBot v26.7 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -308,7 +308,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v26.6 — BTCUSDT</small>
+      <small>v26.7 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -944,12 +944,7 @@
       <div id="backup-row" style="border-top:1px solid var(--border);border-radius:6px;padding:10px 8px 8px;display:flex;align-items:center;justify-content:space-between;transition:all .2s">
         <div id="backup-label" style="font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);letter-spacing:1px">⏱ AUTO-BACKUP CADA 2H</div>
         <label class="toggle">
-          <input type="checkbox" id="backup-toggle" onchange="
-            const on = this.checked;
-            document.getElementById('backup-row').style.borderColor   = on ? 'rgba(56,189,248,0.35)' : 'var(--border)';
-            document.getElementById('backup-row').style.background    = on ? 'rgba(56,189,248,0.07)'  : 'transparent';
-            document.getElementById('backup-label').style.color       = on ? '#38bdf8' : 'var(--muted)';
-          ">
+          <input type="checkbox" id="backup-toggle" onchange="setAutoBackup(this.checked)">
           <span class="toggle-track"></span>
         </label>
       </div>
@@ -993,6 +988,24 @@
     const a    = document.createElement('a');
     a.href = url; a.download = 'shadow-history.json'; a.click();
     URL.revokeObjectURL(url);
+  }
+  function setAutoBackup(on) {
+    document.getElementById('backup-row').style.borderColor = on ? 'rgba(56,189,248,0.35)' : 'var(--border)';
+    document.getElementById('backup-row').style.background  = on ? 'rgba(56,189,248,0.07)'  : 'transparent';
+    document.getElementById('backup-label').style.color     = on ? '#38bdf8' : 'var(--muted)';
+    fetch('/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ autoBackup: on }) });
+    if (!on) return;
+    const wins = (_shadowHistory || []).filter(e => e.result === 'WIN');
+    if (!wins.length) return;
+    if (typeof window.showSaveFilePicker === 'function') {
+      window.showSaveFilePicker({ suggestedName: 'ml-wins.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] })
+        .then(async handle => { const w = await handle.createWritable(); await w.write(JSON.stringify(wins, null, 2)); await w.close(); })
+        .catch(() => {});
+    } else {
+      const blob = new Blob([JSON.stringify(wins, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href = url; a.download = 'ml-wins.json'; a.click(); URL.revokeObjectURL(url);
+    }
   }
 
   // ── PERFIL DE RIESGO
@@ -1237,6 +1250,14 @@
         document.querySelectorAll('.tf-btn').forEach(b => {
           b.classList.toggle('active', b.textContent.trim() === d.settings.timeframe);
         });
+      }
+      if (d.settings.autoBackup != null) {
+        const tog = document.getElementById('backup-toggle');
+        if (tog) tog.checked = d.settings.autoBackup;
+        const on = d.settings.autoBackup;
+        document.getElementById('backup-row').style.borderColor = on ? 'rgba(56,189,248,0.35)' : 'var(--border)';
+        document.getElementById('backup-row').style.background  = on ? 'rgba(56,189,248,0.07)'  : 'transparent';
+        document.getElementById('backup-label').style.color     = on ? '#38bdf8' : 'var(--muted)';
       }
     }
   }
