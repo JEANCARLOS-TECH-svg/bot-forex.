@@ -63,7 +63,16 @@ _load();
 function getHistory() {
   return history
     .filter(e => e.status === 'CLOSED')
-    .map(e => ({ timestamp: e.timestamp, pnl: e.pnlNet ?? e.pnlPips ?? 0 }));
+    .map(e => ({
+      timestamp:  e.timestamp,
+      side:       e.side,
+      entryPrice: e.entryPrice,
+      exitPrice:  e.exitPrice,
+      sl:         e.sl,
+      tp:         e.tp,
+      pnl:        e.pnlNet ?? e.pnlPips ?? 0,
+      result:     e.result,
+    }));
 }
 
 function clearHistory() {
