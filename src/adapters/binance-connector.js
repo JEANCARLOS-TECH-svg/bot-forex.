@@ -9,9 +9,10 @@ const CANDLE_MAX     = 500;
 
 let ws = null;
 let lastTickTime = 0;
+let currentSymbol = null;
 
-async function preloadCandles(symbol) {
-  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1m&limit=500`;
+async function preloadCandles(symbol, interval) {
+  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=500`;
   const res  = await fetch(url);
   const data = await res.json();
 
@@ -39,14 +40,15 @@ async function preloadCandles(symbol) {
   console.log(`[Binance] Precarga: ${candles.length} velas — warmup ${state.get('warmupComplete') ? 'completo' : 'pendiente'}`);
 }
 
-async function connect(symbol) {
-  await preloadCandles(symbol);
+async function connect(symbol, interval = '5m') {
+  currentSymbol = symbol;
+  await preloadCandles(symbol, interval);
 
-  const url = `${WS_BASE}/${symbol.toLowerCase()}@kline_1m`;
+  const url = `${WS_BASE}/${symbol.toLowerCase()}@kline_${interval}`;
   ws = new WebSocket(url);
 
   ws.on('open', () => {
-    console.log(`[Binance] Conectado — ${symbol} @kline_1m`);
+    console.log(`[Binance] Conectado — ${symbol} @kline_${interval}`);
   });
 
   ws.on('message', (raw) => {
@@ -68,6 +70,7 @@ async function connect(symbol) {
       low:    parseFloat(k.l),
       close:  parseFloat(k.c),
       volume: parseFloat(k.v),
+      tf:     interval,
     };
 
     const buffer = state.get('candleBuffer');
@@ -94,7 +97,7 @@ async function connect(symbol) {
       clearInterval(watchdog);
       if (ws) { ws.removeAllListeners('close'); ws.terminate(); }
       ws = null;
-      connect(symbol);
+      connect(symbol, interval);
     }
   }, 10000);
 
@@ -106,7 +109,7 @@ async function connect(symbol) {
     console.warn(`[Binance] Desconectado — code ${code}. Reconectando en 5s...`);
     clearInterval(watchdog);
     ws = null;
-    setTimeout(() => connect(symbol), 5000);
+    setTimeout(() => connect(symbol, interval), 5000);
   });
 }
 
@@ -119,4 +122,9 @@ function disconnect() {
   }
 }
 
-module.exports = { connect, disconnect };
+function reconnect(interval) {
+  disconnect();
+  connect(currentSymbol || 'BTCUSDT', interval);
+}
+
+module.exports = { connect, disconnect, reconnect };

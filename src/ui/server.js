@@ -4,6 +4,7 @@ const path    = require('path');
 const WebSocket = require('ws');
 const state   = require('../engine/state');
 const shadow  = require('../systems/shadow');
+const binance = require('../adapters/binance-connector');
 
 const PORT = 3000;
 
@@ -25,6 +26,10 @@ app.post('/settings', (req, res) => {
   if (allowedDirection)       state.update('settings.allowedDirection', allowedDirection);
   if (req.body.killSwitchLimit != null) state.update('settings.killSwitchLimit', Number(req.body.killSwitchLimit));
   if (req.body.riskProfile     != null) state.update('settings.riskProfile',     Number(req.body.riskProfile));
+  if (req.body.timeframe) {
+    state.update('settings.timeframe', req.body.timeframe);
+    binance.reconnect(req.body.timeframe);
+  }
   res.json({ ok: true });
 });
 
@@ -63,6 +68,7 @@ function getStateSnapshot() {
       allowedDirection: state.get('settings.allowedDirection'),
       killSwitchLimit:  state.get('settings.killSwitchLimit'),
       riskProfile:      state.get('settings.riskProfile'),
+      timeframe:        state.get('settings.timeframe'),
     },
     macd:            state.get('indicators.macd'),
     ema:             { fast: state.get('indicators.emaFast'), slow: state.get('indicators.emaSlow') },

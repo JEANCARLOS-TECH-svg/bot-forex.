@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v26.5 — Panel</title>
+  <title>ForexBot v26.6 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -308,7 +308,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v26.5 — BTCUSDT</small>
+      <small>v26.6 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -1233,6 +1233,11 @@
         if (rSlider) rSlider.value = d.settings.riskProfile;
         updateRiskProfile(d.settings.riskProfile);
       }
+      if (d.settings.timeframe) {
+        document.querySelectorAll('.tf-btn').forEach(b => {
+          b.classList.toggle('active', b.textContent.trim() === d.settings.timeframe);
+        });
+      }
     }
   }
 
@@ -1262,6 +1267,8 @@
   const PRICE_MAX = 120;
 
   function setTF(btn) {
+    const tf = btn.textContent.trim();
+    fetch('/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ timeframe: tf }) });
     document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
