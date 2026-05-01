@@ -68,7 +68,7 @@ function getStateSnapshot() {
     ema:             { fast: state.get('indicators.emaFast'), slow: state.get('indicators.emaSlow') },
     bb:              state.get('indicators.bb'),
     stoch:           state.get('indicators.stochRSI'),
-    priceHistory:    (state.get('candleBuffer') || []).slice(-120).map(c => c.close),
+    priceHistory:    (state.get('candleBuffer') || []).slice(-120).map(c => ({ o: c.open, h: c.high, l: c.low, c: c.close, t: c.timestamp || Date.now() })),
   };
 }
 

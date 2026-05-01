@@ -2,9 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ForexBot v26.0 — Panel</title>
+  <title>ForexBot v26.1 — Panel</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
   <style>
     :root {
       --bg:      #0d1117;
@@ -293,6 +294,10 @@
     .log-line.buy  { color:var(--accent); }
     .log-line.sell { color:var(--danger); }
     .log-line.warn { color:var(--warn); }
+    /* Timeframe selector */
+    .tf-btn { padding:3px 8px; border-radius:4px; border:1px solid var(--border); background:var(--bg); color:var(--muted); font-family:'Space Mono',monospace; font-size:9px; font-weight:700; cursor:pointer; letter-spacing:1px; }
+    .tf-btn:hover { border-color:var(--border2); color:var(--text2); }
+    .tf-btn.active { background:rgba(0,229,160,0.1); border-color:var(--accent); color:var(--accent); }
   </style>
 </head>
 <body>
@@ -304,7 +309,7 @@
     <div class="logo-icon">⚡</div>
     <div>
       <h1>Forex<span>Bot</span></h1>
-      <small>v26.0 — BTCUSDT</small>
+      <small>v26.1 — BTCUSDT</small>
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:12px">
@@ -728,9 +733,17 @@
 
     <!-- 17. PRECIO EN TIEMPO REAL -->
     <div class="panel">
-      <div class="panel-title">Precio BTC — Tiempo real</div>
-      <div style="height:200px;overflow:hidden">
-        <canvas id="price-chart" style="display:block;max-height:200px"></canvas>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="panel-title" style="margin-bottom:0">Precio BTC — Tiempo real</div>
+        <div style="display:flex;gap:4px">
+          <button class="tf-btn active" onclick="setTF(this)">1m</button>
+          <button class="tf-btn" onclick="setTF(this)">5m</button>
+          <button class="tf-btn" onclick="setTF(this)">15m</button>
+          <button class="tf-btn" onclick="setTF(this)">1h</button>
+        </div>
+      </div>
+      <div style="height:220px;overflow:hidden">
+        <canvas id="price-chart" style="display:block;max-height:220px"></canvas>
       </div>
     </div>
 
@@ -1162,7 +1175,7 @@
         exportBtn.style.opacity         = hasData ? '1'                               : '0.35';
       }
     }
-    if (d.price != null) updatePriceChart(d.price);
+    if (d.priceHistory != null && d.priceHistory.length > 0) updatePriceChart(d.priceHistory);
 
     // Sentimiento compuesto: ADX + momentum RSI + volatilidad BB + volumen (neutral 50)
     if (d.adx != null) {
@@ -1246,63 +1259,87 @@
     _animRafs[id] = requestAnimationFrame(step);
   }
 
-  // ── PRICE CHART (tiempo real)
+  // ── PRICE CHART (candlestick)
   let priceChart = null;
-  const priceBuffer = [];
-  const PRICE_MAX = 120;
 
-  function updatePriceChart(price) {
-    if (price == null) return;
-    priceBuffer.push(price);
-    if (priceBuffer.length > PRICE_MAX) priceBuffer.shift();
+  function setTF(btn) {
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
 
+  function updatePriceChart(ohlcArray) {
+    if (!ohlcArray || ohlcArray.length === 0) return;
     const canvas = document.getElementById('price-chart');
     if (!canvas) return;
 
-    const pad   = PRICE_MAX - priceBuffer.length;
-    const data  = pad > 0 ? [...Array(pad).fill(null), ...priceBuffer] : [...priceBuffer];
-    const labels = Array(PRICE_MAX).fill('');
-
-    const first = priceBuffer[0];
-    const last  = priceBuffer[priceBuffer.length - 1];
-    const color   = last >= first ? '#00e5a0' : '#ff4d6a';
-    const bgColor = last >= first ? 'rgba(0,229,160,0.07)' : 'rgba(255,77,106,0.07)';
+    const data = ohlcArray.map((c, i) => ({
+      x: c.t || (Date.now() - (ohlcArray.length - i) * 60000),
+      o: c.o, h: c.h, l: c.l, c: c.c,
+    }));
 
     if (priceChart) {
-      priceChart.data.labels = labels;
       priceChart.data.datasets[0].data = data;
-      priceChart.data.datasets[0].borderColor = color;
-      priceChart.data.datasets[0].backgroundColor = bgColor;
       priceChart.update('none');
       return;
     }
 
     priceChart = new Chart(canvas, {
-      type: 'line',
+      type: 'candlestick',
       data: {
-        labels,
         datasets: [{
-          data: data,
-          borderColor: color,
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: true,
-          backgroundColor: bgColor,
-          tension: 0.2,
+          label: 'BTCUSDT',
+          data,
+          color: {
+            up:        '#00e5a0',
+            down:      '#ff4d6a',
+            unchanged: '#94a3b8',
+          },
+          borderColor: {
+            up:        '#00e5a0',
+            down:      '#ff4d6a',
+            unchanged: '#94a3b8',
+          },
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
-        plugins: { legend: { display: false }, tooltip: {
-          callbacks: { label: ctx => ' $' + ctx.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2 }) }
-        }},
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const d = ctx.raw;
+                return `O:$${d.o?.toFixed(0)} H:$${d.h?.toFixed(0)} L:$${d.l?.toFixed(0)} C:$${d.c?.toFixed(0)}`;
+              }
+            }
+          }
+        },
         scales: {
-          x: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 }, maxTicksLimit: 6 }, grid: { color: '#1e2a3a' } },
-          y: { ticks: { color: '#475569', font: { family: 'Space Mono', size: 9 }, maxTicksLimit: 5,
-                        callback: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0 }) },
-               grid: { color: '#1e2a3a' }, border: { dash: [3,3] } }
+          x: {
+            type: 'linear',
+            ticks: {
+              color: '#475569',
+              font: { family: 'Space Mono', size: 9 },
+              maxTicksLimit: 6,
+              callback: v => {
+                const d = new Date(v);
+                return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+              }
+            },
+            grid: { color: '#1e2a3a' }
+          },
+          y: {
+            ticks: {
+              color: '#475569',
+              font: { family: 'Space Mono', size: 9 },
+              maxTicksLimit: 5,
+              callback: v => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 0 })
+            },
+            grid:   { color: '#1e2a3a' },
+            border: { dash: [3,3] }
+          }
         }
       }
     });
