@@ -1027,6 +1027,7 @@
   const wsDot    = document.getElementById('ws-dot');
   const wsLabel  = document.getElementById('ws-label');
   const pillWrap = document.getElementById('status-pill-wrap');
+  let priceBuffer = [];
 
   function connect() {
     const ws = new WebSocket('ws://localhost:3000');
