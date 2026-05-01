@@ -29,30 +29,38 @@ function checkSignal(indicators, regime) {
     return { side: 'NONE', score: 0, umbral: 0 };
   }
 
-  // Votos simples — cada indicador vota BUY(+1), SELL(-1) o NEUTRAL(0)
+  // Pesos adaptativos por régimen
+  const WEIGHTS = {
+    TENDENCIAL:      { ema: 30, macd: 28, rsi: 15, bb: 15, stoch: 12 },
+    LATERAL:         { ema:  8, macd:  5, rsi: 25, bb: 40, stoch: 22 },
+    LATERAL_EXTREMO: { ema:  0, macd:  0, rsi: 35, bb: 50, stoch: 15 },
+  };
+  const w = WEIGHTS[regime.label] || WEIGHTS.LATERAL;
+
   let buyVotes = 0, sellVotes = 0;
   let buyScore = 0, sellScore = 0;
 
   // RSI
-  if (rsi < 35) { buyVotes++;  buyScore  += 20; }
-  if (rsi > 65) { sellVotes++; sellScore += 20; }
+  if (rsi < 35) { buyVotes++;  buyScore  += w.rsi; }
+  if (rsi > 65) { sellVotes++; sellScore += w.rsi; }
 
   // MACD histograma
-  if (macd.hist > 0 && macd.macd > macd.signal) { buyVotes++;  buyScore  += 22; }
-  if (macd.hist < 0 && macd.macd < macd.signal) { sellVotes++; sellScore += 22; }
+  if (macd.hist > 0 && macd.macd > macd.signal) { buyVotes++;  buyScore  += w.macd; }
+  if (macd.hist < 0 && macd.macd < macd.signal) { sellVotes++; sellScore += w.macd; }
 
   // EMA cross
-  if (emaFast > emaSlow) { buyVotes++;  buyScore  += 22; }
-  if (emaFast < emaSlow) { sellVotes++; sellScore += 22; }
+  if (emaFast > emaSlow) { buyVotes++;  buyScore  += w.ema; }
+  if (emaFast < emaSlow) { sellVotes++; sellScore += w.ema; }
 
   // Bollinger
-  if (currentPrice <= bb.lower) { buyVotes++;  buyScore  += 22; }
-  if (currentPrice >= bb.upper) { sellVotes++; sellScore += 22; }
+  if (currentPrice <= bb.lower) { buyVotes++;  buyScore  += w.bb; }
+  if (currentPrice >= bb.upper) { sellVotes++; sellScore += w.bb; }
 
-  // StochRSI (ajustado por régimen)
-  if (adx <= 30) {
-    if (stoch.k < 20) { buyVotes++;  buyScore  += 12; }
-    if (stoch.k > 80) { sellVotes++; sellScore += 12; }
+  // StochRSI (solo si ADX ≤ 30)
+  const stochActive = adx <= 30;
+  if (stochActive) {
+    if (stoch.k < 20) { buyVotes++;  buyScore  += w.stoch; }
+    if (stoch.k > 80) { sellVotes++; sellScore += w.stoch; }
   }
 
   let umbral = calcularUmbralDinamico(adx, regime.label);
@@ -75,7 +83,7 @@ function checkSignal(indicators, regime) {
 
   const totalBuy  = buyScore;
   const totalSell = sellScore;
-  const maxScore  = adx > 30 ? 86 : 98;
+  const maxScore = w.ema + w.macd + w.rsi + w.bb + (stochActive ? w.stoch : 0);
 
   const buyPct  = (totalBuy  / maxScore) * 100;
   const sellPct = (totalSell / maxScore) * 100;
